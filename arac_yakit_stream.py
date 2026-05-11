@@ -871,3 +871,4 @@ st.markdown("""
 <div style="text-align:center;font-family:DM Mono,monospace;font-size:0.65rem;color:#2a2f3e;margin-top:2rem;">
 Araç Simülasyonu · Değerler tahmin modellerine dayanmaktadır
 </div>""", unsafe_allow_html=True)
+st.caption("© Araç Yakıt Tahmini | Streamlit + Python | 2026 Enes Özkan")
