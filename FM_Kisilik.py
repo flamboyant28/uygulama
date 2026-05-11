@@ -340,3 +340,4 @@ else:
         f"<span style='color:#aaa;font-size:13px'>📋 Standart Profesyonel (varsayılan)</span>",
         unsafe_allow_html=True,
     )
+st.caption("© Football Manager Oyuncu Kişilik Analizi | Streamlit + Python | 2026 Enes Özkan")
