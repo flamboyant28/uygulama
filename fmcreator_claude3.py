@@ -4212,4 +4212,4 @@ with tab5:
                 st.session_state.career_log = []
                 st.session_state.career_year = 0
                 st.rerun()
-st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026")
+st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026 Enes Özkan")
