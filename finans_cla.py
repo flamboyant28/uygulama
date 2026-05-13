@@ -296,7 +296,14 @@ with tab_kredi:
     st.info(f"📌 Hesaplanan Aylık Taksit: **{tl(hesaplanan_taksit)}**")
 
     advanced = st.checkbox("🔧 Manuel taksit")
-    taksit = st.number_input("Aylık Taksit", value=hesaplanan_taksit, disabled=not advanced, key="aylık_taksit_1")
+    # Manuel değilse hesaplanan taksiti kullan (widget değeri değil)
+    if advanced:
+        taksit = st.number_input("Aylık Taksit", value=hesaplanan_taksit,
+                                  key="aylık_taksit_1")
+    else:
+        st.number_input("Aylık Taksit", value=hesaplanan_taksit,
+                        disabled=True, key="aylık_taksit_1")
+        taksit = hesaplanan_taksit  # Her zaman hesaplanan değeri kullan
 
     a1, a2 = st.columns(2)
     with a1: ara_odeme_ayi   = st.number_input("Ara Ödeme Ayı (0=yok)", 0, vade, 0, key="ara_ödeme_ay_1")
@@ -304,6 +311,7 @@ with tab_kredi:
 
     # Amortisman tablosu oluştur
     rows_k, kalan = [], kredi_tutari
+    hata_msg = None
     for ay in range(1, vade + 1):
         faiz_k    = round(kalan * (aylik_faiz / 100), 2)
         kkdf_k    = round(faiz_k * kkdf_orani, 2)
@@ -312,7 +320,9 @@ with tab_kredi:
         donem_ay  = taksit_ayi_hesapla(kredi_bas_tarihi, ay)
         anapara_k = round(taksit - faiz_top, 2)
         if anapara_k <= 0:
-            st.error("⚠️ Taksit faizi karşılamıyor.")
+            hata_msg = (f"⚠️ Taksit faizi karşılamıyor. "
+                        f"Aylık faiz: {tl(faiz_top)}, Taksit: {tl(taksit)}. "
+                        f"Taksit en az {tl(faiz_top + 1)} olmalı.")
             break
         ara = ara_odeme_tutar if ay == ara_odeme_ayi else 0.0
         kalan = max(0, round(kalan - anapara_k - ara, 2))
@@ -327,6 +337,10 @@ with tab_kredi:
         })
         if kalan == 0:
             break
+
+    if hata_msg or not rows_k:
+        st.error(hata_msg or "⚠️ Amortisman tablosu oluşturulamadı.")
+        st.stop()
 
     df_kredi = pd.DataFrame(rows_k)
     st.session_state.son_kredi_df  = df_kredi.copy()
@@ -650,7 +664,7 @@ Bu ekran **Mevduat** ve **Kredi** sekmelerindeki verileri otomatik kullanır.
                              title="Ay Ay Net Durum (Mevduat Geliri − Kredi Taksiti)",
                              color="Net Durum",
                              color_continuous_scale=["#ef5350","#66bb6a"])
-        fig_analiz.add_hline(y=0, line_dash="dash", line_color="white")
+        fig_analiz.add_hline(y=0, line_dash="dash", line_color="#333333")
         fig_analiz.update_layout(yaxis_tickformat=",")
         st.plotly_chart(fig_analiz, use_container_width=True)
 
