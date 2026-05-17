@@ -439,3 +439,4 @@ e6.metric("Bu Yol İçin",         ev_yeterli_str,          f"{yol} km yol",    
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.caption("📐 Mesafeler koordinat tabanlı tahminidir (haversine × 1.30 yol katsayısı). Gerçek mesafe için navigasyon uygulaması kullanın.")
+st.caption("© Yolculuk-Yakıt-Zaman-Masraf Hesaplayıcı | Streamlit + Python | 2026 Enes Özkan")
