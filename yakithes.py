@@ -249,14 +249,14 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### 🔄 Yakıt Karşılaştırması")
-    dizel_fiyat   = st.number_input("Dizel Fiyatı (TL/L)", value=55.0, min_value=0.01, step=0.5, format="%.2f")
+    dizel_fiyat   = st.number_input("Dizel Fiyatı (TL/L)", value=67.32, min_value=0.01, step=0.01, format="%.2f")
     dizel_tuketim = st.number_input("Dizel 100km Tüketim (L)", value=6.5, min_value=0.1, step=0.1, format="%.1f")
-    lpg_fiyat     = st.number_input("LPG Fiyatı (TL/L)", value=25.0, min_value=0.01, step=0.5, format="%.2f")
+    lpg_fiyat     = st.number_input("LPG Fiyatı (TL/L)", value=33.29, min_value=0.01, step=0.01, format="%.2f")
     lpg_tuketim   = st.number_input("LPG 100km Tüketim (L)", value=11.0, min_value=0.1, step=0.1, format="%.1f")
 
     st.divider()
     st.markdown("### ⚡ Elektrikli Araç (EV)")
-    ev_fiyat   = st.number_input("Elektrik (TL/kWh)", value=12.0, min_value=0.01, step=0.5, format="%.2f")
+    ev_fiyat   = st.number_input("Elektrik (TL/kWh)", value=12.0, min_value=0.01, step=0.01, format="%.2f")
     ev_tuketim = st.number_input("EV 100km Tüketim (kWh)", value=20.0, min_value=0.1, step=0.1, format="%.1f")
     ev_batarya = st.number_input("Batarya Kapasitesi (kWh)", value=75.0, min_value=1.0, step=1.0, format="%.1f")
 
