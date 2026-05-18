@@ -255,7 +255,7 @@ with st.sidebar:
 
     col_j1, col_j2 = st.columns(2)
     with col_j1:
-        if st.button("📂 JSON'dan Yükle", use_container_width=True,
+        if st.button("💲 Fiyatları Yükle", use_container_width=True,
                      help="fiyatlar.json dosyasındaki fiyatları uygular"):
             if fiyat_json_oku():
                 st.success("Yüklendi!")
@@ -715,3 +715,5 @@ with tab_rapor:
                 "- Hava/yük düzeltme notu")
     st.divider()
     st.caption("⛽ Yakıt fiyatlarını güncellemek için fiyatlar.json dosyasını düzenleyin.")
+    st.caption("📐 Mesafeler koordinat tabanlı tahminidir (haversine × 1.30 yol katsayısı). Gerçek mesafe için navigasyon uygulaması kullanın.")
+    st.caption("© Yolculuk-Yakıt-Zaman-Masraf Hesaplayıcı | Streamlit + Python | 2026 Enes Özkan")
