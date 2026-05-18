@@ -43,7 +43,7 @@ def _font_yukle():
                 return f_normal, f_bold
             except Exception:
                 continue
-    return "Helvetica", "Helvetica-Bold"
+    return "Arial", "Arial-Bold"
 
 PDF_FONT, PDF_FONT_BOLD = _font_yukle()
 import openpyxl
