@@ -56,7 +56,7 @@ PDF_FONT, PDF_FONT_BOLD = _font_yukle()
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-st.set_page_config(page_title="Araç Yol Bilgisayarı", page_icon="🚗", layout="wide")
+st.set_page_config(page_title="Araç Yol Bilgisayarı ", page_icon="🚗", layout="wide")
 
 st.markdown("""
 <style>
