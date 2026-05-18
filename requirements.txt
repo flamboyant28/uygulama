@@ -6,3 +6,4 @@ plotly
 reportlab
 openpyxl
 folium
+streamlit_folium
