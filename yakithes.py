@@ -231,7 +231,7 @@ with st.sidebar:
 
     col_j1, col_j2 = st.columns(2)
     with col_j1:
-        if st.button("📂 JSON'dan Yükle", use_container_width=True,
+        if st.button("💲 Fiyatları Yükle", use_container_width=True,
                      help="fiyatlar.json dosyasındaki fiyatları uygular"):
             if fiyat_json_oku():
                 st.success("Yüklendi!")
