@@ -23,8 +23,8 @@ def _kayit_et(ad, yol):
         pdfmetrics.registerFont(TTFont(ad, yol)); return True
     return False
 
-_calibri_normal = "C:/Windows/Fonts/calibri.ttf"
-_calibri_bold   = "C:/Windows/Fonts/calibrib.ttf"
+_calibri_normal = "calibri.ttf"
+_calibri_bold   = "calibrib.ttf"
 _dejavu_normal  = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 _dejavu_bold    = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
