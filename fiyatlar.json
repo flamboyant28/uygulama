@@ -1,8 +1,8 @@
 {
   "benzin": 64.88,
-  "dizel": 55.00,
-  "lpg": 25.00,
+  "dizel": 67.32,
+  "lpg": 35.02,
   "elektrik": 12.00,
-  "kaynak": "EPDK",
+  "kaynak": "Shell",
   "guncelleme": "18.05.2026"
 }
