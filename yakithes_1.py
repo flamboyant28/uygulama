@@ -150,7 +150,7 @@ def fmt_sure(h_float):
 
 # ── Session state ─────────────────────────────────────────────────────────────
 if "duraks"  not in st.session_state:
-    st.session_state.duraks = [("İstanbul","Kadıköy"),("Ankara","Çankaya")]
+    st.session_state.duraks = [("İstanbul","Üsküdar"),("İzmir","Bornova"),("Muğla","Fethiye"),("Sivas","Hafik"),("Giresun","Görele"),("Sivas","Hafik"),("İstanbul","Üsküdar")]
 if "km_ov"   not in st.session_state:
     st.session_state.km_ov = [0]
 if "fiyatlar" not in st.session_state:
@@ -230,7 +230,7 @@ with st.sidebar:
             _sync(); st.rerun()
     with cb:
         if st.button("↺ Sıfırla", use_container_width=True):
-            st.session_state.duraks=[("İstanbul","Kadıköy"),("Ankara","Çankaya")]
+            st.session_state.duraks=[("İstanbul","Üsküdar"),("İzmir","Bornova"),("Muğla","Fethiye"),("Sivas","Hafik"),("Giresun","Görele"),("Sivas","Hafik"),("İstanbul","Üsküdar")]
             st.session_state.km_ov=[0]; st.rerun()
 
     segments = []
