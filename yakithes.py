@@ -263,7 +263,7 @@ with st.sidebar:
 
     # ── Araç ──────────────────────────────────────────────────────────────────
     st.divider()
-    st.markdown("### 🚗 Araç Bilgileri")
+    st.markdown("### 🚗 Araç Bilgileri (Benzin)")
     hiz      = st.number_input("Ortalama Hız (km/s)", value=90, min_value=1, max_value=300)
     depo     = st.number_input("Depo Kapasitesi (L)",  value=53.0, min_value=1.0, step=0.5, format="%.1f")
     tuketim  = st.number_input("100km Tüketim (L)",    value=7.4,  min_value=0.1, step=0.1, format="%.1f")
@@ -299,7 +299,7 @@ with st.sidebar:
 
     col_j1, col_j2 = st.columns(2)
     with col_j1:
-        if st.button("📂 JSON'dan Yükle", use_container_width=True,
+        if st.button("💲 Fiyatları Yükle", use_container_width=True,
                      help="fiyatlar.json dosyasındaki fiyatları uygular"):
             if fiyat_json_oku():
                 st.success("Yüklendi!")
