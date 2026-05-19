@@ -797,3 +797,5 @@ with tab_rapor:
     st.divider()
     st.caption("⛽ Yakıt fiyatlarını güncellemek için fiyatlar.json dosyasını düzenleyin.")
     st.caption(f"🔤 PDF fontu: {PDF_FONT}")
+    st.caption("📐 Mesafeler koordinat tabanlı tahminidir (haversine × 1.30 yol katsayısı). Gerçek mesafe için navigasyon uygulaması kullanın.")
+    st.caption("© Yakıt Hesabı | Streamlit + Python | 2026 Enes Özkan")
