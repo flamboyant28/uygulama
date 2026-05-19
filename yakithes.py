@@ -154,7 +154,7 @@ if "duraks"  not in st.session_state:
 if "km_ov"   not in st.session_state:
     st.session_state.km_ov = [0]
 if "fiyatlar" not in st.session_state:
-    st.session_state.fiyatlar = {"benzin":64.88,"dizel":55.0,"lpg":25.0,"elektrik":12.0,"kaynak":"","ts":None,"guncelleme":""}
+    st.session_state.fiyatlar = {"benzin":64.88,"dizel":55.0,"lpg":25.0,"elektrik":.0,"kaynak":"","ts":None,"guncelleme":""}
 
 def _sync():
     n = len(st.session_state.duraks)-1
@@ -173,7 +173,7 @@ def fiyat_json_oku():
         st.session_state.fiyatlar["benzin"]    = float(data.get("benzin",   64.88))
         st.session_state.fiyatlar["dizel"]     = float(data.get("dizel",    55.00))
         st.session_state.fiyatlar["lpg"]       = float(data.get("lpg",      25.00))
-        st.session_state.fiyatlar["elektrik"]  = float(data.get("elektrik", 12.00))
+        st.session_state.fiyatlar["elektrik"]  = float(data.get("elektrik", .00))
         st.session_state.fiyatlar["kaynak"]    = data.get("kaynak", "")
         st.session_state.fiyatlar["guncelleme"]= data.get("guncelleme", "")
         st.session_state.fiyatlar["ts"]        = data.get("guncelleme", "")
@@ -331,8 +331,8 @@ with st.sidebar:
     st.markdown("### ⚡ Elektrikli Araç (EV)")
     ev_fiyat   = st.number_input("Elektrik (TL/kWh)", value=st.session_state.fiyatlar.get("elektrik", 12.0), min_value=0.01, step=0.5, format="%.2f", key="inp_elektrik")
     st.session_state.fiyatlar["elektrik"] = ev_fiyat
-    ev_tuketim = st.number_input("EV 100km (kWh)",    value=20.0,  min_value=0.1,  step=0.1, format="%.1f")
-    ev_batarya = st.number_input("Batarya (kWh)",     value=75.0,  min_value=1.0,  step=1.0, format="%.1f")
+    ev_tuketim = st.number_input("EV 100km (kWh)",    value=16.0,  min_value=0.1,  step=0.1, format="%.1f")
+    ev_batarya = st.number_input("Batarya (kWh)",     value=65.0,  min_value=1.0,  step=1.0, format="%.1f")
 
 # ── Hesaplamalar ─────────────────────────────────────────────────────────────
 # Düzeltilmiş tüketim kullan
