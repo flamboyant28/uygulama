@@ -4212,4 +4212,607 @@ with tab5:
                 st.session_state.career_log = []
                 st.session_state.career_year = 0
                 st.rerun()
+
+# =========================================================
+# TAB 6 — ANALİTİK
+# =========================================================
+with tab6:
+    an_tab1, an_tab2, an_tab3, an_tab4 = st.tabs([
+        "⚖️ Oyuncu Karşılaştırma",
+        "📍 Pozisyon Fit Analizi",
+        "🏟️ Kadro Denge Skoru",
+        "📈 CA/PA Verimlilik",
+    ])
+
+    # ══════════════════════════════════════════════════════
+    # AN-TAB 1 — OYUNCU KARŞILAŞTIRMA
+    # ══════════════════════════════════════════════════════
+    with an_tab1:
+        st.subheader("⚖️ Oyuncu Karşılaştırma")
+        st.caption("İki oyuncu üret — radar overlay, attribute fark tablosu ve skor karşılaştırması.")
+
+        cmp_col1, cmp_col2 = st.columns(2)
+
+        def _cmp_form(col, key_prefix, label, default_pos="ST"):
+            with col:
+                st.markdown(f"**{label}**")
+                pos  = st.selectbox("Mevki", ALL_POSITIONS,
+                                    index=ALL_POSITIONS.index(default_pos),
+                                    key=f"{key_prefix}_pos")
+                age  = st.slider("Yaş", 15, 40, 22, key=f"{key_prefix}_age")
+                pre  = st.selectbox("Profil",
+                                    ["Average","Wonderkid","Star","Superstar"],
+                                    key=f"{key_prefix}_pre")
+                cty  = st.selectbox("Ülke", list(COUNTRY_PROFILES.keys()),
+                                    key=f"{key_prefix}_cty")
+                return pos, age, pre, cty
+
+        p1_pos, p1_age, p1_pre, p1_cty = _cmp_form(cmp_col1, "p1", "🔵 Oyuncu 1", "ST")
+        p2_pos, p2_age, p2_pre, p2_cty = _cmp_form(cmp_col2, "p2", "🔴 Oyuncu 2", "KF (Sol)")
+
+        if st.button("🎲 İki Oyuncuyu Üret & Karşılaştır", type="primary", key="cmp_gen"):
+            def _gen(pos, age, pre, cty):
+                tca, pa = get_ca_pa(pre, age, cty)
+                tech, mental, phys, gk, hidden = generate_all_attributes(pos, age, pre, cty, tca)
+                bp = POSITION_BASE[pos]
+                all_a = {**tech,**mental,**phys,**gk} if bp=="KL" else {**tech,**mental,**phys}
+                ft = generate_foot(pos)
+                wf = generate_weak_foot(ft, pos)
+                ca = min(calculate_ca(all_a, pos, wf), pa)
+                name = generate_name(cty)
+                personality = detect_personality(hidden)
+                return {
+                    "name": name, "pos": pos, "age": age, "pre": pre,
+                    "cty": cty, "ca": ca, "pa": pa, "wf": wf,
+                    "tech": tech, "mental": mental, "phys": phys,
+                    "gk": gk, "hidden": hidden,
+                    "all_a": all_a, "personality": personality,
+                    "flag": COUNTRY_FLAG.get(cty, "🏳️"),
+                }
+
+            st.session_state["cmp_p1"] = _gen(p1_pos, p1_age, p1_pre, p1_cty)
+            st.session_state["cmp_p2"] = _gen(p2_pos, p2_age, p2_pre, p2_cty)
+
+        if "cmp_p1" in st.session_state and "cmp_p2" in st.session_state:
+            P1 = st.session_state["cmp_p1"]
+            P2 = st.session_state["cmp_p2"]
+
+            # ── Başlık kartları ───────────────────────────
+            h1, h2 = st.columns(2)
+            for col, P, color in [(h1, P1, "#3498db"), (h2, P2, "#e74c3c")]:
+                grade = scout_grade(P["pa"])
+                gc = {"A":"#2ecc71","B":"#27ae60","C":"#f1c40f","D":"#e67e22","E":"#e74c3c"}.get(grade,"#aaa")
+                col.markdown(
+                    f"<div style='background:#161b22;border:1px solid {color};border-radius:10px;"
+                    f"padding:12px 16px'>"
+                    f"<div style='font-size:16px;font-weight:800;color:{color}'>{P['flag']} {P['name']}</div>"
+                    f"<div style='font-size:12px;color:#8b949e'>{P['pos']} · {P['cty']} · {P['age']} yaş</div>"
+                    f"<div style='margin-top:6px;font-size:18px;font-weight:900;color:#2ecc71'>CA {P['ca']}"
+                    f"  <span style='font-size:13px;color:#8b949e'>/ PA {P['pa']}</span>"
+                    f"  <span style='font-size:14px;color:{gc}'> {grade}</span></div>"
+                    f"<div style='font-size:11px;color:#8b949e;margin-top:4px'>"
+                    f"{P['personality']['name']}</div></div>",
+                    unsafe_allow_html=True
+                )
+
+            # ── Radar Overlay ─────────────────────────────
+            st.markdown("### 📡 Radar Karşılaştırma")
+            bp1 = POSITION_BASE[P1["pos"]]
+            bp2 = POSITION_BASE[P2["pos"]]
+            cats = RADAR_CATEGORIES_GK if (bp1=="KL" or bp2=="KL") else RADAR_CATEGORIES
+
+            cat_names = list(cats.keys())
+            def _cat_avg(p_all, cat_attrs):
+                vals = [p_all.get(a,1) for a in cat_attrs if a in p_all]
+                return round(sum(vals)/len(vals)) if vals else 1
+
+            v1 = [_cat_avg(P1["all_a"], cats[c]) for c in cat_names]
+            v2 = [_cat_avg(P2["all_a"], cats[c]) for c in cat_names]
+            N  = len(cat_names)
+            angles = [np.pi/2 - i*2*np.pi/N for i in range(N)]
+            n1 = [x/20 for x in v1]
+            n2 = [x/20 for x in v2]
+
+            fig_cmp, ax_c = plt.subplots(figsize=(5.5, 5.5))
+            fig_cmp.patch.set_facecolor("#0d1117")
+            ax_c.set_facecolor("#0d1117")
+            ax_c.set_xlim(-1.5,1.5); ax_c.set_ylim(-1.5,1.5)
+            ax_c.set_aspect("equal"); ax_c.axis("off")
+
+            for r in [0.25,0.5,0.75,1.0]:
+                cx = [r*np.cos(a) for a in np.linspace(0,2*np.pi,120)]
+                cy = [r*np.sin(a) for a in np.linspace(0,2*np.pi,120)]
+                ax_c.plot(cx, cy, color="#1e2235", lw=0.8)
+            for a in angles:
+                ax_c.plot([0,np.cos(a)],[0,np.sin(a)],color="#1e2235",lw=0.8)
+
+            def _poly(vals_norm, color, label, alpha_fill=0.18):
+                px = [v*np.cos(a) for v,a in zip(vals_norm,angles)]
+                py = [v*np.sin(a) for v,a in zip(vals_norm,angles)]
+                ax_c.fill(px+[px[0]], py+[py[0]], color=color, alpha=alpha_fill)
+                ax_c.plot(px+[px[0]], py+[py[0]], color=color, lw=2.2, label=label)
+                ax_c.scatter(px, py, color=color, s=24)
+
+            _poly(n1, "#3498db", P1["name"].split()[-1])
+            _poly(n2, "#e74c3c", P2["name"].split()[-1])
+
+            for a, name, val1, val2 in zip(angles, cat_names, v1, v2):
+                lx = 1.2*np.cos(a); ly = 1.2*np.sin(a)
+                ha = "center" if abs(lx)<0.15 else ("left" if lx>0 else "right")
+                va = "center" if abs(ly)<0.15 else ("bottom" if ly>0 else "top")
+                ax_c.text(lx, ly, f"{val1}–{val2}", ha=ha, va=va,
+                          fontsize=8, fontweight="bold", color="#e0e0e0")
+                ax_c.text(lx*1.28, ly*1.28, name, ha=ha, va=va,
+                          fontsize=6.5, color="#8b949e")
+
+            ax_c.legend(fontsize=8, labelcolor="#ccc", facecolor="#0d1117",
+                        loc="lower right")
+            plt.tight_layout(pad=0.2)
+            r_l, r_r = st.columns([1.2, 1])
+            with r_l:
+                st.pyplot(fig_cmp, use_container_width=True)
+            plt.close(fig_cmp)
+
+            # ── Attribute Fark Tablosu ─────────────────────
+            with r_r:
+                st.markdown("**Attribute Farkları (sadece ±2+)**")
+                all_keys = list(P1["tech"]) + list(P1["mental"]) + list(P1["phys"])
+                rows = []
+                for attr in all_keys:
+                    v1a = P1["all_a"].get(attr, 1)
+                    v2a = P2["all_a"].get(attr, 1)
+                    diff = v1a - v2a
+                    if abs(diff) >= 2:
+                        rows.append((attr, v1a, v2a, diff))
+                rows.sort(key=lambda x: -abs(x[3]))
+
+                diff_html = "<table style='width:100%;border-collapse:collapse;font-size:0.8rem'>"
+                diff_html += ("<tr style='color:#8b949e;border-bottom:1px solid #30363d'>"
+                              "<td style='padding:3px 6px'>Özellik</td>"
+                              "<td style='padding:3px 6px;text-align:center;color:#3498db'>P1</td>"
+                              "<td style='padding:3px 6px;text-align:center;color:#e74c3c'>P2</td>"
+                              "<td style='padding:3px 6px;text-align:center'>Fark</td></tr>")
+                for attr, v1a, v2a, diff in rows[:20]:
+                    dc = "#3498db" if diff > 0 else "#e74c3c"
+                    ds = f"+{diff}" if diff > 0 else str(diff)
+                    diff_html += (f"<tr style='border-bottom:1px solid #1a1a2e'>"
+                                  f"<td style='padding:2px 6px;color:#ccc'>{attr}</td>"
+                                  f"<td style='padding:2px 6px;text-align:center;color:#3498db;font-weight:700'>{v1a}</td>"
+                                  f"<td style='padding:2px 6px;text-align:center;color:#e74c3c;font-weight:700'>{v2a}</td>"
+                                  f"<td style='padding:2px 6px;text-align:center;color:{dc};font-weight:800'>{ds}</td></tr>")
+                diff_html += "</table>"
+                st.markdown(diff_html, unsafe_allow_html=True)
+
+            # ── Skor Karşılaştırma ─────────────────────────
+            st.markdown("### 🏅 Kategori Skor Karşılaştırması")
+            cat_keys = [
+                ("⚙️ Teknik", list(P1["tech"].keys()), "#3498db"),
+                ("🧠 Zihinsel", list(P1["mental"].keys()), "#9b59b6"),
+                ("💪 Fiziksel", list(P1["phys"].keys()), "#2ecc71"),
+            ]
+            sc1, sc2, sc3 = st.columns(3)
+            for col, (label, keys, color) in zip([sc1,sc2,sc3], cat_keys):
+                avg1 = sum(P1["all_a"].get(k,1) for k in keys) / max(len(keys),1)
+                avg2 = sum(P2["all_a"].get(k,1) for k in keys) / max(len(keys),1)
+                winner = "🔵" if avg1 > avg2 else ("🔴" if avg2 > avg1 else "🟡")
+                col.markdown(
+                    f"<div style='background:#161b22;border-radius:8px;padding:10px;text-align:center'>"
+                    f"<div style='font-size:11px;color:#8b949e'>{label}</div>"
+                    f"<div style='font-size:12px;color:{color};margin:6px 0'>{winner}</div>"
+                    f"<div style='display:flex;justify-content:space-between'>"
+                    f"<span style='color:#3498db;font-weight:700;font-size:16px'>{avg1:.1f}</span>"
+                    f"<span style='color:#555'>vs</span>"
+                    f"<span style='color:#e74c3c;font-weight:700;font-size:16px'>{avg2:.1f}</span>"
+                    f"</div></div>",
+                    unsafe_allow_html=True
+                )
+
+    # ══════════════════════════════════════════════════════
+    # AN-TAB 2 — POZİSYON FIT ANALİZİ
+    # ══════════════════════════════════════════════════════
+    with an_tab2:
+        st.subheader("📍 Pozisyon Fit Analizi")
+        st.caption("Bir oyuncu üret — hangi mevkide ne kadar değerli, neden orada iyi/kötü.")
+
+        pf_col1, pf_col2, pf_col3, pf_col4 = st.columns(4)
+        with pf_col1: pf_pos = st.selectbox("Ana Mevki", ALL_POSITIONS, key="pf_pos")
+        with pf_col2: pf_age = st.slider("Yaş", 15, 40, 24, key="pf_age")
+        with pf_col3: pf_pre = st.selectbox("Profil", ["Average","Wonderkid","Star","Superstar"], key="pf_pre")
+        with pf_col4: pf_cty = st.selectbox("Ülke", list(COUNTRY_PROFILES.keys()), key="pf_cty")
+
+        if st.button("🔍 Analiz Et", type="primary", key="pf_btn"):
+            tca, pa = get_ca_pa(pf_pre, pf_age, pf_cty)
+            tech, mental, phys, gk, hidden = generate_all_attributes(pf_pos, pf_age, pf_pre, pf_cty, tca)
+            bp = POSITION_BASE[pf_pos]
+            all_a = {**tech,**mental,**phys,**gk} if bp=="KL" else {**tech,**mental,**phys}
+            ft = generate_foot(pf_pos)
+            wf = generate_weak_foot(ft, pf_pos)
+            ca = min(calculate_ca(all_a, pf_pos, wf), pa)
+            name = generate_name(pf_cty)
+            flag = COUNTRY_FLAG.get(pf_cty, "🏳️")
+
+            st.session_state["pf_player"] = {
+                "name":name,"flag":flag,"pos":pf_pos,"age":pf_age,
+                "pre":pf_pre,"cty":pf_cty,"ca":ca,"pa":pa,"wf":wf,
+                "all_a":all_a,"tech":tech,"mental":mental,"phys":phys,
+            }
+
+        if "pf_player" in st.session_state:
+            PF = st.session_state["pf_player"]
+            grade = scout_grade(PF["pa"])
+            gc = {"A":"#2ecc71","B":"#27ae60","C":"#f1c40f","D":"#e67e22","E":"#e74c3c"}.get(grade,"#aaa")
+            st.markdown(
+                f"<div style='background:#161b22;border:1px solid #30363d;border-radius:10px;"
+                f"padding:10px 16px;margin-bottom:12px'>"
+                f"<span style='font-size:16px;font-weight:800;color:#f0f0f0'>{PF['flag']} {PF['name']}</span>"
+                f"<span style='color:#8b949e;margin-left:12px'>{PF['pos']} · {PF['age']} yaş</span>"
+                f"<span style='color:#2ecc71;font-weight:900;font-size:16px;margin-left:12px'>CA {PF['ca']}</span>"
+                f"<span style='color:{gc};margin-left:8px'>({grade})</span></div>",
+                unsafe_allow_html=True
+            )
+
+            # Tüm mevkilerde CA hesapla
+            pos_ca_all = [(pos, calculate_ca(PF["all_a"], pos, PF["wf"])) for pos in ALL_POSITIONS]
+            pos_ca_all.sort(key=lambda x: -x[1])
+            max_ca = pos_ca_all[0][1]
+
+            # ── Yatay bar chart (matplotlib) ──────────────
+            fig_pf, ax_pf = plt.subplots(figsize=(8, 5))
+            fig_pf.patch.set_facecolor("#0d1117")
+            ax_pf.set_facecolor("#0d1117")
+
+            pos_colors_map = {
+                "ST":"#e74c3c","KF (Sol)":"#e74c3c","KF (Sağ)":"#e74c3c",
+                "OOS":"#e67e22","KANAT (Sol)":"#e67e22","KANAT (Sağ)":"#e67e22",
+                "OS":"#f1c40f","DM":"#f1c40f",
+                "KB (Sol)":"#2ecc71","KB (Sağ)":"#2ecc71",
+                "D (Sol)":"#3498db","D (Sağ)":"#3498db","DOS":"#3498db",
+                "KL":"#9b59b6",
+            }
+            labels = [p for p,_ in pos_ca_all]
+            values = [c for _,c in pos_ca_all]
+            colors_bar = [pos_colors_map.get(p,"#aaa") for p in labels]
+
+            bars = ax_pf.barh(range(len(labels)), values,
+                              color=colors_bar, alpha=0.8, height=0.6)
+            ax_pf.set_yticks(range(len(labels)))
+            ax_pf.set_yticklabels(labels, fontsize=8, color="#ccc")
+            ax_pf.set_xlabel("CA", fontsize=8, color="#8b949e")
+            ax_pf.set_xlim(0, max_ca * 1.15)
+            ax_pf.tick_params(colors="#aaa", labelsize=7)
+            ax_pf.spines[:].set_color("#1e2235")
+            ax_pf.set_facecolor("#0d1117")
+            ax_pf.invert_yaxis()
+
+            # Değerleri barların üstüne yaz
+            for i, (pos, ca_val) in enumerate(pos_ca_all):
+                grade_p = scout_grade(ca_val)
+                ax_pf.text(ca_val + max_ca*0.01, i, f"{ca_val} ({grade_p})",
+                           va="center", fontsize=7.5, color="#e0e0e0", fontweight="bold")
+                if pos == PF["pos"]:
+                    ax_pf.get_yticklabels()[i].set_color("#2ecc71")
+                    ax_pf.get_yticklabels()[i].set_fontweight("bold")
+
+            ax_pf.set_title(f"{PF['name']} — Tüm Mevkilerde CA", fontsize=9, color="#8b949e", pad=8)
+            plt.tight_layout(pad=0.5)
+
+            pf_l, pf_r = st.columns([1.5, 1])
+            with pf_l:
+                st.pyplot(fig_pf, use_container_width=True)
+            plt.close(fig_pf)
+
+            # ── Güçlü/Zayıf Yönler Analizi ───────────────
+            with pf_r:
+                st.markdown("**🎯 En Uygun 3 Mevki**")
+                for i, (pos, ca_val) in enumerate(pos_ca_all[:3]):
+                    medal = ["🥇","🥈","🥉"][i]
+                    w = ATTRIBUTE_WEIGHTS.get(POSITION_BASE[pos], {})
+                    # Bu mevkide en kritik ve en düşük attr'lar
+                    scored = sorted(
+                        [(a, PF["all_a"].get(a,1)*wt)
+                         for a,wt in w.items() if a not in HIDDEN_SET and a not in GK_ATTRS_SET],
+                        key=lambda x: -x[1]
+                    )
+                    top3 = [a for a,_ in scored[:3]]
+                    bot3 = [a for a,_ in scored[-3:] if PF["all_a"].get(a,1) < 10]
+                    st.markdown(
+                        f"<div style='background:#161b22;border-radius:8px;padding:8px 12px;margin-bottom:6px'>"
+                        f"<div style='font-weight:700;color:#f0f0f0'>{medal} {pos} — CA {ca_val}</div>"
+                        f"<div style='font-size:11px;color:#2ecc71;margin-top:3px'>✅ {', '.join(top3)}</div>"
+                        + (f"<div style='font-size:11px;color:#e74c3c;margin-top:2px'>⚠️ {', '.join(bot3)}</div>" if bot3 else "")
+                        + "</div>",
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown("**⚠️ En Zayıf 3 Mevki**")
+                for pos, ca_val in pos_ca_all[-3:]:
+                    grade_p = scout_grade(ca_val)
+                    gc_p = {"A":"#2ecc71","B":"#27ae60","C":"#f1c40f","D":"#e67e22","E":"#e74c3c"}.get(grade_p,"#aaa")
+                    st.markdown(
+                        f"<span style='color:#e74c3c'>❌ {pos}</span>"
+                        f"<span style='color:#8b949e'> — CA {ca_val}</span>"
+                        f"<span style='color:{gc_p};font-weight:700'> ({grade_p})</span>",
+                        unsafe_allow_html=True
+                    )
+
+    # ══════════════════════════════════════════════════════
+    # AN-TAB 3 — KADRO DENGE SKORU
+    # ══════════════════════════════════════════════════════
+    with an_tab3:
+        st.subheader("🏟️ Kadro Denge Skoru")
+        st.caption("Bir kadro üret → yaş dağılımı, kategori dengesi, mevki derinliği, kişilik uyumu.")
+
+        kb_col1, kb_col2, kb_col3, kb_col4 = st.columns(4)
+        with kb_col1: kb_form = st.selectbox("Formasyon", ["4-3-3","4-4-2","4-2-3-1","3-5-2","3-4-3","5-3-2","4-1-4-1"], key="kb_form")
+        with kb_col2: kb_pre  = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Wonderkid"], key="kb_pre")
+        with kb_col3: kb_age  = st.slider("Ort. Yaş", 18, 36, 25, key="kb_age")
+        with kb_col4: kb_cty  = st.selectbox("Ülke", list(COUNTRY_PROFILES.keys()), key="kb_cty")
+
+        FORMATIONS_KB = {
+            "4-3-3"  :["KL","D (Sağ)","DOS","DOS","D (Sol)","OS","DM","OS","KF (Sağ)","ST","KF (Sol)"],
+            "4-4-2"  :["KL","D (Sağ)","DOS","DOS","D (Sol)","KANAT (Sağ)","OS","OS","KANAT (Sol)","ST","ST"],
+            "4-2-3-1":["KL","D (Sağ)","DOS","DOS","D (Sol)","DM","DM","KANAT (Sağ)","OOS","KANAT (Sol)","ST"],
+            "3-5-2"  :["KL","DOS","DOS","DOS","KB (Sağ)","OS","DM","OS","KB (Sol)","ST","ST"],
+            "3-4-3"  :["KL","DOS","DOS","DOS","KB (Sağ)","OS","OS","KB (Sol)","KF (Sağ)","ST","KF (Sol)"],
+            "5-3-2"  :["KL","KB (Sağ)","DOS","DOS","DOS","KB (Sol)","OS","DM","OS","ST","ST"],
+            "4-1-4-1":["KL","D (Sağ)","DOS","DOS","D (Sol)","DM","KANAT (Sağ)","OS","OS","KANAT (Sol)","ST"],
+        }
+
+        if st.button("📊 Kadro Üret & Analiz Et", type="primary", key="kb_btn"):
+            positions_kb = FORMATIONS_KB[kb_form]
+            squad_kb = []
+            for pos in positions_kb:
+                p_age = max(16, min(38, kb_age + random.randint(-4, 4)))
+                t_ca, p_pa = get_ca_pa(kb_pre, p_age, kb_cty)
+                t,m,ph,gk_a,hid = generate_all_attributes(pos, p_age, kb_pre, kb_cty, t_ca)
+                bp = POSITION_BASE[pos]
+                aa = {**t,**m,**ph,**gk_a} if bp=="KL" else {**t,**m,**ph}
+                ft = generate_foot(pos)
+                wf = generate_weak_foot(ft, pos)
+                p_ca = min(calculate_ca(aa, pos, wf), p_pa)
+                personality = detect_personality(hid)
+                squad_kb.append({
+                    "isim": generate_name(kb_cty),
+                    "pos": pos, "yaş": p_age,
+                    "CA": p_ca, "PA": p_pa,
+                    "tech": t, "mental": m, "phys": ph,
+                    "all_a": aa, "hidden": hid,
+                    "personality": personality,
+                })
+            st.session_state["kb_squad"] = squad_kb
+
+        if "kb_squad" in st.session_state:
+            squad = st.session_state["kb_squad"]
+            ages  = [p["yaş"] for p in squad]
+            cas   = [p["CA"]  for p in squad]
+            pas   = [p["PA"]  for p in squad]
+
+            avg_ca  = sum(cas)/len(cas)
+            avg_age = sum(ages)/len(ages)
+            avg_pa  = sum(pas)/len(pas)
+            pot_use = avg_ca / avg_pa * 100
+
+            # Denge skoru hesapla
+            age_balance = max(0, 100 - abs(avg_age - 26) * 8)
+            ca_var = (sum((c-avg_ca)**2 for c in cas)/len(cas))**0.5
+            ca_balance = max(0, 100 - ca_var * 2.5)
+            pos_groups = {"Hücum":["ST","KF","OOS","KANAT"], "Orta":["OS","DM"], "Defans":["DOS","D","KB"], "Kale":["KL"]}
+            group_cas = {}
+            for grp, bases in pos_groups.items():
+                grp_cas = [p["CA"] for p in squad if POSITION_BASE[p["pos"]] in bases]
+                group_cas[grp] = sum(grp_cas)/max(len(grp_cas),1)
+            balance_range = max(group_cas.values()) - min(group_cas.values())
+            tactical_balance = max(0, 100 - balance_range * 1.5)
+
+            # Kişilik dengesi
+            negative_profiles = {"😤 Sorunlu Karakter","💣 Zehirli Unsur","💔 Motivasyon Yoksunu","💤 Tembel Deha"}
+            neg_count = sum(1 for p in squad if p["personality"]["name"] in negative_profiles)
+            personality_score = max(0, 100 - neg_count * 20)
+
+            total_score = (age_balance*0.25 + ca_balance*0.25 + tactical_balance*0.30 + personality_score*0.20)
+
+            # ── Metrik kartları ───────────────────────────
+            m1,m2,m3,m4,m5 = st.columns(5)
+            for col, label, val, unit in [
+                (m1,"Ort. CA",f"{avg_ca:.0f}",""),
+                (m2,"Ort. Yaş",f"{avg_age:.1f}",""),
+                (m3,"PA Kullanım",f"{pot_use:.0f}","%"),
+                (m4,"Sorunlu Oyuncu",neg_count,"kişi"),
+                (m5,"Denge Skoru",f"{total_score:.0f}","/100"),
+            ]:
+                score_color = "#2ecc71" if total_score>=70 else "#f1c40f" if total_score>=50 else "#e74c3c"
+                c = score_color if col==m5 else "#f0f0f0"
+                col.markdown(
+                    f"<div style='background:#161b22;border-radius:8px;padding:10px;text-align:center'>"
+                    f"<div style='font-size:10px;color:#8b949e'>{label}</div>"
+                    f"<div style='font-size:22px;font-weight:900;color:{c}'>{val}{unit}</div></div>",
+                    unsafe_allow_html=True
+                )
+
+            # ── Alt grafikler ──────────────────────────────
+            st.markdown("---")
+            fig_kb, axes = plt.subplots(1, 3, figsize=(13, 3.5))
+            fig_kb.patch.set_facecolor("#0d1117")
+
+            # 1) Yaş dağılımı
+            ax_age = axes[0]; ax_age.set_facecolor("#0d1117")
+            age_colors = ["#2ecc71" if 21<=a<=28 else "#f1c40f" if a<=32 else "#e74c3c" for a in ages]
+            ax_age.bar(range(len(ages)), ages, color=age_colors, alpha=0.85, width=0.6)
+            ax_age.axhline(26, color="#f1c40f", ls="--", lw=1, label="Altın çağ (26)")
+            ax_age.axhline(30, color="#e74c3c", ls=":", lw=1, label="30+")
+            ax_age.set_title("Yaş Dağılımı", fontsize=9, color="#8b949e")
+            ax_age.tick_params(colors="#aaa", labelsize=7)
+            ax_age.spines[:].set_color("#1e2235")
+            ax_age.legend(fontsize=6, labelcolor="#aaa", facecolor="#0d1117")
+            ax_age.set_ylabel("Yaş", fontsize=7, color="#8b949e")
+
+            # 2) CA/PA bar
+            ax_ca = axes[1]; ax_ca.set_facecolor("#0d1117")
+            x = range(len(squad))
+            ax_ca.bar(x, [p["PA"] for p in squad], color="#e67e22", alpha=0.35, label="PA", width=0.6)
+            ax_ca.bar(x, [p["CA"] for p in squad], color="#2ecc71", alpha=0.85, label="CA", width=0.6)
+            ax_ca.set_title("CA / PA", fontsize=9, color="#8b949e")
+            ax_ca.tick_params(colors="#aaa", labelsize=7)
+            ax_ca.spines[:].set_color("#1e2235")
+            ax_ca.legend(fontsize=6, labelcolor="#aaa", facecolor="#0d1117")
+            ax_ca.set_ylabel("CA/PA", fontsize=7, color="#8b949e")
+
+            # 3) Kategori dengesi (radar)
+            ax_bal = axes[2]; ax_bal.set_facecolor("#0d1117")
+            grp_labels = list(group_cas.keys())
+            grp_vals   = [group_cas[g] for g in grp_labels]
+            bar_colors = ["#e74c3c","#f1c40f","#3498db","#9b59b6"]
+            ax_bal.bar(grp_labels, grp_vals, color=bar_colors, alpha=0.85, width=0.5)
+            ax_bal.set_title("Grup CA Ortalaması", fontsize=9, color="#8b949e")
+            ax_bal.tick_params(colors="#aaa", labelsize=7)
+            ax_bal.spines[:].set_color("#1e2235")
+            for i,(g,v) in enumerate(zip(grp_labels, grp_vals)):
+                ax_bal.text(i, v+1, f"{v:.0f}", ha="center", fontsize=8, color="#e0e0e0", fontweight="bold")
+
+            plt.tight_layout(pad=0.6)
+            st.pyplot(fig_kb, use_container_width=True)
+            plt.close(fig_kb)
+
+            # ── Kişilik profil dağılımı ───────────────────
+            st.markdown("**🧬 Kişilik Profil Dağılımı**")
+            from collections import Counter
+            pers_count = Counter(p["personality"]["name"] for p in squad)
+            pers_html = "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:4px'>"
+            for name_p, cnt in pers_count.most_common():
+                color_p = next((p["personality"]["color"] for p in squad if p["personality"]["name"]==name_p), "#888")
+                neg = name_p in negative_profiles
+                border = f"border:1px solid {color_p}" if neg else "border:1px solid #30363d"
+                pers_html += (
+                    f"<div style='background:#161b22;{border};border-radius:8px;"
+                    f"padding:5px 10px;font-size:12px'>"
+                    f"<span style='color:{color_p}'>{name_p}</span>"
+                    f"<span style='color:#555;margin-left:6px'>×{cnt}</span></div>"
+                )
+            pers_html += "</div>"
+            st.markdown(pers_html, unsafe_allow_html=True)
+
+            # Denge skoru detayı
+            st.markdown("**📊 Denge Skoru Detayı**")
+            for label, val in [
+                ("Yaş Dengesi", age_balance),
+                ("CA Homojenliği", ca_balance),
+                ("Taktiksel Denge", tactical_balance),
+                ("Kişilik Uyumu", personality_score),
+            ]:
+                pct = val
+                c = "#2ecc71" if pct>=70 else "#f1c40f" if pct>=50 else "#e74c3c"
+                st.markdown(
+                    f"<div style='margin:4px 0'>"
+                    f"<div style='display:flex;justify-content:space-between;font-size:12px;color:#ccc'>"
+                    f"<span>{label}</span><span style='color:{c};font-weight:700'>{pct:.0f}</span></div>"
+                    f"<div style='background:#1e1e2e;border-radius:4px;height:7px'>"
+                    f"<div style='width:{pct:.0f}%;height:100%;background:{c};border-radius:4px'></div>"
+                    f"</div></div>",
+                    unsafe_allow_html=True
+                )
+
+    # ══════════════════════════════════════════════════════
+    # AN-TAB 4 — CA/PA VERİMLİLİK ANALİZİ
+    # ══════════════════════════════════════════════════════
+    with an_tab4:
+        st.subheader("📈 CA/PA Verimlilik Analizi")
+        st.caption("Profesyonellik, hırs ve preset — gelişim potansiyeline gerçekten ne kadar etki ediyor?")
+
+        ef_col1, ef_col2, ef_col3 = st.columns(3)
+        with ef_col1: ef_pos = st.selectbox("Mevki", ALL_POSITIONS, key="ef_pos")
+        with ef_col2: ef_pre = st.selectbox("Profil", ["Average","Wonderkid","Star","Superstar"], key="ef_pre")
+        with ef_col3: ef_pa  = st.slider("PA", 100, 200, 170, key="ef_pa")
+
+        ef_start_age = st.slider("Başlangıç Yaşı", 15, 22, 17, key="ef_start")
+
+        if st.button("📊 Verimlilik Analizi", type="primary", key="ef_btn"):
+            # 5 farklı profesyonellik seviyesi
+            prof_levels = [
+                ("🔴 Düşük (5)",     5,  "#e74c3c"),
+                ("🟠 Orta-Alt (9)",  9,  "#e67e22"),
+                ("🟡 Orta (13)",     13, "#f1c40f"),
+                ("🟢 Yüksek (17)",   17, "#2ecc71"),
+                ("🔵 Maks (20)",     20, "#3498db"),
+            ]
+            start_ca = int(ef_pa * 0.40)
+
+            fig_ef, (ax_top, ax_bot) = plt.subplots(1, 2, figsize=(12, 4))
+            fig_ef.patch.set_facecolor("#0d1117")
+
+            reach_data = []
+            for label, prof, color in prof_levels:
+                eff = calculate_effective_pa(ef_pa, prof, ef_pre)
+                growth = simulate_growth(ef_start_age, start_ca, eff, prof, ef_pos)
+                ages_g = [ef_start_age] + [y for y,_ in growth]
+                vals_g = [start_ca]     + [v for _,v in growth]
+
+                ax_top.plot(ages_g, vals_g, color=color, lw=2, label=f"{label} → {eff}")
+                reach_pct = eff / ef_pa * 100
+                reach_data.append((label, prof, eff, reach_pct, color))
+
+            ax_top.axhline(ef_pa, color="#555", ls="--", lw=1, label=f"PA {ef_pa}")
+            ax_top.set_facecolor("#0d1117")
+            ax_top.tick_params(colors="#aaa", labelsize=7)
+            ax_top.spines[:].set_color("#1e2235")
+            ax_top.set_title("Profesyonelliğe Göre CA Gelişimi", fontsize=9, color="#8b949e")
+            ax_top.set_xlabel("Yaş", fontsize=8, color="#8b949e")
+            ax_top.set_ylabel("CA", fontsize=8, color="#8b949e")
+            ax_top.legend(fontsize=6.5, labelcolor="#ccc", facecolor="#0d1117", loc="upper left")
+            ax_top.grid(color="#1e2235", lw=0.5)
+
+            # Sağ: PA erişim bar chart
+            ax_bot.set_facecolor("#0d1117")
+            labels_b = [r[0] for r in reach_data]
+            reach_b  = [r[2] for r in reach_data]
+            reach_pct_b = [r[3] for r in reach_data]
+            colors_b = [r[4] for r in reach_data]
+            bars_b = ax_bot.barh(labels_b, reach_b, color=colors_b, alpha=0.85, height=0.5)
+            ax_bot.axvline(ef_pa, color="#555", ls="--", lw=1)
+            for i, (val, pct) in enumerate(zip(reach_b, reach_pct_b)):
+                ax_bot.text(val+1, i, f"{val} (%{pct:.0f})", va="center",
+                            fontsize=8, color="#e0e0e0", fontweight="bold")
+            ax_bot.set_title(f"Erişilen Efektif PA (toplam PA={ef_pa})", fontsize=9, color="#8b949e")
+            ax_bot.set_xlabel("Efektif PA", fontsize=8, color="#8b949e")
+            ax_bot.tick_params(colors="#aaa", labelsize=7)
+            ax_bot.spines[:].set_color("#1e2235")
+            ax_bot.set_xlim(0, ef_pa * 1.15)
+
+            plt.tight_layout(pad=0.8)
+            st.pyplot(fig_ef, use_container_width=True)
+            plt.close(fig_ef)
+
+            # ── Sayısal özet ──────────────────────────────
+            st.markdown("**📊 Profesyonellik Etki Tablosu**")
+            tbl_ef = ("<div style='overflow-x:auto'><table style='border-collapse:collapse;"
+                      "font-size:0.85rem;width:100%'>"
+                      "<tr style='color:#8b949e;border-bottom:2px solid #30363d'>"
+                      "<td style='padding:5px 10px'>Profesyonellik</td>"
+                      "<td style='padding:5px 10px;text-align:center'>Efektif PA</td>"
+                      "<td style='padding:5px 10px;text-align:center'>PA Kullanım</td>"
+                      "<td style='padding:5px 10px;text-align:center'>Kaybedilen PA</td></tr>")
+            for label, prof, eff, reach_pct, color in reach_data:
+                lost = ef_pa - eff
+                tbl_ef += (
+                    f"<tr style='border-bottom:1px solid #1a1a2e'>"
+                    f"<td style='padding:4px 10px;color:{color};font-weight:700'>{label}</td>"
+                    f"<td style='padding:4px 10px;text-align:center;color:#f0f0f0;font-weight:700'>{eff}</td>"
+                    f"<td style='padding:4px 10px;text-align:center;color:"
+                    f"{'#2ecc71' if reach_pct>=90 else '#f1c40f' if reach_pct>=75 else '#e74c3c'}'>"
+                    f"%{reach_pct:.0f}</td>"
+                    f"<td style='padding:4px 10px;text-align:center;color:#e74c3c'>{lost}</td></tr>"
+                )
+            tbl_ef += "</table></div>"
+            st.markdown(tbl_ef, unsafe_allow_html=True)
+
+            # ── Yorum ─────────────────────────────────────
+            low_eff  = reach_data[0][2]
+            high_eff = reach_data[-1][2]
+            diff_eff = high_eff - low_eff
+            st.info(
+                f"**Profesyonellik etkisi:** Aynı PA {ef_pa}'lı oyuncuda "
+                f"profesyonellik 5→20 arasında değiştiğinde erişilen CA farkı **{diff_eff}** puan. "
+                f"Bu, bir mevki grubunu baştan sona değiştirebilecek bir fark."
+            )
+
+
 st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026 Enes Özkan")
