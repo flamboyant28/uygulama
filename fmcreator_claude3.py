@@ -2193,7 +2193,7 @@ def calculate_transfer_value(ca, pa, age):
     peak_age = 26
     age_factor = max(0.3, 1.0 - abs(age - peak_age) * 0.04)
     potential_bonus = (pa - ca) / 200 * 0.5 + 0.5
-    base = (ca / 200) ** 2.2 * 350_000_000
+    base = (ca / 200) ** 2.2 * 300_000_000
     value = base * age_factor * potential_bonus
 
     if value >= 80_000_000:
