@@ -4604,4 +4604,4 @@ with tab6:
             )
 
 
-st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python")
+st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026 Enes Özkan")
