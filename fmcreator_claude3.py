@@ -2508,11 +2508,12 @@ if "gen_player" not in st.session_state:
     st.session_state.gen_player = None  # üretilen oyuncu verisi
 
 # ── ANA SEKMELER ────────────────────────────────────────
-tab1, tab3, tab4, tab5 = st.tabs([
+tab1, tab3, tab4, tab5, tab6 = st.tabs([
     "🎲 Oyuncu Üret",
     "🧮 Manuel CA",
     "🏟️ Kadro Üretici",
     "📅 Simülasyon",
+    "📖 Analitik",
 ])
 
 with tab1:
