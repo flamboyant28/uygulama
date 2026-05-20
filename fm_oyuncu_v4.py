@@ -827,7 +827,7 @@ HIDDEN = [
     "Uyum","Hırs","Tartışma","Aidiyet Duygusu",
     "Baskıya Dayanıklılık","Profesyonellik",
     "Sportmenlik","Huy","Çok Yönlülük",
-    "Çirkeflik","Önemli Maçlar","Sakatlanma Eğilimi",
+    "Çirkeflik","Önemli Maçlar","Sakatlanma Eğilimi", "Süreklilik",
 ]
 
 GK_ATTRS_SET = set(GOALKEEPER)
