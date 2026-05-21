@@ -2540,7 +2540,7 @@ with st.sidebar:
                               key="cfg_ak_count")
 
     with st.expander("🏆 Mini Lig Varsayılanları", expanded=False):
-        _lig_teams = st.slider("Takım Sayısı", 4, 18,
+        _lig_teams = st.slider("Takım Sayısı", 4, 16,
                                int(st.session_state.get("cfg_lig_teams", 8)),
                                key="cfg_lig_teams")
 
@@ -5073,7 +5073,7 @@ with tab8:
 
     ml_c1, ml_c2, ml_c3, ml_c4 = st.columns(4)
     with ml_c1:
-        ml_n = st.slider("Takım Sayısı", 4, 18,
+        ml_n = st.slider("Takım Sayısı", 4, 16,
                          int(st.session_state.get("cfg_lig_teams", 8)), 2, key="ml_n")
     with ml_c2:
         ml_pre = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Karışık"], key="ml_pre")
@@ -5089,6 +5089,8 @@ with tab8:
         "Mavi Deniz","Kızıl Orman","Altın Hilal","Gümüş Aslan",
         "Dağ Kartalı","Yeşil Vadi","Demir Kale","Rüzgar FK",
         "Şimşek United","Fırtına City","Gece Yıldızı","Şahin FK",
+        "Çelik Spor","Poyraz FK","Demirspor","Akıncılar",
+        "Volkan United","Tunç FK","Kuzey Yıldızı","Ateş Spor",
     ]
 
     PRESET_WEIGHTS = {
@@ -5107,7 +5109,7 @@ with tab8:
         # Takımları üret
         teams = []
         for i in range(ml_n):
-            tname  = CLUB_NAMES[i]
+            tname  = CLUB_NAMES[i] if i < len(CLUB_NAMES) else f"Takım {i+1}"
             t_pre  = random.choices(presets, weights=pw_vals)[0]
             t_age  = random.randint(22, 28)
             # Her takım için 11 oyuncu CA ortalaması
