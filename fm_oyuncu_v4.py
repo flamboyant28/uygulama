@@ -2536,7 +2536,7 @@ with st.sidebar:
         st.info("📍 Etki: **Kariyer Modu** (Simülasyon sekmesi)", icon="ℹ️")
 
     with st.expander("🎓 Akademi Varsayılanları", expanded=False):
-        _ak_years = st.slider("Simülasyon Yılı", 3, 8,
+        _ak_years = st.slider("Simülasyon Yılı", 3, 15,
                               int(st.session_state.get("cfg_ak_years", 5)),
                               key="cfg_ak_years")
         _ak_count = st.slider("Akademi Oyuncu Sayısı", 6, 16,
