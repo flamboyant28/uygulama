@@ -5136,7 +5136,7 @@ with tab8:
 
     ml_c1, ml_c2, ml_c3, ml_c4 = st.columns(4)
     with ml_c1:
-        ml_n = st.slider("Takım Sayısı", 4, 16,
+        ml_n = st.slider("Takım Sayısı", 4, 24,
                          int(st.session_state.get("cfg_lig_teams", 8)), 2, key="ml_n")
     with ml_c2:
         ml_pre = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Karışık"], key="ml_pre")
