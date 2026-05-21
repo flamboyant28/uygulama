@@ -2540,7 +2540,7 @@ with st.sidebar:
                               key="cfg_ak_count")
 
     with st.expander("🏆 Mini Lig Varsayılanları", expanded=False):
-        _lig_teams = st.slider("Takım Sayısı", 4, 16,
+        _lig_teams = st.slider("Takım Sayısı", 4, 24,
                                int(st.session_state.get("cfg_lig_teams", 8)),
                                key="cfg_lig_teams")
 
