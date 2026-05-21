@@ -2540,7 +2540,7 @@ with st.sidebar:
                               key="cfg_ak_count")
 
     with st.expander("🏆 Mini Lig Varsayılanları", expanded=False):
-        _lig_teams = st.slider("Takım Sayısı", 4, 24,
+        _lig_teams = st.slider("Takım Sayısı", 4, 16,
                                int(st.session_state.get("cfg_lig_teams", 8)),
                                key="cfg_lig_teams")
 
@@ -4949,6 +4949,8 @@ with tab7:
                 "discovery_score": discovery_score, "prospect": prospect,
                 "flag": COUNTRY_FLAG.get(ak_cty, "🏳️"),
                 "personality": pers,
+                "tech": tech, "mental": mental, "phys": phys,
+                "hidden": hidden, "all_a": aa,
             })
 
         ak_players.sort(key=lambda x: -x["discovery_score"])
@@ -5013,6 +5015,25 @@ with tab7:
 
         # ── Oyuncu Tablosu & Kararlar ─────────────────────
         st.markdown("**📋 Keşif Raporu & Sözleşme Kararları**")
+        st.caption("▶ Oyuncuya tıkla → mevcut özellikler + radar görünsün")
+
+        def _attr_color_ak(v):
+            if v >= 17: return "#3498db"
+            if v >= 14: return "#2ecc71"
+            if v >= 10: return "#f1c40f"
+            if v >= 5:  return "#e0e0e0"
+            return "#9e9e9e"
+
+        def _attr_table_html(attrs, title, color):
+            h = f"<div style='font-size:10px;font-weight:700;color:{color};margin-bottom:4px'>{title}</div>"
+            h += "<table style='width:100%;border-collapse:collapse;font-size:0.78rem'>"
+            for k, v in attrs.items():
+                c = _attr_color_ak(v)
+                h += (f"<tr><td style='padding:1px 4px;color:#aaa'>{k}</td>"
+                      f"<td style='padding:1px 4px;text-align:right;font-weight:700;color:{c}'>{v}</td></tr>")
+            h += "</table>"
+            return h
+
         for p in players:
             pa_pct   = p["pa_reach"]
             pr_color = ("#2ecc71" if p["pa"] >= 185 else "#f1c40f" if p["pa"] >= 160
@@ -5020,36 +5041,71 @@ with tab7:
             rec_action = "✅ SÖZLEŞME" if p["pa"] >= 150 else "⚠️ İZLE" if p["pa"] >= 120 else "❌ BIRAK"
             rec_color  = "#2ecc71" if p["pa"] >= 150 else "#f1c40f" if p["pa"] >= 120 else "#e74c3c"
 
-            st.markdown(
-                f"<div style='background:#161b22;border:1px solid #30363d;border-radius:8px;"
-                f"padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:12px'>"
-                f"<div style='min-width:160px'>"
-                f"<div style='font-weight:700;color:#f0f0f0;font-size:13px'>{p['flag']} {p['isim']}</div>"
-                f"<div style='font-size:11px;color:#8b949e'>{p['pos']} · {p['yaş']} yaş · {p['pre']}</div>"
-                f"<div style='font-size:11px;color:#8b949e'>{p['personality']['name']}</div>"
-                f"</div>"
-                f"<div style='min-width:100px;text-align:center'>"
-                f"<div style='font-size:10px;color:#8b949e'>CA (başlangıç→son)</div>"
-                f"<div style='font-weight:700;color:#f0f0f0'>{p['ca_start']} → {p['ca_end']}</div>"
-                f"</div>"
-                f"<div style='min-width:80px;text-align:center'>"
-                f"<div style='font-size:10px;color:#8b949e'>PA</div>"
-                f"<div style='font-weight:800;font-size:16px;color:{pr_color}'>{p['pa']}</div>"
-                f"</div>"
-                f"<div style='flex:1'>"
-                f"<div style='font-size:10px;color:#8b949e;margin-bottom:2px'>"
-                f"PA Kullanım: %{pa_pct:.0f}</div>"
-                f"<div style='background:#1e1e2e;border-radius:4px;height:7px'>"
-                f"<div style='width:{min(100,pa_pct):.0f}%;height:100%;"
-                f"background:{pr_color};border-radius:4px'></div></div>"
-                f"</div>"
-                f"<div style='min-width:120px;text-align:center'>"
-                f"<div style='font-size:11px;color:#8b949e'>{p['prospect']}</div>"
-                f"<div style='font-weight:800;color:{rec_color};font-size:13px'>{rec_action}</div>"
-                f"</div>"
-                f"</div>",
-                unsafe_allow_html=True
+            exp_label = (
+                f"{p['flag']} {p['isim']}  ·  {p['pos']}  ·  "
+                f"CA {p['ca_start']}→{p['ca_end']}  ·  PA {p['pa']}  ·  {rec_action}"
             )
+            with st.expander(exp_label, expanded=False):
+                # Üst bilgi satırı
+                st.markdown(
+                    f"<div style='background:#161b22;border-left:3px solid {pr_color};"
+                    f"border-radius:6px;padding:8px 14px;margin-bottom:8px;"
+                    f"display:flex;align-items:center;gap:16px'>"
+                    f"<div>"
+                    f"<div style='font-weight:700;color:#f0f0f0;font-size:14px'>"
+                    f"{p['flag']} {p['isim']}</div>"
+                    f"<div style='font-size:11px;color:#8b949e'>"
+                    f"{p['pos']} · {p['yaş']} yaş · {p['pre']} · "
+                    f"{p['personality']['name']}</div>"
+                    f"</div>"
+                    f"<div style='margin-left:auto;text-align:right'>"
+                    f"<div style='font-size:20px;font-weight:900;color:{pr_color}'>"
+                    f"PA {p['pa']}</div>"
+                    f"<div style='font-size:12px;color:#8b949e'>"
+                    f"CA {p['ca_start']} → {p['ca_end']} · "
+                    f"PA kullanım %{pa_pct:.0f}</div>"
+                    f"<div style='font-weight:800;color:{rec_color};font-size:13px'>"
+                    f"{rec_action} · {p['prospect']}</div>"
+                    f"</div></div>",
+                    unsafe_allow_html=True
+                )
+
+                # PA kullanım barı
+                st.markdown(
+                    f"<div style='background:#1e1e2e;border-radius:4px;height:8px;margin-bottom:10px'>"
+                    f"<div style='width:{min(100,pa_pct):.0f}%;height:100%;"
+                    f"background:{pr_color};border-radius:4px'></div></div>",
+                    unsafe_allow_html=True
+                )
+
+                # Attribute kolonları + Radar
+                ac1, ac2, ac3, ac4, ac5 = st.columns([1, 1, 1, 0.8, 1.6])
+
+                with ac1:
+                    st.markdown(
+                        _attr_table_html(p["tech"], "⚙️ TEKNİK", "#58a6ff"),
+                        unsafe_allow_html=True
+                    )
+                with ac2:
+                    st.markdown(
+                        _attr_table_html(p["mental"], "🧠 ZİHİNSEL", "#bc8cff"),
+                        unsafe_allow_html=True
+                    )
+                with ac3:
+                    st.markdown(
+                        _attr_table_html(p["phys"], "💪 FİZİKSEL", "#2ecc71"),
+                        unsafe_allow_html=True
+                    )
+                with ac4:
+                    st.markdown(
+                        _attr_table_html(p["hidden"], "🔒 GİZLİ", "#f1c40f"),
+                        unsafe_allow_html=True
+                    )
+                with ac5:
+                    # Radar
+                    fig_ak_r = radar_chart(p["all_a"], p["pos"])
+                    st.pyplot(fig_ak_r, use_container_width=True)
+                    plt.close(fig_ak_r)
 
         # Özet
         st.markdown("---")
@@ -5073,7 +5129,7 @@ with tab8:
 
     ml_c1, ml_c2, ml_c3, ml_c4 = st.columns(4)
     with ml_c1:
-        ml_n = st.slider("Takım Sayısı", 4, 24,
+        ml_n = st.slider("Takım Sayısı", 4, 16,
                          int(st.session_state.get("cfg_lig_teams", 8)), 2, key="ml_n")
     with ml_c2:
         ml_pre = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Karışık"], key="ml_pre")
