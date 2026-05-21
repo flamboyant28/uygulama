@@ -8,6 +8,7 @@ import folium
 from streamlit_folium import st_folium
 from math import radians, sin, cos, sqrt, atan2
 from datetime import time, timedelta, datetime
+import requests
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -125,6 +126,82 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
+# ── Hava durumu ──────────────────────────────────────────────────────────────
+HAVA_EMOJI = {
+    "01": "☀️", "02": "🌤", "03": "⛅", "04": "☁️",
+    "09": "🌧", "10": "🌦", "11": "⛈", "13": "❄️", "50": "🌫"
+}
+
+def hava_emoji(icon_code):
+    return HAVA_EMOJI.get(icon_code[:2], "🌡")
+
+def hava_getir(lat, lon, hedef_dt, api_key):
+    """OpenWeather 5 günlük tahmin → hedef saate en yakın 3h dilimi"""
+    cache_key = (round(lat,2), round(lon,2), hedef_dt.strftime("%Y%m%d%H"))
+    if cache_key in st.session_state.hava_cache:
+        return st.session_state.hava_cache[cache_key]
+
+    try:
+        r = requests.get(
+            "https://api.openweathermap.org/data/2.5/forecast",
+            params={"lat": lat, "lon": lon, "appid": api_key,
+                    "units": "metric", "lang": "tr"},
+            timeout=8
+        )
+        r.raise_for_status()
+        tahminler = r.json()["list"]
+        # Hedef zamana en yakın 3h dilimi
+        hedef_ts = hedef_dt.timestamp()
+        en_yakin = min(tahminler, key=lambda x: abs(x["dt"] - hedef_ts))
+        st.session_state.hava_cache[cache_key] = en_yakin
+        return en_yakin
+    except Exception as e:
+        return {"hata": str(e)}
+
+def hava_karti(durak_adi, varis_str, veri):
+    """Tek durak için hava durumu HTML kartı"""
+    if "hata" in veri:
+        return f"""<div style="background:#FFF3CD;border-radius:10px;padding:12px;margin:6px 0;border-left:4px solid #FFC107">
+            <b>{durak_adi}</b> ({varis_str}) — ⚠️ {veri['hata']}</div>"""
+
+    sicaklik  = veri["main"]["temp"]
+    hissedilen= veri["main"]["feels_like"]
+    durum     = veri["weather"][0]["description"].capitalize()
+    icon      = veri["weather"][0]["icon"]
+    emoji     = hava_emoji(icon)
+    ruzgar    = veri["wind"]["speed"] * 3.6  # m/s → km/h
+    yagis_pct = int(veri.get("pop", 0) * 100)
+    yagis_mm  = veri.get("rain", {}).get("3h", veri.get("snow", {}).get("3h", 0))
+
+    # Uyarı rengi
+    uyari = ""
+    renk  = "#EBF3FB"
+    kenar = "#1F4E78"
+    if icon[:2] == "13":
+        renk = "#E8F4FD"; kenar = "#1565C0"; uyari = " ❄️ <b>KAR UYARISI</b>"
+    elif icon[:2] == "11":
+        renk = "#FFF3E0"; kenar = "#E65100"; uyari = " ⛈ <b>FIRTINA UYARISI</b>"
+    elif ruzgar > 50:
+        renk = "#FFF8E1"; kenar = "#F57F17"; uyari = " 💨 <b>KUVVETLİ RÜZGAR</b>"
+    elif sicaklik < 0:
+        renk = "#E3F2FD"; kenar = "#1565C0"; uyari = " 🧊 <b>DON UYARISI</b>"
+
+    yagis_html = f"🌧 {yagis_pct}% ({yagis_mm:.1f}mm)" if yagis_pct > 10 else f"{yagis_pct}%"
+
+    return f"""<div style="background:{renk};border-radius:10px;padding:14px 18px;
+        margin:6px 0;border-left:5px solid {kenar}">
+        <div style="font-weight:700;font-size:0.95rem;color:#1F4E78">
+            {emoji} {durak_adi} <span style="font-weight:400;font-size:0.82rem;color:#666">
+            — Tahmini varış: {varis_str}</span>{uyari}
+        </div>
+        <div style="display:flex;gap:24px;margin-top:8px;font-size:0.87rem;flex-wrap:wrap">
+            <span>🌡 <b>{sicaklik:.0f}°C</b> (hissedilen {hissedilen:.0f}°C)</span>
+            <span>☁️ {durum}</span>
+            <span>💨 {ruzgar:.0f} km/s</span>
+            <span>🌧 Yağış: {yagis_html}</span>
+        </div>
+    </div>"""
+
 # ── Veri ─────────────────────────────────────────────────────────────────────
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -153,6 +230,11 @@ if "duraks"  not in st.session_state:
     st.session_state.duraks = [("İstanbul","Kadıköy"),("Ankara","Çankaya")]
 if "km_ov"   not in st.session_state:
     st.session_state.km_ov = [0]
+if "owm_key" not in st.session_state:
+    st.session_state.owm_key = ""
+if "hava_cache" not in st.session_state:
+    st.session_state.hava_cache = {}   # key: (lat,lon,dt_str) → veri
+
 if "fiyatlar" not in st.session_state:
     st.session_state.fiyatlar = {"benzin":64.88,"dizel":55.0,"lpg":25.0,"elektrik":12.0,"kaynak":"","ts":None,"guncelleme":""}
 
@@ -328,6 +410,16 @@ with st.sidebar:
     lpg_tuketim   = st.number_input("LPG 100km (L)",   value=11.0, min_value=0.1, step=0.1, format="%.1f")
 
     st.divider()
+    st.markdown("### 🌤 Hava Durumu (OpenWeather)")
+    owm_key = st.text_input("API Key", value=st.session_state.owm_key,
+                             type="password", placeholder="Buraya API key girin",
+                             help="openweathermap.org → ücretsiz hesap → API Keys")
+    st.session_state.owm_key = owm_key
+    owm_aktif = bool(owm_key.strip())
+    if not owm_aktif:
+        st.caption("API key girilmeden hava durumu çekilemez.")
+
+    st.divider()
     st.markdown("### ⚡ Elektrikli Araç (EV)")
     ev_fiyat   = st.number_input("Elektrik (TL/kWh)", value=st.session_state.fiyatlar.get("elektrik", 12.0), min_value=0.01, step=0.5, format="%.2f", key="inp_elektrik")
     st.session_state.fiyatlar["elektrik"] = ev_fiyat
@@ -446,7 +538,7 @@ r1c6.metric("Tahmini Varış",   varis_str, f"Çıkış {cikis.strftime('%H:%M')
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
 # Tabs
-tab_ozet, tab_harita, tab_rapor = st.tabs(["📊 Özet", "🗺 Harita", "📄 Rapor"])
+tab_ozet, tab_hava, tab_harita, tab_rapor = st.tabs(["📊 Özet", "🌤 Hava Durumu", "🗺 Harita", "📄 Rapor"])
 
 # ═══════════════════════ ÖZET ═════════════════════════════════════════════════
 with tab_ozet:
@@ -536,6 +628,72 @@ with tab_ozet:
     e4.metric("Benzin/EV Oran",f"{ev_oran:.2f}×","EV ucuz" if ev_oran>1 else "EV pahalı",delta_color="off")
 
 # ═══════════════════════ HARİTA ═══════════════════════════════════════════════
+# ═══════════════════════ HAVA DURUMU ═════════════════════════════════════════
+with tab_hava:
+    st.markdown('<div class="section-header">🌤 Her Durağın Varış Saatindeki Hava Tahmini</div>',
+                unsafe_allow_html=True)
+
+    if not st.session_state.owm_key.strip():
+        st.info("Sol menüden OpenWeather API key girin. "
+                "Ücretsiz hesap: [openweathermap.org](https://openweathermap.org/api)")
+    else:
+        # Varış saatlerini hesapla (build_seg_rows ile aynı mantık)
+        _cur_dt = datetime.combine(datetime.today(), cikis)
+        _stop_times = [_cur_dt]                          # Kalkış saati
+        for _, _, km, _ in segments:
+            _sh = seg_sure_h(km)
+            _cur_dt = _cur_dt + timedelta(hours=_sh)
+            _stop_times.append(_cur_dt)                  # Her durağın varış saati
+
+        if st.button("🔄 Hava Durumunu Getir / Yenile", use_container_width=False):
+            st.session_state.hava_cache = {}             # Cache temizle
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        html_kartlar = ""
+        hava_hata_var = False
+        sicakliklar = []
+
+        for i, (il, ilce) in enumerate(st.session_state.duraks):
+            lat, lon  = koordinat(il, ilce)
+            varis_dt  = _stop_times[i]
+            varis_str = varis_dt.strftime("%d.%m %H:%M")
+            durak_adi = f"{il} / {ilce}"
+
+            # 5 gün sınırı kontrolü
+            simdi = datetime.now()
+            fark_gun = (varis_dt - simdi).total_seconds() / 86400
+            if fark_gun > 5:
+                html_kartlar += f"""<div style="background:#F5F5F5;border-radius:10px;
+                    padding:12px 18px;margin:6px 0;border-left:5px solid #9E9E9E;
+                    color:#666;font-size:0.87rem">
+                    📅 <b>{durak_adi}</b> ({varis_str}) — 5 günden uzak, tahmin mevcut değil
+                </div>"""
+                continue
+
+            with st.spinner(f"{durak_adi} hava durumu alınıyor..."):
+                veri = hava_getir(lat, lon, varis_dt, st.session_state.owm_key)
+
+            if "hata" not in veri:
+                sicakliklar.append(veri["main"]["temp"])
+            else:
+                hava_hata_var = True
+
+            html_kartlar += hava_karti(durak_adi, varis_str, veri)
+
+        st.markdown(html_kartlar, unsafe_allow_html=True)
+
+        # Ortalama sıcaklığa göre otomatik tüketim etkisi önerisi
+        if sicakliklar and not hava_hata_var:
+            ort_sicak = sum(sicakliklar) / len(sicakliklar)
+            if    ort_sicak <  0: etki_txt = "+15% (çok soğuk — karşı rüzgar + ısıtma)"
+            elif  ort_sicak < 10: etki_txt = "+8% (soğuk)"
+            elif  ort_sicak < 25: etki_txt = "±0% (ideal)"
+            elif  ort_sicak < 35: etki_txt = "+5% (sıcak — klima)"
+            else:                  etki_txt = "+8% (çok sıcak — yoğun klima)"
+            st.info(f"🌡 Güzergah ortalama sıcaklık: **{ort_sicak:.0f}°C** "
+                    f"— Tahmini yakıt etkisi: **{etki_txt}**  "
+                    f"(Sol menüdeki Hava & Yük ayarını buna göre güncelleyebilirsin)")
+
 with tab_harita:
     stop_coords = [koordinat(il,ilce) for il,ilce in st.session_state.duraks]
     center_lat  = sum(c[0] for c in stop_coords) / len(stop_coords)
