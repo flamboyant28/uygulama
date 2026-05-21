@@ -159,47 +159,161 @@ def hava_getir(lat, lon, hedef_dt, api_key):
         return {"hata": str(e)}
 
 def hava_karti(durak_adi, varis_str, veri):
-    """Tek durak için hava durumu HTML kartı"""
+    """Tek durak için hava durumu HTML kartı — tüm veriler"""
     if "hata" in veri:
         return f"""<div style="background:#FFF3CD;border-radius:10px;padding:12px;margin:6px 0;border-left:4px solid #FFC107">
             <b>{durak_adi}</b> ({varis_str}) — ⚠️ {veri['hata']}</div>"""
 
-    sicaklik  = veri["main"]["temp"]
-    hissedilen= veri["main"]["feels_like"]
-    durum     = veri["weather"][0]["description"].capitalize()
-    icon      = veri["weather"][0]["icon"]
-    emoji     = hava_emoji(icon)
-    ruzgar    = veri["wind"]["speed"] * 3.6  # m/s → km/h
-    yagis_pct = int(veri.get("pop", 0) * 100)
-    yagis_mm  = veri.get("rain", {}).get("3h", veri.get("snow", {}).get("3h", 0))
+    # Temel veriler
+    sicaklik   = veri["main"]["temp"]
+    hissedilen = veri["main"]["feels_like"]
+    nem        = veri["main"]["humidity"]
+    basinc     = veri["main"]["pressure"]
+    durum      = veri["weather"][0]["description"].capitalize()
+    icon       = veri["weather"][0]["icon"]
+    emoji      = hava_emoji(icon)
+    gece_mi    = icon.endswith("n")
 
-    # Uyarı rengi
-    uyari = ""
-    renk  = "#EBF3FB"
-    kenar = "#1F4E78"
-    if icon[:2] == "13":
-        renk = "#E8F4FD"; kenar = "#1565C0"; uyari = " ❄️ <b>KAR UYARISI</b>"
-    elif icon[:2] == "11":
-        renk = "#FFF3E0"; kenar = "#E65100"; uyari = " ⛈ <b>FIRTINA UYARISI</b>"
-    elif ruzgar > 50:
-        renk = "#FFF8E1"; kenar = "#F57F17"; uyari = " 💨 <b>KUVVETLİ RÜZGAR</b>"
+    # Rüzgar
+    ruzgar_ms  = veri["wind"]["speed"]
+    ruzgar_kmh = ruzgar_ms * 3.6
+    hamle_kmh  = veri["wind"].get("gust", ruzgar_ms) * 3.6
+    ruzgar_deg = veri["wind"].get("deg", 0)
+    yon_list   = ["K","KKD","KD","DKD","D","DGD","GD","GGD","G","GGB","GB","BGB","B","KBK","KB","KKB"]
+    ruzgar_yon = yon_list[round(ruzgar_deg / 22.5) % 16]
+
+    # Yağış & Kar
+    yagis_pct  = int(veri.get("pop", 0) * 100)
+    yagis_mm   = veri.get("rain", {}).get("3h", 0)
+    kar_mm     = veri.get("snow", {}).get("3h", 0)
+    toplam_yag = yagis_mm + kar_mm
+
+    # Görüş mesafesi
+    gorunum_m  = veri.get("visibility", 10000)
+    gorunum_km = gorunum_m / 1000
+
+    # Bulutluluk
+    bulut_pct  = veri.get("clouds", {}).get("all", 0)
+
+    # Gündüz/Gece
+    zaman_ikon = "🌙 Gece" if gece_mi else "☀️ Gündüz"
+
+    # ── Sürüş Güvenlik Skoru (0–10) ──────────────────────────────────────────
+    skor = 10.0
+    skor_detay = []
+    if gorunum_km < 0.2:
+        skor -= 4.0; skor_detay.append("Yoğun sis")
+    elif gorunum_km < 1:
+        skor -= 2.5; skor_detay.append("Sis")
+    elif gorunum_km < 4:
+        skor -= 1.0; skor_detay.append("Düşük görüş")
+
+    if kar_mm > 0:
+        skor -= min(3.0, kar_mm * 0.8); skor_detay.append(f"Kar ({kar_mm:.1f}mm)")
+    if yagis_mm > 5:
+        skor -= 1.5; skor_detay.append("Yoğun yağış")
+    elif yagis_mm > 1:
+        skor -= 0.8; skor_detay.append("Yağış")
+
+    if hamle_kmh > 90:
+        skor -= 2.5; skor_detay.append(f"Fırtına ({hamle_kmh:.0f}km/h)")
+    elif hamle_kmh > 60:
+        skor -= 1.5; skor_detay.append(f"Kuvvetli rüzgar ({hamle_kmh:.0f}km/h)")
+    elif hamle_kmh > 40:
+        skor -= 0.5; skor_detay.append(f"Rüzgarlı ({hamle_kmh:.0f}km/h)")
+
+    if icon[:2] == "11":
+        skor -= 2.0; skor_detay.append("Fırtına/Yıldırım")
+    if sicaklik < -5:
+        skor -= 1.5; skor_detay.append("Şiddetli soğuk")
     elif sicaklik < 0:
-        renk = "#E3F2FD"; kenar = "#1565C0"; uyari = " 🧊 <b>DON UYARISI</b>"
+        skor -= 0.8; skor_detay.append("Buzlanma riski")
 
-    yagis_html = f"🌧 {yagis_pct}% ({yagis_mm:.1f}mm)" if yagis_pct > 10 else f"{yagis_pct}%"
+    skor = max(0.0, min(10.0, skor))
 
-    return f"""<div style="background:{renk};border-radius:10px;padding:14px 18px;
-        margin:6px 0;border-left:5px solid {kenar}">
-        <div style="font-weight:700;font-size:0.95rem;color:#1F4E78">
-            {emoji} {durak_adi} <span style="font-weight:400;font-size:0.82rem;color:#666">
-            — Tahmini varış: {varis_str}</span>{uyari}
+    if skor >= 8:
+        skor_renk = "#2E7D32"; skor_bg = "#E8F5E9"; skor_lbl = "İyi"
+    elif skor >= 6:
+        skor_renk = "#F57F17"; skor_bg = "#FFF8E1"; skor_lbl = "Dikkatli"
+    elif skor >= 4:
+        skor_renk = "#E65100"; skor_bg = "#FFF3E0"; skor_lbl = "Zor"
+    else:
+        skor_renk = "#B71C1C"; skor_bg = "#FFEBEE"; skor_lbl = "Tehlikeli"
+
+    # ── Yakıt Etkisi ─────────────────────────────────────────────────────────
+    if    sicaklik <  0: yakit_etki = "+15%"; yakit_renk = "#1565C0"
+    elif  sicaklik < 10: yakit_etki = "+8%";  yakit_renk = "#1976D2"
+    elif  sicaklik < 25: yakit_etki = "±0%";  yakit_renk = "#2E7D32"
+    elif  sicaklik < 35: yakit_etki = "+5%";  yakit_renk = "#E65100"
+    else:                yakit_etki = "+8%";  yakit_renk = "#B71C1C"
+
+    # Rüzgar etkisi (karşı rüzgar yakıt artırır)
+    if hamle_kmh > 50:
+        yakit_etki += f" +rüzgar"
+
+    # ── Uyarı bandı ──────────────────────────────────────────────────────────
+    uyari_html = ""
+    uyarilar = []
+    if icon[:2] == "13" or kar_mm > 0:   uyarilar.append("❄️ KAR")
+    if icon[:2] == "11":                  uyarilar.append("⛈ FIRTINA")
+    if hamle_kmh > 60:                    uyarilar.append("💨 KUVVETLI RÜZGAR")
+    if sicaklik < 0:                      uyarilar.append("🧊 BUZLANMA")
+    if gorunum_km < 1:                    uyarilar.append("🌫 SIS")
+    if yagis_pct > 70:                    uyarilar.append("🌧 YOĞUN YAĞIŞ")
+    if uyarilar:
+        uyari_html = " &nbsp;".join(f"<b style='color:#C62828'>{u}</b>" for u in uyarilar)
+        uyari_html = f"<div style='margin:6px 0 2px;font-size:0.8rem'>{uyari_html}</div>"
+
+    # ── Kart border rengi ─────────────────────────────────────────────────────
+    kenar = skor_renk
+    arka  = skor_bg if skor < 6 else "#EBF3FB"
+
+    # ── Satır 1: Görüş & Nem & Basınç & Gündüz/gece ─────────────────────────
+    gorunum_html = (
+        f"<span style='color:#B71C1C;font-weight:700'>{gorunum_km:.1f} km ⚠️</span>"
+        if gorunum_km < 2 else f"{gorunum_km:.0f} km"
+    )
+
+    return f"""<div style="background:{arka};border-radius:12px;padding:16px 20px;
+        margin:8px 0;border-left:6px solid {kenar};box-shadow:0 2px 8px rgba(0,0,0,.06)">
+
+        <!-- Başlık satırı -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div style="font-weight:700;font-size:1rem;color:#1F4E78">
+                {emoji} {durak_adi}
+                <span style="font-weight:400;font-size:0.82rem;color:#666"> — {varis_str} &nbsp; {zaman_ikon}</span>
+            </div>
+            <div style="background:{skor_renk};color:white;border-radius:20px;
+                padding:4px 14px;font-weight:700;font-size:0.85rem;white-space:nowrap">
+                Sürüş: {skor:.0f}/10 — {skor_lbl}
+            </div>
         </div>
-        <div style="display:flex;gap:24px;margin-top:8px;font-size:0.87rem;flex-wrap:wrap">
-            <span>🌡 <b>{sicaklik:.0f}°C</b> (hissedilen {hissedilen:.0f}°C)</span>
-            <span>☁️ {durum}</span>
-            <span>💨 {ruzgar:.0f} km/s</span>
-            <span>🌧 Yağış: {yagis_html}</span>
+
+        {uyari_html}
+
+        <!-- Satır 1: Temel hava -->
+        <div style="display:flex;gap:20px;margin-top:10px;font-size:0.87rem;flex-wrap:wrap">
+            <span>🌡 <b>{sicaklik:.0f}°C</b> <span style="color:#888">(hissedilen {hissedilen:.0f}°C)</span></span>
+            <span>☁️ {durum} ({bulut_pct}%)</span>
+            <span>💧 Nem: {nem}%</span>
+            <span>📊 Basınç: {basinc} hPa</span>
         </div>
+
+        <!-- Satır 2: Rüzgar -->
+        <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
+            <span>💨 Rüzgar: <b>{ruzgar_kmh:.0f} km/s</b> ({ruzgar_yon})</span>
+            <span>💨 Hamle: <b style="color:{'#C62828' if hamle_kmh>60 else 'inherit'}">{hamle_kmh:.0f} km/s</b></span>
+        </div>
+
+        <!-- Satır 3: Görüş & Yağış -->
+        <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
+            <span>👁 Görüş: <b>{gorunum_html}</b></span>
+            <span>🌧 Yağış: <b>{yagis_pct}%</b>{f' ({yagis_mm:.1f}mm)' if yagis_mm > 0 else ''}</span>
+            {f'<span>❄️ Kar: <b>{kar_mm:.1f}mm</b></span>' if kar_mm > 0 else ''}
+            <span>⛽ Yakıt etkisi: <b style="color:{yakit_renk}">{yakit_etki}</b></span>
+        </div>
+
+        {f'<div style="margin-top:6px;font-size:0.78rem;color:#888">Skor düşürücüler: {", ".join(skor_detay)}</div>' if skor_detay else ''}
     </div>"""
 
 # ── Veri ─────────────────────────────────────────────────────────────────────
