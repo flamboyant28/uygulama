@@ -1078,7 +1078,7 @@ def generate_secondary_position(primary_pos: str):
     ─────────────────────────────────────────────────────
     """
     # ── OLASILIĞI BURADAN DEĞİŞTİR ───────────────────────────────
-    SECONDARY_PROB = 0.40  # ← %40;  %70 için: 0.70
+    SECONDARY_PROB = float(st.session_state.get('cfg_sec_prob', 0.40))  # Sidebar'dan
     # ─────────────────────────────────────────────────────────────
 
     pool = SECONDARY_POSITION_POOL.get(primary_pos, [])
@@ -2193,7 +2193,8 @@ def calculate_transfer_value(ca, pa, age):
     peak_age = 26
     age_factor = max(0.3, 1.0 - abs(age - peak_age) * 0.04)
     potential_bonus = (pa - ca) / 200 * 0.5 + 0.5
-    base = (ca / 200) ** 2.2 * 300_000_000
+    _tv_katsayi = int(st.session_state.get('cfg_tv_m', 300)) * 1_000_000
+    base = (ca / 200) ** 2.2 * _tv_katsayi
     value = base * age_factor * potential_bonus
 
     if value >= 80_000_000:
@@ -2513,14 +2514,16 @@ with st.sidebar:
         _sec_prob = st.slider("Çıkma Olasılığı", 0.0, 1.0,
                               float(st.session_state.get("cfg_sec_prob", 0.40)), 0.05,
                               key="cfg_sec_prob")
-        st.caption(f"Şu an: %{int(_sec_prob*100)} — her oyuncuda 2. mevki çıkma ihtimali")
+        st.caption(f"Şu an: %{int(_sec_prob*100)}")
+        st.info("📍 Etki: **Oyuncu Üret** sekmesindeki tüm yeni üretimler", icon="ℹ️")
 
     with st.expander("💰 Transfer Değeri", expanded=False):
         _tv_m = st.select_slider("Katsayı (Milyon €)",
                                  options=[100,150,200,250,300,350,400,450,500],
                                  value=int(st.session_state.get("cfg_tv_m", 300)),
                                  key="cfg_tv_m")
-        st.caption(f"Maks değer tavanı: {_tv_m} Milyon € (CA=200, 26 yaş)")
+        st.caption(f"CA=200, 26 yaş → maks {_tv_m} Milyon €")
+        st.info("📍 Etki: **tüm sekmelerdeki** transfer değeri hesabı", icon="ℹ️")
 
     with st.expander("🏋️ Kariyer & Yaş", expanded=False):
         _ret_age = st.slider("Emeklilik Yaşı", 38, 50,
@@ -2529,7 +2532,8 @@ with st.sidebar:
         _max_games = st.slider("Sezon Max Maç", 40, 80,
                                int(st.session_state.get("cfg_max_games", 70)),
                                key="cfg_max_games")
-        st.caption(f"Emeklilik: {_ret_age} yaş | Sezon: max {_max_games} maç")
+        st.caption(f"Emeklilik: {_ret_age} yaş | Max maç: {_max_games}")
+        st.info("📍 Etki: **Kariyer Modu** (Simülasyon sekmesi)", icon="ℹ️")
 
     with st.expander("🎓 Akademi Varsayılanları", expanded=False):
         _ak_years = st.slider("Simülasyon Yılı", 3, 8,
@@ -2538,20 +2542,22 @@ with st.sidebar:
         _ak_count = st.slider("Akademi Oyuncu Sayısı", 6, 16,
                               int(st.session_state.get("cfg_ak_count", 10)),
                               key="cfg_ak_count")
+        st.info("📍 Etki: **Akademi** sekmesi", icon="ℹ️")
 
     with st.expander("🏆 Mini Lig Varsayılanları", expanded=False):
         _lig_teams = st.slider("Takım Sayısı", 4, 24,
                                int(st.session_state.get("cfg_lig_teams", 8)),
                                key="cfg_lig_teams")
+        st.info("📍 Etki: **Mini Lig** sekmesi", icon="ℹ️")
 
     st.divider()
-    st.caption("**Aktif ayarlar**")
-    st.json({
-        "İkincil mevki": f"%{int(_sec_prob*100)}",
-        "Transfer katsayısı": f"{_tv_m}M €",
-        "Emeklilik": f"{_ret_age} yaş",
-        "Sezon maç": _max_games,
-    }, expanded=False)
+    st.markdown("**Aktif Ayarlar**")
+    st.markdown(
+        f"🔀 2. mevki **%{int(_sec_prob*100)}** &nbsp;·&nbsp; "
+        f"💰 **{_tv_m}M €** &nbsp;·&nbsp; "
+        f"⚰️ **{_ret_age} yaş** &nbsp;·&nbsp; "
+        f"⚽ **{_max_games} maç**"
+    )
 
 if "position" not in st.session_state:
     st.session_state.position = "ST"
@@ -4099,7 +4105,7 @@ with tab5:
 
                     # Maç sayısı
                     role_prob = min(1.0, new_ca / max(club_info["ca_req"], new_ca) * 0.9)
-                    max_games = 70
+                    max_games = int(st.session_state.get('cfg_max_games', 70))
                     games_base = int(max_games * role_prob * random.uniform(0.7, 1.0))
                     games_played2 = max(2, games_base - int(inj_weeks * 0.8))
 
@@ -4161,7 +4167,8 @@ with tab5:
                     cp["age"] += 1
                     cp["club"] = club_choice.split("(")[0].strip()
                     cp["league"] = club_info["league"]
-                    if cp["age"] >= 46 or (cp["age"] >= 43 and new_ca < 80):
+                    _ret = int(st.session_state.get("cfg_ret_age", 46))
+                    if cp["age"] >= _ret or (cp["age"] >= _ret - 3 and new_ca < 80):
                         cp["retired"] = True
                     st.session_state.career_year += 1
                     st.rerun()
@@ -5129,7 +5136,7 @@ with tab8:
 
     ml_c1, ml_c2, ml_c3, ml_c4 = st.columns(4)
     with ml_c1:
-        ml_n = st.slider("Takım Sayısı", 4, 24,
+        ml_n = st.slider("Takım Sayısı", 4, 16,
                          int(st.session_state.get("cfg_lig_teams", 8)), 2, key="ml_n")
     with ml_c2:
         ml_pre = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Karışık"], key="ml_pre")
