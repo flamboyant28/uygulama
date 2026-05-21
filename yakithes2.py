@@ -274,47 +274,30 @@ def hava_karti(durak_adi, varis_str, veri):
         if gorunum_km < 2 else f"{gorunum_km:.0f} km"
     )
 
-    return f"""<div style="background:{arka};border-radius:12px;padding:16px 20px;
-        margin:8px 0;border-left:6px solid {kenar};box-shadow:0 2px 8px rgba(0,0,0,.06)">
-
-        <!-- Başlık satırı -->
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <div style="font-weight:700;font-size:1rem;color:#1F4E78">
-                {emoji} {durak_adi}
-                <span style="font-weight:400;font-size:0.82rem;color:#666"> — {varis_str} &nbsp; {zaman_ikon}</span>
-            </div>
-            <div style="background:{skor_renk};color:white;border-radius:20px;
-                padding:4px 14px;font-weight:700;font-size:0.85rem;white-space:nowrap">
-                Sürüş: {skor:.0f}/10 — {skor_lbl}
-            </div>
-        </div>
-
-        {uyari_html}
-
-        <!-- Satır 1: Temel hava -->
-        <div style="display:flex;gap:20px;margin-top:10px;font-size:0.87rem;flex-wrap:wrap">
-            <span>🌡 <b>{sicaklik:.0f}°C</b> <span style="color:#888">(hissedilen {hissedilen:.0f}°C)</span></span>
-            <span>☁️ {durum} ({bulut_pct}%)</span>
-            <span>💧 Nem: {nem}%</span>
-            <span>📊 Basınç: {basinc} hPa</span>
-        </div>
-
-        <!-- Satır 2: Rüzgar -->
-        <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
-            <span>💨 Rüzgar: <b>{ruzgar_kmh:.0f} km/s</b> ({ruzgar_yon})</span>
-            <span>💨 Hamle: <b style="color:{'#C62828' if hamle_kmh>60 else 'inherit'}">{hamle_kmh:.0f} km/s</b></span>
-        </div>
-
-        <!-- Satır 3: Görüş & Yağış -->
-        <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
-            <span>👁 Görüş: <b>{gorunum_html}</b></span>
-            <span>🌧 Yağış: <b>{yagis_pct}%</b>{f' ({yagis_mm:.1f}mm)' if yagis_mm > 0 else ''}</span>
-            {f'<span>❄️ Kar: <b>{kar_mm:.1f}mm</b></span>' if kar_mm > 0 else ''}
-            <span>⛽ Yakıt etkisi: <b style="color:{yakit_renk}">{yakit_etki}</b></span>
-        </div>
-
-        {f'<div style="margin-top:6px;font-size:0.78rem;color:#888">Skor düşürücüler: {", ".join(skor_detay)}</div>' if skor_detay else ''}
-    </div>"""
+    return f"""<div style="background:{arka};border-radius:12px;padding:16px 20px;margin:8px 0;border-left:6px solid {kenar};box-shadow:0 2px 8px rgba(0,0,0,.06)">
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+<div style="font-weight:700;font-size:1rem;color:#1F4E78">{emoji} {durak_adi} <span style="font-weight:400;font-size:0.82rem;color:#666">— {varis_str} {zaman_ikon}</span></div>
+<div style="background:{skor_renk};color:white;border-radius:20px;padding:4px 14px;font-weight:700;font-size:0.85rem">{skor:.0f}/10 — {skor_lbl}</div>
+</div>
+{uyari_html}
+<div style="display:flex;gap:20px;margin-top:10px;font-size:0.87rem;flex-wrap:wrap">
+<span>🌡 <b>{sicaklik:.0f}°C</b> <span style="color:#888">(hissedilen {hissedilen:.0f}°C)</span></span>
+<span>☁️ {durum} ({bulut_pct}%)</span>
+<span>💧 Nem: {nem}%</span>
+<span>📊 {basinc} hPa</span>
+</div>
+<div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
+<span>💨 Rüzgar: <b>{ruzgar_kmh:.0f} km/s</b> ({ruzgar_yon})</span>
+<span>💨 Hamle: <b style="color:{'#C62828' if hamle_kmh>60 else 'inherit'}">{hamle_kmh:.0f} km/s</b></span>
+</div>
+<div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
+<span>👁 Görüş: <b style="color:{'#C62828' if gorunum_km < 2 else 'inherit'}">{gorunum_km:.1f} km{'  ⚠️' if gorunum_km < 2 else ''}</b></span>
+<span>🌧 Yağış: <b>{yagis_pct}%</b>{f' ({yagis_mm:.1f}mm)' if yagis_mm > 0 else ''}</span>
+{f'<span>❄️ Kar: <b>{kar_mm:.1f}mm</b></span>' if kar_mm > 0 else ''}
+<span>⛽ <b style="color:{yakit_renk}">{yakit_etki}</b></span>
+</div>
+{f'<div style="margin-top:6px;font-size:0.78rem;color:#888">Skor: {", ".join(skor_detay)}</div>' if skor_detay else ''}
+</div>"""
 
 # ── Veri ─────────────────────────────────────────────────────────────────────
 import sys
