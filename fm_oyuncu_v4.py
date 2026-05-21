@@ -2536,7 +2536,7 @@ with st.sidebar:
         st.info("📍 Etki: **Kariyer Modu** (Simülasyon sekmesi)", icon="ℹ️")
 
     with st.expander("🎓 Akademi Varsayılanları", expanded=False):
-        _ak_years = st.slider("Simülasyon Yılı", 3, 15,
+        _ak_years = st.slider("Simülasyon Yılı", 3, 8,
                               int(st.session_state.get("cfg_ak_years", 5)),
                               key="cfg_ak_years")
         _ak_count = st.slider("Akademi Oyuncu Sayısı", 6, 16,
@@ -5134,10 +5134,11 @@ with tab8:
     st.subheader("🏆 Mini Lig Motoru")
     st.caption("Takımlar üret, tam sezon oyna, puan tablosu & gol krallığı görüntüle.")
 
-    ml_c1, ml_c2, ml_c3, ml_c4 = st.columns(4)
-    with ml_c1:
-        ml_n = st.slider("Takım Sayısı", 4, 24,
-                         int(st.session_state.get("cfg_lig_teams", 8)), 2, key="ml_n")
+    # Takım sayısı sidebar'dan gelir (Mini Lig Varsayılanları)
+    ml_n = int(st.session_state.get("cfg_lig_teams", 8))
+    st.info(f"📍 Takım sayısı: **{ml_n}** — Sol paneldeki **Mini Lig Varsayılanları**'ndan ayarla", icon="ℹ️")
+
+    ml_c2, ml_c3, ml_c4 = st.columns(3)
     with ml_c2:
         ml_pre = st.selectbox("Kadro Seviyesi", ["Average","Star","Superstar","Karışık"], key="ml_pre")
     with ml_c3:
