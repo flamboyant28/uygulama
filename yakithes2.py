@@ -773,8 +773,8 @@ with tab_hava:
                 arr_dt = stop_times[seg_idx + 1]
                 sure_sn = (arr_dt - dep_dt).total_seconds()
 
-                # Her ~50 km'de bir nokta (en az 2 nokta: %0 ve %100)
-                n_nokta = max(2, round(km / 50) + 1)
+                # Her ~40 km'de bir nokta (en az 2 nokta: %0 ve %100)
+                n_nokta = max(2, round(km / 40) + 1)
                 for j in range(n_nokta):
                     t = j / (n_nokta - 1)  # 0.0 → 1.0
                     lat = c1[0] + (c2[0] - c1[0]) * t
@@ -804,7 +804,7 @@ with tab_hava:
                 st.session_state.hava_cache = {}
         with col_bilgi:
             st.caption(f"Güzergahta **{len(rota_illeri)} il** tespit edildi "
-                       f"(her ~50 km'de bir nokta, il sınırı tahmini).")
+                       f"(her ~40 km'de bir nokta, il sınırı tahmini).")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
