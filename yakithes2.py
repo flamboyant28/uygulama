@@ -99,6 +99,12 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .status-fail { background:linear-gradient(135deg,#7B0000,#C00000); color:white; padding:16px 22px;
                border-radius:12px; display:flex; align-items:center; gap:14px;
                font-size:1.1rem; font-weight:700; box-shadow:0 4px 12px rgba(192,0,0,.3); }
+.status-ev-ok   { background:linear-gradient(135deg,#4a1a7a,#7030A0); color:white; padding:16px 22px;
+               border-radius:12px; display:flex; align-items:center; gap:14px;
+               font-size:1.1rem; font-weight:700; box-shadow:0 4px 12px rgba(112,48,160,.3); margin-top:6px; }
+.status-ev-multi { background:linear-gradient(135deg,#1a237e,#1976D2); color:white; padding:16px 22px;
+               border-radius:12px; display:flex; align-items:center; gap:14px;
+               font-size:1.1rem; font-weight:700; box-shadow:0 4px 12px rgba(25,118,210,.3); margin-top:6px; }
 .status-icon { font-size:2rem; }
 .status-detail { font-weight:400; font-size:0.85rem; opacity:.85; margin-top:2px; }
 .section-header { font-size:1rem; font-weight:700; color:#1F4E78;
@@ -622,6 +628,20 @@ else:
       <div class="status-detail">Menzil {tam_depo_menzil:.0f} km · Yol {yol} km · {abs(depoda_kalan):.1f} L eksik · Tüketim {tuk:.1f} L/100km</div>
       </div></div>""", unsafe_allow_html=True)
 
+# EV şarj durumu
+_ev_sarj_sayisi = math.ceil(yol / ev_menzil) if ev_menzil > 0 else 0
+_ev_sarj_kalan  = (_ev_sarj_sayisi * ev_menzil) - yol if ev_menzil > 0 else 0
+if _ev_sarj_sayisi <= 1:
+    st.markdown(f"""<div class="status-ev-ok"><div class="status-icon">⚡</div>
+      <div><div>ELEKTRİKLİ ARAÇ — TEK ŞARJLA GİDİLİR</div>
+      <div class="status-detail">Tam şarj menzili {ev_menzil:.0f} km · Yol {yol} km · Varışta {_ev_sarj_kalan:.0f} km menzil kalır</div>
+      </div></div>""", unsafe_allow_html=True)
+else:
+    st.markdown(f"""<div class="status-ev-multi"><div class="status-icon">⚡</div>
+      <div><div>ELEKTRİKLİ ARAÇ — {_ev_sarj_sayisi} ŞARJ GEREKLİ</div>
+      <div class="status-detail">Tam şarj menzili {ev_menzil:.0f} km · Yol {yol} km · Her {ev_menzil:.0f} km'de bir şarj</div>
+      </div></div>""", unsafe_allow_html=True)
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Ana metrikler (tablo dışında — her tab'da görünür)
@@ -759,7 +779,7 @@ with tab_hava:
 
         def guzergah_illeri(segments, stop_times):
             """
-            Her segment için düz hat üzerinde her ~50 km'de bir ara nokta üret,
+            Her segment için düz hat üzerinde her ~30 km'de bir ara nokta üret,
             o noktaya en yakın ili bul. Zaman orantılı hesaplanır.
             Döner: [(il_adi, lat, lon, tahmini_dt), ...]  — tekrarsız sıralı liste
             """
