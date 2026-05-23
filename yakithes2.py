@@ -727,69 +727,129 @@ with tab_ozet:
 # ═══════════════════════ HARİTA ═══════════════════════════════════════════════
 # ═══════════════════════ HAVA DURUMU ═════════════════════════════════════════
 with tab_hava:
-    st.markdown('<div class="section-header">🌤 Her Durağın Varış Saatindeki Hava Tahmini</div>',
+    st.markdown('<div class="section-header">🌤 Güzergah Boyunca Geçilen İllerin Hava Durumu</div>',
                 unsafe_allow_html=True)
 
     if not st.session_state.owm_key.strip():
         st.info("Sol menüden OpenWeather API key girin. "
                 "Ücretsiz hesap: [openweathermap.org](https://openweathermap.org/api)")
     else:
-        # Varış saatlerini hesapla (build_seg_rows ile aynı mantık)
-        _cur_dt = datetime.combine(datetime.today(), cikis)
-        _stop_times = [_cur_dt]                          # Kalkış saati
-        for _, _, km, _ in segments:
-            _sh = seg_sure_h(km)
-            _cur_dt = _cur_dt + timedelta(hours=_sh)
-            _stop_times.append(_cur_dt)                  # Her durağın varış saati
+        # ── İl merkezlerini hesapla (tüm ilçelerin ortalaması) ────────────────
+        @st.cache_data
+        def il_merkezleri():
+            merkezler = {}
+            for il, ilceler in ILCELER.items():
+                lats = [v[0] for v in ilceler.values()]
+                lons = [v[1] for v in ilceler.values()]
+                merkezler[il] = (sum(lats)/len(lats), sum(lons)/len(lons))
+            return merkezler
 
-        if st.button("🔄 Hava Durumunu Getir / Yenile", use_container_width=False):
-            st.session_state.hava_cache = {}             # Cache temizle
+        IL_MERKEZ = il_merkezleri()
+
+        def en_yakin_il(lat, lon):
+            """Koordinata en yakın ili bul"""
+            en_az = float('inf')
+            bulunan = None
+            for il, (ilat, ilon) in IL_MERKEZ.items():
+                d = (lat - ilat)**2 + (lon - ilon)**2
+                if d < en_az:
+                    en_az = d
+                    bulunan = il
+            return bulunan
+
+        def guzergah_illeri(segments, stop_times):
+            """
+            Her segment için düz hat üzerinde her ~120 km'de bir ara nokta üret,
+            o noktaya en yakın ili bul. Zaman orantılı hesaplanır.
+            Döner: [(il_adi, lat, lon, tahmini_dt), ...]  — tekrarsız sıralı liste
+            """
+            gecilen = []   # (il, lat, lon, dt)
+            goruldü = set()
+
+            for seg_idx, (_, _, km, _) in enumerate(segments):
+                c1 = koordinat(*st.session_state.duraks[seg_idx])
+                c2 = koordinat(*st.session_state.duraks[seg_idx + 1])
+                dep_dt = stop_times[seg_idx]
+                arr_dt = stop_times[seg_idx + 1]
+                sure_sn = (arr_dt - dep_dt).total_seconds()
+
+                # Her ~120 km'de bir nokta (en az 2 nokta: %0 ve %100)
+                n_nokta = max(2, round(km / 120) + 1)
+                for j in range(n_nokta):
+                    t = j / (n_nokta - 1)  # 0.0 → 1.0
+                    lat = c1[0] + (c2[0] - c1[0]) * t
+                    lon = c1[1] + (c2[1] - c1[1]) * t
+                    zaman = dep_dt + timedelta(seconds=sure_sn * t)
+                    il = en_yakin_il(lat, lon)
+                    if il not in goruldü:
+                        goruldü.add(il)
+                        il_lat, il_lon = IL_MERKEZ[il]
+                        gecilen.append((il, il_lat, il_lon, zaman))
+
+            return gecilen
+
+        # Segment zamanlarını hesapla
+        _cur_dt = datetime.combine(datetime.today(), cikis)
+        _stop_times = [_cur_dt]
+        for _, _, km, _ in segments:
+            _cur_dt = _cur_dt + timedelta(hours=seg_sure_h(km))
+            _stop_times.append(_cur_dt)
+
+        # Geçilen illeri hesapla
+        rota_illeri = guzergah_illeri(segments, _stop_times)
+
+        col_btn, col_bilgi = st.columns([2, 5])
+        with col_btn:
+            if st.button("🔄 Hava Durumunu Getir / Yenile"):
+                st.session_state.hava_cache = {}
+        with col_bilgi:
+            st.caption(f"Güzergahta **{len(rota_illeri)} il** tespit edildi "
+                       f"(her ~120 km'de bir nokta, il sınırı tahmini).")
 
         st.markdown("<br>", unsafe_allow_html=True)
+
         html_kartlar = ""
-        hava_hata_var = False
-        sicakliklar = []
+        sicakliklar  = []
+        simdi        = datetime.now()
 
-        for i, (il, ilce) in enumerate(st.session_state.duraks):
-            lat, lon  = koordinat(il, ilce)
-            varis_dt  = _stop_times[i]
-            varis_str = varis_dt.strftime("%d.%m %H:%M")
-            durak_adi = f"{il} / {ilce}"
+        for il, lat, lon, gecis_dt in rota_illeri:
+            gecis_str = gecis_dt.strftime("%d.%m %H:%M")
+            fark_gun  = (gecis_dt - simdi).total_seconds() / 86400
 
-            # 5 gün sınırı kontrolü
-            simdi = datetime.now()
-            fark_gun = (varis_dt - simdi).total_seconds() / 86400
             if fark_gun > 5:
-                html_kartlar += f"""<div style="background:#F5F5F5;border-radius:10px;
-                    padding:12px 18px;margin:6px 0;border-left:5px solid #9E9E9E;
-                    color:#666;font-size:0.87rem">
-                    📅 <b>{durak_adi}</b> ({varis_str}) — 5 günden uzak, tahmin mevcut değil
-                </div>"""
+                html_kartlar += (
+                    f'<div style="background:#F5F5F5;border-radius:10px;padding:10px 16px;'
+                    f'margin:6px 0;border-left:5px solid #9E9E9E;color:#666;font-size:0.85rem">'
+                    f'📅 <b>{il}</b> ({gecis_str}) — 5 günden uzak, tahmin mevcut değil</div>'
+                )
                 continue
 
-            with st.spinner(f"{durak_adi} hava durumu alınıyor..."):
-                veri = hava_getir(lat, lon, varis_dt, st.session_state.owm_key)
+            with st.spinner(f"{il} hava durumu alınıyor..."):
+                veri = hava_getir(lat, lon, gecis_dt, st.session_state.owm_key)
 
             if "hata" not in veri:
                 sicakliklar.append(veri["main"]["temp"])
-            else:
-                hava_hata_var = True
 
-            html_kartlar += hava_karti(durak_adi, varis_str, veri)
+            html_kartlar += hava_karti(il, gecis_str, veri)
 
         st.markdown(html_kartlar, unsafe_allow_html=True)
 
-        # Ortalama sıcaklığa göre otomatik tüketim etkisi önerisi
-        if sicakliklar and not hava_hata_var:
-            ort_sicak = sum(sicakliklar) / len(sicakliklar)
-            if    ort_sicak <  0: etki_txt = "+15% (çok soğuk — karşı rüzgar + ısıtma)"
-            elif  ort_sicak < 10: etki_txt = "+8% (soğuk)"
-            elif  ort_sicak < 25: etki_txt = "±0% (ideal)"
-            elif  ort_sicak < 35: etki_txt = "+5% (sıcak — klima)"
-            else:                  etki_txt = "+8% (çok sıcak — yoğun klima)"
-            st.info(f"🌡 Güzergah ortalama sıcaklık: **{ort_sicak:.0f}°C** "
-                    f"— Tahmini yakıt etkisi: **{etki_txt}**  "
-                    f"(Sol menüdeki Hava & Yük ayarını buna göre güncelleyebilirsin)")
+        # Güzergah özeti
+        if sicakliklar:
+            ort = sum(sicakliklar) / len(sicakliklar)
+            en_dusuk = min(sicakliklar)
+            en_yuksek = max(sicakliklar)
+            if    ort <  0: etki = "+15% (çok soğuk)"
+            elif  ort < 10: etki = "+8% (soğuk)"
+            elif  ort < 25: etki = "±0% (ideal)"
+            elif  ort < 35: etki = "+5% (sıcak)"
+            else:            etki = "+8% (çok sıcak)"
+            st.info(
+                f"🌡 Güzergah sıcaklık — Ort: **{ort:.0f}°C** | "
+                f"En düşük: **{en_dusuk:.0f}°C** | En yüksek: **{en_yuksek:.0f}°C**  \n"
+                f"⛽ Tahmini yakıt etkisi: **{etki}** "
+                f"(Sol menü → Hava & Yük ayarını buna göre güncelleyebilirsin)"
+            )
 
 with tab_harita:
     stop_coords = [koordinat(il,ilce) for il,ilce in st.session_state.duraks]
