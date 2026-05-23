@@ -164,7 +164,7 @@ def hava_getir(lat, lon, hedef_dt, api_key):
     except Exception as e:
         return {"hata": str(e)}
 
-def hava_karti(durak_adi, varis_str, veri):
+def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
     """Tek durak için hava durumu HTML kartı — tüm veriler"""
     if "hata" in veri:
         return f"""<div style="background:#FFF3CD;border-radius:10px;padding:12px;margin:6px 0;border-left:4px solid #FFC107">
@@ -178,7 +178,12 @@ def hava_karti(durak_adi, varis_str, veri):
     durum      = veri["weather"][0]["description"].capitalize()
     icon       = veri["weather"][0]["icon"]
     emoji      = hava_emoji(icon)
-    gece_mi    = icon.endswith("n")
+    # Gündüz/Gece: ikona değil varış saatine bak (UTC/lokal karışıklığını önler)
+    if gecis_dt is not None:
+        saat = gecis_dt.hour
+        gece_mi = saat < 6 or saat >= 21
+    else:
+        gece_mi = icon.endswith("n")
 
     # Rüzgar
     ruzgar_ms  = veri["wind"]["speed"]
@@ -247,15 +252,39 @@ def hava_karti(durak_adi, varis_str, veri):
         skor_renk = "#B71C1C"; skor_bg = "#FFEBEE"; skor_lbl = "Tehlikeli"
 
     # ── Yakıt Etkisi ─────────────────────────────────────────────────────────
-    if    sicaklik <  0: yakit_etki = "+15%"; yakit_renk = "#1565C0"
-    elif  sicaklik < 10: yakit_etki = "+8%";  yakit_renk = "#1976D2"
-    elif  sicaklik < 25: yakit_etki = "±0%";  yakit_renk = "#2E7D32"
-    elif  sicaklik < 35: yakit_etki = "+5%";  yakit_renk = "#E65100"
-    else:                yakit_etki = "+8%";  yakit_renk = "#B71C1C"
+    # Sıcaklık etkisi
+    if    sicaklik <  0: pct_sicak = 15
+    elif  sicaklik < 10: pct_sicak = 8
+    elif  sicaklik < 25: pct_sicak = 0
+    elif  sicaklik < 35: pct_sicak = 5
+    else:                pct_sicak = 8
 
-    # Rüzgar etkisi (karşı rüzgar yakıt artırır)
-    if hamle_kmh > 50:
-        yakit_etki += f" +rüzgar"
+    # Yağış etkisi (yoğun yağışta yavaşlama + silecek + lastik direnci)
+    pct_yagis = 0
+    if toplam_yag > 5:   pct_yagis = 8   # yoğun yağış
+    elif toplam_yag > 1: pct_yagis = 4   # orta yağış
+    elif yagis_pct > 60: pct_yagis = 2   # hafif yağış ihtimali
+
+    # Rüzgar etkisi (karşı rüzgar)
+    pct_ruzgar = 0
+    if hamle_kmh > 80:   pct_ruzgar = 8
+    elif hamle_kmh > 50: pct_ruzgar = 4
+    elif hamle_kmh > 30: pct_ruzgar = 2
+
+    pct_toplam = pct_sicak + pct_yagis + pct_ruzgar
+    yakit_etki = f"+{pct_toplam}%" if pct_toplam > 0 else "±0%"
+
+    detay_parcalar = []
+    if pct_sicak  > 0: detay_parcalar.append(f"sıcaklık +{pct_sicak}%")
+    if pct_yagis  > 0: detay_parcalar.append(f"yağış +{pct_yagis}%")
+    if pct_ruzgar > 0: detay_parcalar.append(f"rüzgar +{pct_ruzgar}%")
+    yakit_detay = " · ".join(detay_parcalar) if detay_parcalar else "etkisiz"
+
+    if   pct_toplam >= 15: yakit_renk = "#B71C1C"
+    elif pct_toplam >= 8:  yakit_renk = "#E65100"
+    elif pct_toplam >= 4:  yakit_renk = "#F57F17"
+    elif pct_toplam > 0:   yakit_renk = "#1976D2"
+    else:                   yakit_renk = "#2E7D32"
 
     # ── Uyarı bandı ──────────────────────────────────────────────────────────
     uyari_html = ""
@@ -300,7 +329,7 @@ def hava_karti(durak_adi, varis_str, veri):
 <span>👁 Görüş: <b style="color:{'#C62828' if gorunum_km < 2 else 'inherit'}">{gorunum_km:.1f} km{'  ⚠️' if gorunum_km < 2 else ''}</b></span>
 <span>🌧 Yağış: <b>{yagis_pct}%</b>{f' ({yagis_mm:.1f}mm)' if yagis_mm > 0 else ''}</span>
 {f'<span>❄️ Kar: <b>{kar_mm:.1f}mm</b></span>' if kar_mm > 0 else ''}
-<span>⛽ <b style="color:{yakit_renk}">{yakit_etki}</b></span>
+<span>⛽ <b style="color:{yakit_renk}">{yakit_etki}</b> <span style="color:#888;font-size:0.8rem">({yakit_detay})</span></span>
 </div>
 {f'<div style="margin-top:6px;font-size:0.78rem;color:#888">Skor: {", ".join(skor_detay)}</div>' if skor_detay else ''}
 </div>"""
@@ -850,7 +879,7 @@ with tab_hava:
             if "hata" not in veri:
                 sicakliklar.append(veri["main"]["temp"])
 
-            html_kartlar += hava_karti(il, gecis_str, veri)
+            html_kartlar += hava_karti(il, gecis_str, veri, gecis_dt)
 
         st.markdown(html_kartlar, unsafe_allow_html=True)
 
