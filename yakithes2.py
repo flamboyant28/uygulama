@@ -800,29 +800,37 @@ with tab_harita:
     st.markdown('<div class="section-header">🌐 Online Harita Uygulamalarında Aç</div>',
                 unsafe_allow_html=True)
 
-    # Google Maps: /dir/lat1,lon1/lat2,lon2/.../latN,lonN
-    gm_noktalar  = "/".join(f"{lat},{lon}" for lat, lon in stop_coords)
-    gm_url       = f"https://www.google.com/maps/dir/{gm_noktalar}"
+    # Google Maps: /dir/lat1,lon1/lat2,lon2/.../latN,lonN  ✅ Çoklu durak
+    gm_noktalar = "/".join(f"{lat},{lon}" for lat, lon in stop_coords)
+    gm_url      = f"https://www.google.com/maps/dir/{gm_noktalar}"
 
-    # Yandex Maps: rtext=lat1,lon1~lat2,lon2~...
-    yx_noktalar  = "~".join(f"{lat},{lon}" for lat, lon in stop_coords)
-    yx_url       = f"https://yandex.com.tr/maps/?rtext={yx_noktalar}&rtt=auto&lang=tr_TR"
+    # Yandex Maps: rtext=lat1,lon1~lat2,lon2~...  ✅ Çoklu durak
+    yx_noktalar = "~".join(f"{lat},{lon}" for lat, lon in stop_coords)
+    yx_url      = f"https://yandex.com.tr/maps/?rtext={yx_noktalar}&rtt=auto&lang=tr_TR"
 
-    # Waze (sadece kalkış → varış, tek destinasyon)
-    wz_url = (f"https://waze.com/ul?ll={stop_coords[-1][0]},{stop_coords[-1][1]}"
-              f"&navigate=yes&from={stop_coords[0][0]},{stop_coords[0][1]}")
+    # Bing Maps: rtp=pos.lat1_lon1~pos.lat2_lon2~...  ✅ Çoklu durak
+    bing_noktalar = "~".join(f"pos.{lat}_{lon}" for lat, lon in stop_coords)
+    bing_url      = f"https://www.bing.com/maps?rtp={bing_noktalar}&mode=D"
 
-    # OpenStreetMap (OSRM routing)
-    osm_noktalar = ";".join(f"{lon},{lat}" for lat, lon in stop_coords)
-    osm_url      = f"https://router.project-osrm.org/route/v1/driving/{osm_noktalar}?overview=false"
-    # OSM harita görünümü (yol çizmez ama konumu gösterir)
-    osm_map_url  = f"https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route={';'.join(f'{lat},{lon}' for lat,lon in stop_coords)}"
+    # Waze: sadece kalkış → varış ❌ Ara durak desteği yok
+    wz_kalkis = stop_coords[0]
+    wz_varis  = stop_coords[-1]
+    wz_url    = (f"https://waze.com/ul?ll={wz_varis[0]},{wz_varis[1]}"
+                 f"&navigate=yes&from={wz_kalkis[0]},{wz_kalkis[1]}")
+
+    coklu = len(stop_coords) > 2
 
     lc1, lc2, lc3, lc4 = st.columns(4)
-    lc1.link_button("🗺 Google Maps",     gm_url, use_container_width=True)
-    lc2.link_button("🗺 Yandex Maps",     yx_url, use_container_width=True)
-    lc3.link_button("🚗 Waze",            wz_url, use_container_width=True)
-    lc4.link_button("🗺 OpenStreetMap",   osm_map_url, use_container_width=True)
+    lc1.link_button("🗺 Google Maps",  gm_url,   use_container_width=True)
+    lc2.link_button("🗺 Yandex Maps",  yx_url,   use_container_width=True)
+    lc3.link_button("🗺 Bing Maps",    bing_url, use_container_width=True)
+    lc4.link_button("🚗 Waze",         wz_url,   use_container_width=True)
+
+    if coklu:
+        st.caption("✅ Google Maps · Yandex · Bing → tüm duraklar desteklenir  "
+                   "⚠️ Waze → sadece kalkış→varış açılır, ara duraklar desteklenmiyor")
+    else:
+        st.caption("✅ Tüm uygulamalar tek güzergahı destekler")
 
     # Durak listesi
     with st.expander("📋 Koordinat Listesi (kopyala-yapıştır için)"):
