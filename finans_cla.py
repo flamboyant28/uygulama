@@ -722,37 +722,100 @@ with tab_analiz:
         st.plotly_chart(fig_kum, use_container_width=True)
 
         # Özet
-        toplam_faiz_g   = df_analiz["Net Faiz Getirisi"].sum()
-        toplam_taksit_g = son_taksit * len(df_analiz)
-        kum_net         = df_analiz["Kümülatif Net"].iloc[-1]
-        son_anapara     = df_analiz["Mevduat Anapara"].iloc[-1]
-        son_faiz        = df_analiz["Net Faiz Getirisi"].iloc[-1]
+        toplam_faiz_g      = df_analiz["Net Faiz Getirisi"].sum()
+        toplam_taksit_g    = son_taksit * len(df_analiz)
+        kum_net            = df_analiz["Kümülatif Net"].iloc[-1]
+        son_anapara        = df_analiz["Mevduat Anapara"].iloc[-1]
+        son_faiz           = df_analiz["Net Faiz Getirisi"].iloc[-1]
+
+        # Kredi tablosundan toplam ödenen faiz (F+KKDF+BSMV)
+        toplam_kredi_faiz  = df_kredi_son["Faiz+KKDF+BSMV"].sum()
+        toplam_kredi_anapara = df_kredi_son["Anapara"].sum()
+
+        # Net kâr/zarar: mevduattan kazanılan faiz − krediye ödenen faiz
+        net_kar_zarar = toplam_faiz_g - toplam_kredi_faiz
 
         st.markdown("### 📋 Özet")
         oz1, oz2, oz3 = st.columns(3)
         with oz1:
-            st.metric("Toplam Mevduat Faizi", tl(toplam_faiz_g))
-            st.metric("Son Ay Anapara",        tl(son_anapara))
-            st.metric("Son Ay Net Faiz",        tl(son_faiz))
+            st.metric("Toplam Mevduat Net Faizi",  tl(toplam_faiz_g))
+            st.metric("Son Ay Anapara",             tl(son_anapara))
+            st.metric("Son Ay Net Faiz",            tl(son_faiz))
         with oz2:
-            st.metric("Toplam Kredi Taksiti", tl(toplam_taksit_g))
-            st.metric("Aylık Taksit",         tl(son_taksit))
+            st.metric("Toplam Kredi Faizi (F+K+B)", tl(toplam_kredi_faiz))
+            st.metric("Toplam Kredi Taksiti",        tl(toplam_taksit_g))
+            st.metric("Aylık Taksit",                tl(son_taksit))
         with oz3:
-            st.metric("Kümülatif Net", tl(kum_net),
-                      delta="pozitif ✅" if kum_net > 0 else "negatif ❌")
+            st.metric("💰 Net Kâr / Zarar",
+                      tl(net_kar_zarar),
+                      delta="KÂR ✅" if net_kar_zarar > 0 else "ZARAR ❌")
+            st.metric("Kümülatif Net (Taksit bazlı)", tl(kum_net))
+
+        # ── Kâr/Zarar Waterfall Grafiği ──────────────────────────────────────
+        st.markdown("### 💰 Kâr / Zarar Analizi")
+        st.caption("Mevduattan kazandığın faiz ile krediye ödediğin faiz arasındaki net fark")
+
+        fig_kar = go.Figure(go.Waterfall(
+            orientation="v",
+            measure=["absolute", "relative", "relative", "total"],
+            x=[
+                "Mevduat Net Faiz\n(Kazanç)",
+                "Kredi Faizi\n(Maliyet)",
+                "KKDF + BSMV\n(Maliyet)",
+                "NET KÂR / ZARAR",
+            ],
+            y=[
+                toplam_faiz_g,
+                -df_kredi_son["Faiz"].sum(),
+                -(df_kredi_son["KKDF"].sum() + df_kredi_son["BSMV"].sum()),
+                0,
+            ],
+            text=[
+                tl(toplam_faiz_g),
+                tl(-df_kredi_son["Faiz"].sum()),
+                tl(-(df_kredi_son["KKDF"].sum() + df_kredi_son["BSMV"].sum())),
+                tl(net_kar_zarar),
+            ],
+            textposition="outside",
+            connector={"line": {"color": "#555555"}},
+            increasing={"marker": {"color": "#1a6fff"}},
+            decreasing={"marker": {"color": "#ef5350"}},
+            totals={"marker": {"color": "#22c55e" if net_kar_zarar > 0 else "#ef5350"}},
+        ))
+        fig_kar.update_layout(
+            title="Mevduat Faiz Getirisi vs Kredi Faiz Maliyeti",
+            yaxis_tickformat=",", yaxis_title="Tutar (₺)",
+        )
+        st.plotly_chart(fig_kar, use_container_width=True)
+
+        # Sonuç kartı
+        if net_kar_zarar > 0:
+            st.success(
+                f"✅ **KÂRDASINİZ!**\n\n"
+                f"Mevduattan kazandığınız net faiz: **{tl(toplam_faiz_g)}**\n\n"
+                f"Krediye ödediğiniz toplam faiz: **{tl(toplam_kredi_faiz)}**\n\n"
+                f"**Net kâr: {tl(net_kar_zarar)}** — mevduat, kredi faizini karşıladı ve {tl(net_kar_zarar)} artı bıraktı."
+            )
+        else:
+            st.error(
+                f"❌ **ZARARDASINIZ!**\n\n"
+                f"Mevduattan kazandığınız net faiz: **{tl(toplam_faiz_g)}**\n\n"
+                f"Krediye ödediğiniz toplam faiz: **{tl(toplam_kredi_faiz)}**\n\n"
+                f"**Net zarar: {tl(abs(net_kar_zarar))}** — kredi faizi mevduat getirisini aştı."
+            )
 
         # Hangi ayda faiz taksiti geçiyor?
         gecis_ay = df_analiz[df_analiz["Net Faiz Getirisi"] >= son_taksit]
         if not gecis_ay.empty:
             ilk_gecis = gecis_ay.iloc[0]
-            st.success(
+            st.info(
                 f"🎯 **{int(ilk_gecis['Dönem'])}. aydan itibaren** mevduat faizi "
                 f"kredi taksitini karşılıyor! "
                 f"(Faiz: {tl(ilk_gecis['Net Faiz Getirisi'])} ≥ Taksit: {tl(son_taksit)})"
             )
         else:
-            st.error(
-                f"❌ Kredi süresi boyunca mevduat faizi taksiti hiç karşılamıyor. "
+            st.warning(
+                f"⚠️ Kredi süresi boyunca mevduat faizi taksiti hiç karşılamıyor. "
                 f"Son ayda faiz: {tl(df_analiz['Net Faiz Getirisi'].iloc[-1])}, "
                 f"Taksit: {tl(son_taksit)}"
             )
