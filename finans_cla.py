@@ -23,6 +23,8 @@ if 'son_kredi_df' not in st.session_state:
     st.session_state.son_kredi_df = None
 if 'son_taksit' not in st.session_state:
     st.session_state.son_taksit = 0.0
+if 'altin_islemler' not in st.session_state:
+    st.session_state.altin_islemler = []
 
 # ── Yardımcı Fonksiyonlar ─────────────────────────────────────────────────────
 def tl(x):
@@ -118,15 +120,16 @@ def df_to_pdf(df: pd.DataFrame, baslik: str) -> bytes:
 
 # ── Başlık ────────────────────────────────────────────────────────────────────
 st.title("💰 Finansal Karar Destek Sistemi")
-st.caption("Mevduat • Kredi • Hedef Hesap • Döviz • Analiz • Export")
+st.caption("Mevduat • Kredi • Hedef Hesap • Döviz • Analiz • Altın • Export")
 
 # ── Sekmeler ──────────────────────────────────────────────────────────────────
-tab_mev, tab_kredi, tab_hedef, tab_doviz, tab_analiz, tab_export = st.tabs([
+tab_mev, tab_kredi, tab_hedef, tab_doviz, tab_analiz, tab_altin, tab_export = st.tabs([
     "📈 Mevduat",
     "🏦 Kredi",
     "🎯 Hedef Hesap",
     "💱 Döviz Karşılaştırması",
     "🔄 Kredi + Mevduat Analizi",
+    "🥇 Altın Takibi",
     "📤 Dışa Aktar",
 ])
 
@@ -854,6 +857,243 @@ with tab_analiz:
                 f"Son ayda faiz: {tl(df_analiz['Net Faiz Getirisi'].iloc[-1])}, "
                 f"Taksit: {tl(son_taksit)}"
             )
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🥇 ALTIN TAKİBİ
+# ═══════════════════════════════════════════════════════════════════════════════
+with tab_altin:
+    st.header("🥇 Altın Takibi")
+    st.caption("Alım / satım işlemlerini gir, kâr/zarar otomatik hesaplansın")
+
+    # ── Altın türleri ve gram karşılıkları ─────────────────────────────────────
+    ALTIN_TURLERI = {
+        "Gram Altın":      1.0,
+        "Çeyrek Altın":    1.75,
+        "Yarım Altın":     3.50,
+        "Tam Altın":       7.00,
+        "Cumhuriyet Altını": 7.216,
+        "Ata Altın":       7.216,
+        "22 Ayar Bilezik": 1.0,   # gram bazlı
+    }
+
+    # ── Güncel fiyat girişi ────────────────────────────────────────────────────
+    st.subheader("💰 Güncel Altın Fiyatları")
+    st.caption("Anlık fiyatları buraya girerek hesaplamayı güncelle")
+
+    gf1, gf2, gf3, gf4 = st.columns(4)
+    with gf1: guncel_gram    = st.number_input("Gram Altın (TL/gr)", value=3800.0, step=10.0, key="guncel_gram")
+    with gf2: guncel_ceyrek  = st.number_input("Çeyrek (TL/adet)",   value=6650.0, step=10.0, key="guncel_ceyrek")
+    with gf3: guncel_yarim   = st.number_input("Yarım (TL/adet)",    value=13300.0, step=10.0, key="guncel_yarim")
+    with gf4: guncel_tam     = st.number_input("Tam (TL/adet)",      value=26600.0, step=10.0, key="guncel_tam")
+
+    gf5, gf6 = st.columns(2)
+    with gf5: guncel_cumhuriyet = st.number_input("Cumhuriyet/Ata (TL/adet)", value=27000.0, step=10.0, key="guncel_cumhuriyet")
+    with gf6: guncel_bilezik    = st.number_input("22 Ayar Bilezik (TL/gr)",  value=3500.0,  step=10.0, key="guncel_bilezik")
+
+    GUNCEL_FIYAT = {
+        "Gram Altın":        guncel_gram,
+        "Çeyrek Altın":      guncel_ceyrek,
+        "Yarım Altın":       guncel_yarim,
+        "Tam Altın":         guncel_tam,
+        "Cumhuriyet Altını": guncel_cumhuriyet,
+        "Ata Altın":         guncel_cumhuriyet,
+        "22 Ayar Bilezik":   guncel_bilezik,
+    }
+
+    st.divider()
+
+    # ── İşlem Girişi ──────────────────────────────────────────────────────────
+    st.subheader("➕ Yeni İşlem Ekle")
+
+    islem_tipi = st.radio("İşlem Tipi", ["📥 Alım", "📤 Satım"], horizontal=True)
+
+    ic1, ic2, ic3 = st.columns(3)
+    with ic1:
+        islem_turu  = st.selectbox("Altın Türü", list(ALTIN_TURLERI.keys()), key="islem_turu")
+    with ic2:
+        islem_tarih = st.date_input("İşlem Tarihi", value=date.today(), key="islem_tarih")
+    with ic3:
+        islem_acik  = st.text_input("Açıklama (opsiyonel)", placeholder="örn: Goldaş", key="islem_acik")
+
+    ic4, ic5, ic6 = st.columns(3)
+    with ic4:
+        # Gram altın ve bilezik için gram, diğerleri için adet
+        if islem_turu in ["Gram Altın", "22 Ayar Bilezik"]:
+            islem_miktar = st.number_input("Miktar (gram)", value=10.0, min_value=0.01, step=0.5, key="islem_miktar")
+            miktar_birimi = "gr"
+        else:
+            islem_miktar = st.number_input("Miktar (adet)", value=1, min_value=1, step=1, key="islem_miktar")
+            miktar_birimi = "adet"
+    with ic5:
+        islem_fiyat = st.number_input(
+            f"Birim Fiyat (TL/{miktar_birimi})",
+            value=float(GUNCEL_FIYAT[islem_turu]),
+            step=10.0, key="islem_fiyat"
+        )
+    with ic6:
+        islem_toplam = islem_miktar * islem_fiyat
+        st.metric("Toplam Tutar", tl(islem_toplam))
+
+    if st.button("➕ İşlemi Kaydet", type="primary"):
+        gram_kars = ALTIN_TURLERI[islem_turu]
+        toplam_gram = islem_miktar * gram_kars if islem_turu not in ["22 Ayar Bilezik"] else islem_miktar
+
+        st.session_state.altin_islemler.append({
+            "Tip":          "Alım" if "Alım" in islem_tipi else "Satım",
+            "Tür":          islem_turu,
+            "Tarih":        islem_tarih.strftime("%d.%m.%Y"),
+            "Miktar":       islem_miktar,
+            "Birim":        miktar_birimi,
+            "Birim Fiyat":  islem_fiyat,
+            "Toplam TL":    islem_toplam,
+            "Toplam Gram":  round(toplam_gram, 4),
+            "Açıklama":     islem_acik,
+        })
+        st.success(f"✅ {'Alım' if 'Alım' in islem_tipi else 'Satım'} işlemi kaydedildi!")
+        st.rerun()
+
+    st.divider()
+
+    # ── İşlem Listesi & Analiz ────────────────────────────────────────────────
+    if not st.session_state.altin_islemler:
+        st.info("Henüz işlem girilmedi. Yukarıdan alım/satım ekle.")
+    else:
+        df_islem = pd.DataFrame(st.session_state.altin_islemler)
+
+        # Tablo göster
+        st.subheader("📋 İşlem Geçmişi")
+        df_islem_g = df_islem.copy()
+        df_islem_g["Birim Fiyat"] = df_islem_g["Birim Fiyat"].apply(tl)
+        df_islem_g["Toplam TL"]   = df_islem_g["Toplam TL"].apply(tl)
+        st.dataframe(df_islem_g, use_container_width=True)
+
+        # Silme
+        if st.button("🗑 Tüm İşlemleri Sil"):
+            st.session_state.altin_islemler = []
+            st.rerun()
+
+        st.divider()
+        st.subheader("📊 Kâr / Zarar Analizi")
+
+        # Tür bazlı analiz
+        turler = df_islem["Tür"].unique()
+        ozet_rows = []
+
+        for tur in turler:
+            df_tur    = df_islem[df_islem["Tür"] == tur]
+            df_alim   = df_tur[df_tur["Tip"] == "Alım"]
+            df_satim  = df_tur[df_tur["Tip"] == "Satım"]
+
+            toplam_alim_miktar  = df_alim["Miktar"].sum()
+            toplam_satim_miktar = df_satim["Miktar"].sum()
+            toplam_alim_tl      = df_alim["Toplam TL"].sum()
+            toplam_satim_tl     = df_satim["Toplam TL"].sum()
+            elde_kalan_miktar   = toplam_alim_miktar - toplam_satim_miktar
+            birim               = df_tur["Birim"].iloc[0]
+
+            # Güncel değer (elde kalanın bugünkü değeri)
+            guncel_fiyat_tur    = GUNCEL_FIYAT.get(tur, 0)
+            guncel_deger        = elde_kalan_miktar * guncel_fiyat_tur
+
+            # Ortalama alım fiyatı
+            ort_alim_fiyat = toplam_alim_tl / toplam_alim_miktar if toplam_alim_miktar > 0 else 0
+
+            # Gerçekleşen kâr (satışlardan)
+            # Satış yapılan miktarın maliyet bedeli (FIFO basit yaklaşım: ort. fiyat)
+            satis_maliyet   = toplam_satim_miktar * ort_alim_fiyat
+            gerceklesen_kar = toplam_satim_tl - satis_maliyet
+
+            # Toplam kâr (gerçekleşen + elde kalanın kazancı)
+            elde_maliyet    = elde_kalan_miktar * ort_alim_fiyat
+            elde_kazanc     = guncel_deger - elde_maliyet
+            toplam_kar      = gerceklesen_kar + elde_kazanc
+
+            ozet_rows.append({
+                "Tür":               tur,
+                "Alım (Miktar)":     f"{toplam_alim_miktar:.2f} {birim}",
+                "Alım (TL)":         tl(toplam_alim_tl),
+                "Satım (Miktar)":    f"{toplam_satim_miktar:.2f} {birim}",
+                "Satım (TL)":        tl(toplam_satim_tl),
+                "Elde Kalan":        f"{elde_kalan_miktar:.4f} {birim}",
+                "Ort. Alım Fiyatı":  tl(ort_alim_fiyat),
+                "Güncel Fiyat":      tl(guncel_fiyat_tur),
+                "Güncel Değer":      tl(guncel_deger),
+                "Gerç. Kâr/Zarar":   tl(gerceklesen_kar),
+                "Elde Kazanç":       tl(elde_kazanc),
+                "💰 Toplam Kâr/Zarar": tl(toplam_kar),
+                "Durum":             "✅ KÂR" if toplam_kar > 0 else ("❌ ZARAR" if toplam_kar < 0 else "⚖️ BAŞABAŞ"),
+            })
+
+        df_ozet = pd.DataFrame(ozet_rows)
+        st.dataframe(df_ozet, use_container_width=True)
+
+        # Genel özet metrikler
+        st.subheader("📌 Genel Özet")
+        toplam_alim_tl_gen  = df_islem[df_islem["Tip"]=="Alım"]["Toplam TL"].sum()
+        toplam_satim_tl_gen = df_islem[df_islem["Tip"]=="Satım"]["Toplam TL"].sum()
+
+        # Güncel toplam değer (tüm elde kalanlar)
+        guncel_toplam = 0
+        for tur in turler:
+            df_tur = df_islem[df_islem["Tür"]==tur]
+            kalan  = df_tur[df_tur["Tip"]=="Alım"]["Miktar"].sum() - \
+                     df_tur[df_tur["Tip"]=="Satım"]["Miktar"].sum()
+            guncel_toplam += kalan * GUNCEL_FIYAT.get(tur, 0)
+
+        # Toplam gerçekleşen + latent kâr
+        gerceklesen_toplam = sum(
+            float(r["Gerç. Kâr/Zarar"].replace("₺","").replace(".","").replace(",","."))
+            for r in ozet_rows
+        )
+        latent_toplam = sum(
+            float(r["Elde Kazanç"].replace("₺","").replace(".","").replace(",","."))
+            for r in ozet_rows
+        )
+        net_kar_toplam = gerceklesen_toplam + latent_toplam
+
+        gm1, gm2, gm3, gm4 = st.columns(4)
+        with gm1:
+            st.metric("Toplam Alım",        tl(toplam_alim_tl_gen))
+            st.metric("Toplam Satım",       tl(toplam_satim_tl_gen))
+        with gm2:
+            st.metric("Elde Kalanların Güncel Değeri", tl(guncel_toplam))
+        with gm3:
+            st.metric("Gerçekleşen Kâr/Zarar",   tl(gerceklesen_toplam),
+                      delta="KÂR ✅" if gerceklesen_toplam > 0 else "ZARAR ❌")
+            st.metric("Elde Kazanç (Latent)",      tl(latent_toplam))
+        with gm4:
+            st.metric("💰 NET KÂR / ZARAR",        tl(net_kar_toplam),
+                      delta="KÂR ✅" if net_kar_toplam > 0 else "ZARAR ❌")
+
+        # Alım vs güncel değer bar grafiği
+        if ozet_rows:
+            fig_altin = go.Figure()
+            turler_list = [r["Tür"] for r in ozet_rows]
+            alim_tl_list = [
+                float(r["Alım (TL)"].replace("₺","").replace(".","").replace(",","."))
+                for r in ozet_rows
+            ]
+            guncel_list = [
+                float(r["Güncel Değer"].replace("₺","").replace(".","").replace(",","."))
+                for r in ozet_rows
+            ]
+            fig_altin.add_trace(go.Bar(name="Alım Maliyeti",   x=turler_list, y=alim_tl_list, marker_color="#ef5350"))
+            fig_altin.add_trace(go.Bar(name="Güncel Değer",    x=turler_list, y=guncel_list,  marker_color="#1a6fff"))
+            fig_altin.update_layout(title="Altın Türü Bazında Maliyet vs Güncel Değer",
+                                     barmode="group", yaxis_tickformat=",")
+            st.plotly_chart(fig_altin, use_container_width=True)
+
+        # Excel export
+        excel_altin = df_to_excel({
+            "İşlem Geçmişi": df_islem,
+            "Kâr Zarar Özeti": df_ozet,
+        })
+        st.download_button(
+            label="📊 Altın Takibini Excel'e Aktar",
+            data=excel_altin,
+            file_name=f"altin_takibi_{date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 📤 DIŞA AKTAR
