@@ -641,22 +641,44 @@ with tab_analiz:
                                                value=32, min_value=1, step=1,
                                                key="a_vade_1")
 
+        kredi_ay_sayisi = len(df_kredi_son)
+        a_ay = st.slider(
+            "Karşılaştırma süresi (Ay)",
+            min_value=1,
+            max_value=max(kredi_ay_sayisi, 120),
+            value=kredi_ay_sayisi,
+            help=f"Kredi vadesi: {kredi_ay_sayisi} ay. İstersen kredi bittikten sonrasını da dahil edebilirsin."
+        )
+
+        if a_ay != kredi_ay_sayisi:
+            st.info(f"ℹ️ Kredi vadesi **{kredi_ay_sayisi} ay**, karşılaştırma süresi **{a_ay} ay** seçildi. "
+                    f"{'Kredi bittikten sonraki dönem de dahil.' if a_ay > kredi_ay_sayisi else 'Kredi tamamlanmadan analiz kesiliyor.'}")
+
         # Bileşik büyüme: her ay net faiz anaparaya eklenir
         analiz_rows = []
         mevcut_anapara = a_anapara
 
-        for _, row in df_kredi_son.iterrows():
-            ay = int(row["Dönem"])
+        for ay in range(1, a_ay + 1):
             _, _, _, net_faiz = mevduat_hesapla(mevcut_anapara, a_faiz, a_vade, a_stopaj)
-            net_durum = net_faiz - son_taksit
 
+            # Kredi devam ediyorsa taksit var, bittiyse 0
+            if ay <= kredi_ay_sayisi:
+                taksit_ay    = son_taksit
+                kalan_borc   = df_kredi_son[df_kredi_son["Dönem"] == ay]["Kalan Anapara"].values
+                kalan_borc   = kalan_borc[0] if len(kalan_borc) > 0 else 0.0
+            else:
+                taksit_ay  = 0.0
+                kalan_borc = 0.0
+
+            net_durum = net_faiz - taksit_ay
             analiz_rows.append({
                 "Dönem":             ay,
                 "Mevduat Anapara":   mevcut_anapara,
                 "Net Faiz Getirisi": net_faiz,
-                "Kredi Taksiti":     son_taksit,
+                "Kredi Taksiti":     taksit_ay,
                 "Aylık Net Durum":   net_durum,
-                "Kalan Kredi Borcu": row["Kalan Anapara"],
+                "Kalan Kredi Borcu": kalan_borc,
+                "Kredi Aktif":       ay <= kredi_ay_sayisi,
             })
 
             mevcut_anapara += net_faiz  # Faizi anaparaya ekle
