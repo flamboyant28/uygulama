@@ -621,70 +621,118 @@ with tab_doviz:
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab_analiz:
     st.header("🔄 Kredi + Mevduat Birlikte Analiz")
-    st.markdown("""
-Bu ekran **Mevduat** ve **Kredi** sekmelerindeki verileri otomatik kullanır.
-> **"Kredi öderken, mevduattaki para daha mı hızlı büyüyor?"**
-""")
+    st.caption("Aynı anapara mevduata yatsaydı ne kadar faiz getirirdi? Kredi taksitinden farkı nedir?")
 
-    df_24_son = st.session_state.son_mevduat_df
     df_kredi_son = st.session_state.son_kredi_df
-    son_taksit = st.session_state.son_taksit
+    son_taksit   = st.session_state.son_taksit
 
-    if df_24_son is None:
-        st.warning("⚠️ Önce **Mevduat** sekmesinde hesaplama yapın.")
-    elif df_kredi_son is None:
+    if df_kredi_son is None:
         st.warning("⚠️ Önce **Kredi** sekmesinde hesaplama yapın.")
     else:
-        max_donem = min(len(df_kredi_son), len(df_24_son))
-        analiz_rows = []
+        ac1, ac2, ac3, ac4 = st.columns(4)
+        with ac1: a_anapara = st.number_input("Mevduat Anapara (TL)",
+                                               value=kredi_tutari, step=10_000.0,
+                                               key="a_anapara_1")
+        with ac2: a_faiz    = st.number_input("Yıllık Mevduat Faizi (%)",
+                                               value=40.0, step=0.5, key="a_faiz_1")
+        with ac3: a_stopaj  = st.number_input("Stopaj (%)",
+                                               value=7.5, step=0.1, key="a_stopaj_1")
+        with ac4: a_vade    = st.number_input("Mevduat Vadesi (Gün)",
+                                               value=32, min_value=1, step=1,
+                                               key="a_vade_1")
 
-        for ay in range(1, max_donem + 1):
-            # Mevduat sekmesindeki son projeksiyon verisi (Net Gelir sütunu TL formatında)
-            # Sayısal değere dönüştür
-            net_gelir_str = df_24_son.loc[ay-1, "Net Gelir"]
-            net_gelir_num = float(net_gelir_str.replace("₺","").replace(".","").replace(",","."))
-            net_durum = net_gelir_num - son_taksit
+        # Sabit anapara ile aylık net faiz (bileşik yok, her ay aynı anapara)
+        _, _, _, aylik_net_faiz = mevduat_hesapla(a_anapara, a_faiz, a_vade, a_stopaj)
+
+        st.info(
+            f"💡 **{tl(a_anapara)}** anapara · **%{a_faiz}** faiz · "
+            f"**{a_vade} günlük** mevduat → Aylık net faiz: **{tl(aylik_net_faiz)}** | "
+            f"Kredi taksiti: **{tl(son_taksit)}** | "
+            f"Fark: **{tl(aylik_net_faiz - son_taksit)}**"
+        )
+
+        analiz_rows = []
+        for _, row in df_kredi_son.iterrows():
+            ay       = int(row["Dönem"])
+            net_durum = aylik_net_faiz - son_taksit
             analiz_rows.append({
-                "Dönem": ay,
-                "Mevduat Net Gelir": net_gelir_num,
-                "Aylık Taksit": son_taksit,
-                "Net Durum": net_durum,
+                "Dönem":             ay,
+                "Kalan Kredi Borcu": row["Kalan Anapara"],
+                "Mevduat Net Faiz":  aylik_net_faiz,
+                "Kredi Taksiti":     son_taksit,
+                "Aylık Net Durum":   net_durum,
             })
 
         df_analiz = pd.DataFrame(analiz_rows)
-        df_analiz["Kümülatif Net"] = df_analiz["Net Durum"].cumsum()
+        df_analiz["Kümülatif Net"] = df_analiz["Aylık Net Durum"].cumsum()
 
+        # Görsel tablo
         df_analiz_g = df_analiz.copy()
-        for col in ["Mevduat Net Gelir","Aylık Taksit","Net Durum","Kümülatif Net"]:
+        for col in ["Kalan Kredi Borcu","Mevduat Net Faiz",
+                    "Kredi Taksiti","Aylık Net Durum","Kümülatif Net"]:
             df_analiz_g[col] = df_analiz_g[col].apply(tl)
         st.dataframe(df_analiz_g, use_container_width=True)
 
-        # Grafik
-        fig_analiz = px.bar(df_analiz, x="Dönem", y="Net Durum",
-                             title="Ay Ay Net Durum (Mevduat Geliri − Kredi Taksiti)",
-                             color="Net Durum",
-                             color_continuous_scale=["#ef5350","#66bb6a"])
-        fig_analiz.add_hline(y=0, line_dash="dash", line_color="#333333")
-        fig_analiz.update_layout(yaxis_tickformat=",")
+        # Bar grafik
+        fig_analiz = go.Figure()
+        fig_analiz.add_trace(go.Bar(
+            name="Mevduat Net Faiz",
+            x=df_analiz["Dönem"],
+            y=df_analiz["Mevduat Net Faiz"],
+            marker_color="#1a6fff"
+        ))
+        fig_analiz.add_trace(go.Bar(
+            name="Kredi Taksiti",
+            x=df_analiz["Dönem"],
+            y=df_analiz["Kredi Taksiti"],
+            marker_color="#ef5350"
+        ))
+        fig_analiz.update_layout(
+            title="Aylık Mevduat Faizi vs Kredi Taksiti",
+            barmode="group", yaxis_tickformat=",",
+        )
         st.plotly_chart(fig_analiz, use_container_width=True)
 
-        fig_kum = px.line(df_analiz, x="Dönem", y="Kümülatif Net",
-                           title="Kümülatif Net Durum")
-        fig_kum.add_hline(y=0, line_dash="dash", line_color="red")
+        # Kümülatif net grafik
+        fig_kum = px.area(df_analiz, x="Dönem", y="Kümülatif Net",
+                           title="Kümülatif Net Durum (Faiz − Taksit Toplamı)",
+                           color_discrete_sequence=["#1a6fff"])
+        fig_kum.add_hline(y=0, line_dash="dash", line_color="red",
+                           annotation_text="Başabaş")
         fig_kum.update_layout(yaxis_tickformat=",")
         st.plotly_chart(fig_kum, use_container_width=True)
 
-        son_net = df_analiz["Net Durum"].iloc[-1]
-        kum_net = df_analiz["Kümülatif Net"].iloc[-1]
-        if son_net > 0:
-            st.success(f"✅ Son ayda mevduat, taksitten {tl(son_net)} fazla getiri sağlıyor.")
-        else:
-            st.error(f"❌ Son ayda kredi taksiti, mevduat getirisini {tl(abs(son_net))} aşıyor.")
+        # Kalan kredi borcu grafiği
+        fig_borc = px.line(df_analiz, x="Dönem", y="Kalan Kredi Borcu",
+                            title="Ay Ay Kalan Kredi Borcu",
+                            color_discrete_sequence=["#f97316"])
+        fig_borc.update_layout(yaxis_tickformat=",")
+        st.plotly_chart(fig_borc, use_container_width=True)
 
-        if kum_net > 0:
-            st.success(f"📈 Toplam sürede kümülatif net: **{tl(kum_net)} pozitif**")
+        # Özet
+        kum_net = df_analiz["Kümülatif Net"].iloc[-1]
+        toplam_faiz_g = aylik_net_faiz * len(df_analiz)
+        toplam_taksit_g = son_taksit * len(df_analiz)
+
+        st.markdown("### 📋 Özet")
+        oz1, oz2, oz3 = st.columns(3)
+        with oz1:
+            st.metric("Toplam Mevduat Faizi", tl(toplam_faiz_g))
+            st.metric("Aylık Net Faiz", tl(aylik_net_faiz))
+        with oz2:
+            st.metric("Toplam Kredi Taksiti", tl(toplam_taksit_g))
+            st.metric("Aylık Taksit", tl(son_taksit))
+        with oz3:
+            st.metric("Kümülatif Net", tl(kum_net),
+                      delta="pozitif ✅" if kum_net > 0 else "negatif ❌")
+            st.metric("Aylık Fark", tl(aylik_net_faiz - son_taksit))
+
+        if aylik_net_faiz >= son_taksit:
+            st.success(f"✅ Mevduat faizi her ay taksiti karşılıyor. "
+                       f"Aylık {tl(aylik_net_faiz - son_taksit)} artı kalıyor.")
         else:
-            st.error(f"📉 Toplam sürede kümülatif net: **{tl(abs(kum_net))} negatif**")
+            st.error(f"❌ Mevduat faizi taksiti karşılamıyor. "
+                     f"Her ay {tl(son_taksit - aylik_net_faiz)} cebinizden gidiyor.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 📤 DIŞA AKTAR
@@ -744,4 +792,4 @@ with tab_export:
 
 # ── Alt Bilgi ─────────────────────────────────────────────────────────────────
 st.divider()
-st.caption("© Finansal Karar Destek Sistemi v2 | Streamlit + Python | Enes Özkan 2026")
+st.caption("© Finansal Karar Destek Sistemi v2 | Streamlit + Python")
