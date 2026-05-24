@@ -1022,6 +1022,12 @@ with tab_altin:
                 "Elde Kazanç":       tl(elde_kazanc),
                 "💰 Toplam Kâr/Zarar": tl(toplam_kar),
                 "Durum":             "✅ KÂR" if toplam_kar > 0 else ("❌ ZARAR" if toplam_kar < 0 else "⚖️ BAŞABAŞ"),
+                # Sayısal değerler — genel özet için string parse hatası olmadan kullan
+                "_alim_tl":         toplam_alim_tl,
+                "_guncel_deger":    guncel_deger,
+                "_gerceklesen_kar": gerceklesen_kar,
+                "_elde_kazanc":     elde_kazanc,
+                "_toplam_kar":      toplam_kar,
             })
 
         df_ozet = pd.DataFrame(ozet_rows)
@@ -1040,16 +1046,10 @@ with tab_altin:
                      df_tur[df_tur["Tip"]=="Satım"]["Miktar"].sum()
             guncel_toplam += kalan * GUNCEL_FIYAT.get(tur, 0)
 
-        # Toplam gerçekleşen + latent kâr
-        gerceklesen_toplam = sum(
-            float(r["Gerç. Kâr/Zarar"].replace("₺","").replace(".","").replace(",","."))
-            for r in ozet_rows
-        )
-        latent_toplam = sum(
-            float(r["Elde Kazanç"].replace("₺","").replace(".","").replace(",","."))
-            for r in ozet_rows
-        )
-        net_kar_toplam = gerceklesen_toplam + latent_toplam
+        # Toplam gerçekleşen + latent kâr — sayısal değerlerden topla
+        gerceklesen_toplam = sum(r["_gerceklesen_kar"] for r in ozet_rows)
+        latent_toplam      = sum(r["_elde_kazanc"]     for r in ozet_rows)
+        net_kar_toplam     = sum(r["_toplam_kar"]       for r in ozet_rows)
 
         gm1, gm2, gm3, gm4 = st.columns(4)
         with gm1:
@@ -1065,28 +1065,25 @@ with tab_altin:
             st.metric("💰 NET KÂR / ZARAR",        tl(net_kar_toplam),
                       delta="KÂR ✅" if net_kar_toplam > 0 else "ZARAR ❌")
 
-        # Alım vs güncel değer bar grafiği
+        # Alım vs güncel değer bar grafiği — sayısal değerlerden al
         if ozet_rows:
             fig_altin = go.Figure()
-            turler_list = [r["Tür"] for r in ozet_rows]
-            alim_tl_list = [
-                float(r["Alım (TL)"].replace("₺","").replace(".","").replace(",","."))
-                for r in ozet_rows
-            ]
-            guncel_list = [
-                float(r["Güncel Değer"].replace("₺","").replace(".","").replace(",","."))
-                for r in ozet_rows
-            ]
-            fig_altin.add_trace(go.Bar(name="Alım Maliyeti",   x=turler_list, y=alim_tl_list, marker_color="#ef5350"))
-            fig_altin.add_trace(go.Bar(name="Güncel Değer",    x=turler_list, y=guncel_list,  marker_color="#1a6fff"))
+            turler_list  = [r["Tür"]          for r in ozet_rows]
+            alim_tl_list = [r["_alim_tl"]     for r in ozet_rows]
+            guncel_list  = [r["_guncel_deger"] for r in ozet_rows]
+            fig_altin.add_trace(go.Bar(name="Alım Maliyeti", x=turler_list, y=alim_tl_list, marker_color="#ef5350"))
+            fig_altin.add_trace(go.Bar(name="Güncel Değer",  x=turler_list, y=guncel_list,  marker_color="#1a6fff"))
             fig_altin.update_layout(title="Altın Türü Bazında Maliyet vs Güncel Değer",
                                      barmode="group", yaxis_tickformat=",")
             st.plotly_chart(fig_altin, use_container_width=True)
 
+        # Excel için _ ile başlayan sütunları çıkar
+        df_ozet_excel = df_ozet.drop(columns=[c for c in df_ozet.columns if c.startswith("_")], errors="ignore")
+
         # Excel export
         excel_altin = df_to_excel({
-            "İşlem Geçmişi": df_islem,
-            "Kâr Zarar Özeti": df_ozet,
+            "İşlem Geçmişi":    df_islem,
+            "Kâr Zarar Özeti":  df_ozet_excel,
         })
         st.download_button(
             label="📊 Altın Takibini Excel'e Aktar",
