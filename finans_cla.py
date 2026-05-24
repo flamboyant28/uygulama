@@ -1080,11 +1080,73 @@ with tab_altin:
         # Excel için _ ile başlayan sütunları çıkar
         df_ozet_excel = df_ozet.drop(columns=[c for c in df_ozet.columns if c.startswith("_")], errors="ignore")
 
-        # Excel export
-        excel_altin = df_to_excel({
-            "İşlem Geçmişi":    df_islem,
-            "Kâr Zarar Özeti":  df_ozet_excel,
-        })
+        # Excel export — toplamlar satırı ile
+        def altin_excel_with_totals():
+            import openpyxl
+            from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+            from openpyxl.utils import get_column_letter
+
+            buf = io.BytesIO()
+            wb  = openpyxl.Workbook()
+
+            header_fill = PatternFill("solid", fgColor="1a1a2e")
+            total_fill  = PatternFill("solid", fgColor="c8f7d4")
+            bold_white  = Font(bold=True, color="FFFFFF")
+            bold        = Font(bold=True)
+            center      = Alignment(horizontal="center", vertical="center")
+            thin        = Side(style="thin", color="cccccc")
+            bdr         = Border(top=thin, left=thin, bottom=thin, right=thin)
+
+            def write_sheet(ws, df, tot_map=None, title=None):
+                ws.sheet_view.showGridLines = False
+                cols = list(df.columns)
+                # Başlık satırı
+                for ci, col in enumerate(cols, 1):
+                    c = ws.cell(row=1, column=ci, value=col)
+                    c.font = bold_white; c.fill = header_fill
+                    c.alignment = center; c.border = bdr
+                    ws.column_dimensions[get_column_letter(ci)].width = 17
+                ws.row_dimensions[1].height = 20
+                # Veri satırları
+                for ri, row in df.iterrows():
+                    for ci, val in enumerate(row, 1):
+                        c = ws.cell(row=ri+2, column=ci, value=val)
+                        c.alignment = center; c.border = bdr
+                # Toplamlar satırı
+                if tot_map:
+                    tot_row = len(df) + 2
+                    ws.cell(row=tot_row+1, column=1, value="TOPLAM").font = bold
+                    ws.cell(row=tot_row+1, column=1).fill = total_fill
+                    for col_name, val in tot_map.items():
+                        if col_name in cols:
+                            ci = cols.index(col_name) + 1
+                            c  = ws.cell(row=tot_row+1, column=ci, value=val)
+                            c.font = bold; c.fill = total_fill; c.alignment = center
+
+            # Sayfa 1: İşlem Geçmişi
+            ws1 = wb.active; ws1.title = "İşlem Geçmişi"
+            islem_tot = {
+                "Toplam TL": tl(toplam_alim_tl_gen + toplam_satim_tl_gen)
+            }
+            write_sheet(ws1, df_islem, islem_tot)
+
+            # Sayfa 2: Kâr/Zarar Özeti
+            ws2 = wb.create_sheet("Kâr Zarar Özeti")
+            ozet_tot = {
+                "Alım (TL)":           tl(toplam_alim_tl_gen),
+                "Satım (TL)":          tl(toplam_satim_tl_gen),
+                "Güncel Değer":        tl(guncel_toplam),
+                "Gerç. Kâr/Zarar":     tl(gerceklesen_toplam),
+                "Elde Kazanç":         tl(latent_toplam),
+                "💰 Toplam Kâr/Zarar":  tl(net_kar_toplam),
+                "Durum":               "✅ KÂR" if net_kar_toplam > 0 else "❌ ZARAR",
+            }
+            write_sheet(ws2, df_ozet_excel, ozet_tot)
+
+            wb.save(buf)
+            return buf.getvalue()
+
+        excel_altin = altin_excel_with_totals()
         st.download_button(
             label="📊 Altın Takibini Excel'e Aktar",
             data=excel_altin,
