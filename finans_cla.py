@@ -758,10 +758,15 @@ with tab_analiz:
         net_kar_zarar = toplam_faiz_g - toplam_kredi_faiz
 
         st.markdown("### 📋 Özet")
+
+        vade_sonu_toplam = son_anapara + son_faiz  # Son ayın başı + son ayın faizi
+
         oz1, oz2, oz3 = st.columns(3)
         with oz1:
-            st.metric("Toplam Mevduat Net Faizi",  tl(toplam_faiz_g))
-            st.metric("Son Ay Anapara",             tl(son_anapara))
+            st.metric("Toplam Mevduat Net Faizi",  tl(toplam_faiz_g),
+                      help="Tüm aylarda kazanılan net faizlerin toplamı")
+            st.metric("Vade Sonu Toplam Birikim",   tl(vade_sonu_toplam),
+                      help="Başlangıç anapara + toplam net faiz")
             st.metric("Son Ay Net Faiz",            tl(son_faiz))
         with oz2:
             st.metric("Toplam Kredi Faizi (F+K+B)", tl(toplam_kredi_faiz))
@@ -770,8 +775,16 @@ with tab_analiz:
         with oz3:
             st.metric("💰 Net Kâr / Zarar",
                       tl(net_kar_zarar),
-                      delta="KÂR ✅" if net_kar_zarar > 0 else "ZARAR ❌")
-            st.metric("Kümülatif Net (Taksit bazlı)", tl(kum_net))
+                      delta="KÂR ✅" if net_kar_zarar > 0 else "ZARAR ❌",
+                      help="Toplam Mevduat Net Faizi − Toplam Kredi Faizi")
+            st.metric("Kümülatif Net (Taksit bazlı)", tl(kum_net),
+                      help="Her ay: (Mevduat Faizi − Taksit) birikimi")
+
+        st.caption(
+            f"📌 Hesaplama: Vade Sonu Birikim {tl(vade_sonu_toplam)} "
+            f"= Başlangıç {tl(a_anapara)} + Net Faiz {tl(toplam_faiz_g)} | "
+            f"Net Kâr = {tl(toplam_faiz_g)} − {tl(toplam_kredi_faiz)} = {tl(net_kar_zarar)}"
+        )
 
         # ── Kâr/Zarar Waterfall Grafiği ──────────────────────────────────────
         st.markdown("### 💰 Kâr / Zarar Analizi")
