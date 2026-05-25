@@ -21,27 +21,37 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ─── On Numara arşivi (JSON'dan oku) ────────────────────────────────────────
+# ─── Arşivler (JSON'dan oku) ─────────────────────────────────────────────────
 import json as _json, os as _os
 from datetime import datetime as _dt
 
-def _arsiv_yukle():
-    dosya = "on_numara_arsiv.json"
+def _arsiv_yukle(dosya, sistem_filtre=None):
+    """JSON arşivini yükle, isteğe göre sistem filtrele."""
     if _os.path.exists(dosya):
         with open(dosya, encoding="utf-8") as _f:
             rows = _json.load(_f)
     else:
-        st.error("❌ on_numara_arsiv.json bulunamadı! Lütfen dosyayı uygulama klasörüne ekleyin.")
         rows = []
-    # En yeni önce
+    if sistem_filtre:
+        rows = [r for r in rows if r.get("sistem") == sistem_filtre]
     rows.sort(key=lambda r: _dt.strptime(r["tarih"], "%d/%m/%Y"), reverse=True)
-    # tarih_str uyumluluğu için
     for r in rows:
         r["tarih_str"] = r["tarih"]
         r["hafta"]     = r["sira"]
     return rows
 
-ON_NUMARA_ARSIV = _arsiv_yukle()
+ON_NUMARA_ARSIV   = _arsiv_yukle("on_numara_arsiv.json")
+SAYISAL_ARSIV     = _arsiv_yukle("sayisal_loto_arsiv.json")
+SUPER_ARSIV       = _arsiv_yukle("super_loto_arsiv.json")
+SANS_TOPU_ARSIV   = _arsiv_yukle("sans_topu_arsiv.json")
+
+# Her oyunun arşivini config'e bağla
+OYUN_ARSIVLERI = {
+    "Sayisal-Loto": SAYISAL_ARSIV,
+    "Super-Loto":   SUPER_ARSIV,
+    "Sans-Topu":    SANS_TOPU_ARSIV,
+    "On-Numara":    ON_NUMARA_ARSIV,
+}
 
 # ─── Yedek istatistik verisi ──────────────────────────────────────────────────
 YEDEK = {
@@ -408,6 +418,8 @@ def oyun_sekmesi(cfg):
     bonus=cfg["bonus"]; bonus_havuz=cfg.get("bonus_havuz",14)
     bonus_renk=cfg.get("bonus_renk","#e6a817"); renk=cfg["renk"]
     on_numara = slug == "On-Numara"
+    arsiv = OYUN_ARSIVLERI.get(slug, [])
+    has_arsiv = len(arsiv) > 0
 
     with st.spinner("Veriler yükleniyor..."):
         sicak,soguk,b_sicak,b_soguk,kaynak = veri_yukle(slug)
@@ -424,7 +436,7 @@ def oyun_sekmesi(cfg):
 
     # Modlar
     modlar=["Rastgele","🔥 Sıcak","❄️ Soğuk","🎲 Karma"]
-    if on_numara:
+    if has_arsiv:
         modlar.append("📅 Son Çekilişlere Dayalı")
 
     c1,c2,c3=st.columns([3,1,1])
@@ -438,20 +450,34 @@ def oyun_sekmesi(cfg):
 
     # Son çekilişlere dayalı slider
     n_cekilis = 5
-    if on_numara and mod == "📅 Son Çekilişlere Dayalı":
-        max_val = len(ON_NUMARA_ARSIV)
+    if has_arsiv and mod == "📅 Son Çekilişlere Dayalı":
+        max_val = len(arsiv)
         n_cekilis = st.slider(
             f"Kaç son çekiliş baz alınsın? (Toplam {max_val} çekiliş mevcut)",
-            min_value=3, max_value=max_val, value=5, step=1,
-            key="slider_son_cekilis"
+            min_value=3, max_value=min(max_val, max_val), value=5, step=1,
+            key=f"slider_son_cekilis_{slug}"
         )
-        son_n_rows = ON_NUMARA_ARSIV[:n_cekilis]
-        tarihler = f"{son_n_rows[-1]['tarih_str']} – {son_n_rows[0]['tarih_str']}"
+        # Sistem filtresi (Sayısal Loto ve Süper Loto için)
+        if slug in ["Sayisal-Loto", "Super-Loto"]:
+            sistem_sec = st.radio(
+                "Hangi sistem?", ["Tümü", "Yeni sistem", "Eski sistem"],
+                horizontal=True, key=f"sistem_{slug}"
+            )
+            if sistem_sec == "Yeni sistem":
+                arsiv_filtered = [r for r in arsiv if r.get("sistem") == "yeni"]
+            elif sistem_sec == "Eski sistem":
+                arsiv_filtered = [r for r in arsiv if r.get("sistem") == "eski"]
+            else:
+                arsiv_filtered = arsiv
+        else:
+            arsiv_filtered = arsiv
+        son_n_rows = arsiv_filtered[:n_cekilis]
+        tarihler = f"{son_n_rows[-1]['tarih_str']} – {son_n_rows[0]['tarih_str']}" if son_n_rows else "—"
         st.caption(f"📅 Baz alınan dönem: **{tarihler}** ({n_cekilis} çekiliş)")
 
     # Son Çekilişlere Dayalı alt mod
     alt_mod = "🎲 Rastgele"
-    if on_numara and mod == "📅 Son Çekilişlere Dayalı":
+    if has_arsiv and mod == "📅 Son Çekilişlere Dayalı":
         alt_mod = st.radio(
             "30 aday içinden seçim stratejisi",
             ["🎲 Rastgele", "🔥 Sıcak", "❄️ Soğuk", "🎭 Karma"],
@@ -481,10 +507,10 @@ def oyun_sekmesi(cfg):
         st.subheader("🎰 Kombinasyonlar")
         top_renk=mod_rengi(mod,renk)
 
-        if on_numara and mod=="📅 Son Çekilişlere Dayalı":
-            _, freq, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
+        if has_arsiv and mod=="📅 Son Çekilişlere Dayalı":
+            _, freq, aday_set = son_cekilis_mod(arsiv_filtered, n_cekilis, alt_mod, secim, 30)
             for i in range(kolon):
-                nums, _, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
+                nums, _, aday_set = son_cekilis_mod(arsiv_filtered, n_cekilis, alt_mod, secim, 30)
                 c_top, c_btn = st.columns([5, 1])
                 with c_top:
                     st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
@@ -498,7 +524,7 @@ def oyun_sekmesi(cfg):
 
             # 30 aday göster
             st.divider()
-            adaylar_sirali, freq = son_cekilis_adaylar(ON_NUMARA_ARSIV, n_cekilis, 30)
+            adaylar_sirali, freq = son_cekilis_adaylar(arsiv_filtered, n_cekilis, 30)
             adaylar = sorted(adaylar_sirali)
             st.caption(f"**30 Aday Sayı** (son {n_cekilis} çekilişe göre) — koyu = daha çok çıktı:")
             aday_html = '<div class="ball-row">'
@@ -582,7 +608,12 @@ def oyun_sekmesi(cfg):
 
 # ─── Ana sayfa ────────────────────────────────────────────────────────────────
 st.title("🍀 Loto Kombinasyon Üretici")
-st.caption(f"Sayısal Loto · Süper Loto · Şans Topu · On Numara  |  On Numara arşivi: {len(ON_NUMARA_ARSIV)} çekiliş ({ON_NUMARA_ARSIV[0]['tarih_str']} – {ON_NUMARA_ARSIV[-1]['tarih_str']})")
+st.caption(
+    f"Sayısal Loto: {len(SAYISAL_ARSIV)} çekiliş  |  "
+    f"Süper Loto: {len(SUPER_ARSIV)} çekiliş  |  "
+    f"Şans Topu: {len(SANS_TOPU_ARSIV)} çekiliş  |  "
+    f"On Numara: {len(ON_NUMARA_ARSIV)} çekiliş"
+)
 
 tab1,tab2,tab3,tab4,tab5=st.tabs(list(OYUNLAR.keys()) + ["🔍 Kolon Analizi"])
 for tab,(isim,cfg) in zip([tab1,tab2,tab3,tab4],OYUNLAR.items()):
