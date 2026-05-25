@@ -348,6 +348,10 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
 def kolon_analizi_sayfasi(arsiv: list):
     st.caption("On Numara için 6–15 arası sayı seçerek, seçtiğiniz sayıların geçmişteki bütün çekilişlerde kaç kez çıktığını görün.")
 
+    if st.session_state.get("kolon_gonderildi"):
+        st.success("✅ Kombinasyon aktarıldı! Sayılar aşağıda seçili geldi.")
+        st.session_state["kolon_gonderildi"] = False
+
     if not arsiv:
         st.warning("Arşiv yüklenemedi.")
         return
@@ -481,8 +485,16 @@ def oyun_sekmesi(cfg):
             _, freq, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
             for i in range(kolon):
                 nums, _, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
-                st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                st.markdown(toplar_html(nums,top_renk),unsafe_allow_html=True)
+                c_top, c_btn = st.columns([5, 1])
+                with c_top:
+                    st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
+                    st.markdown(toplar_html(nums,top_renk),unsafe_allow_html=True)
+                with c_btn:
+                    st.write("")
+                    if st.button("🔍", key=f"kolon_gonder_son_{i}", help="Kolon Analizine Gönder"):
+                        st.session_state["kolon_secim"] = nums
+                        st.session_state["kolon_gonderildi"] = True
+                        st.rerun()
 
             # 30 aday göster
             st.divider()
@@ -511,8 +523,20 @@ def oyun_sekmesi(cfg):
             for i in range(kolon):
                 nums=uret(mod,havuz,secim,sicak,soguk)
                 bon=uret_bonus(mod,bonus_havuz,b_sicak,b_soguk) if bonus else None
-                st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
+                if on_numara:
+                    c_top, c_btn = st.columns([5, 1])
+                    with c_top:
+                        st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
+                        st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
+                    with c_btn:
+                        st.write("")
+                        if st.button("🔍", key=f"kolon_gonder_{i}", help="Kolon Analizine Gönder"):
+                            st.session_state["kolon_secim"] = nums
+                            st.session_state["kolon_gonderildi"] = True
+                            st.rerun()
+                else:
+                    st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
+                    st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
 
         st.divider()
         st.success("Hayırlısı olsun! 🍀")
