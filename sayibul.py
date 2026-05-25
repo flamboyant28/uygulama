@@ -527,7 +527,7 @@ def oyun_sekmesi(cfg):
             "30 aday içinden seçim stratejisi",
             ["🎲 Rastgele", "🔥 Sıcak", "❄️ Soğuk", "🎭 Karma"],
             horizontal=True,
-            key="alt_mod_son_cekilis",
+            key=f"alt_mod_son_cekilis_{slug}",
             help="Önce son N çekilişten 30 aday belirlenir, sonra bu strateji uygulanır."
         )
 
