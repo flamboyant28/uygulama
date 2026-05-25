@@ -286,7 +286,7 @@ def sayi_gridi_html(secilen: list, havuz: int) -> str:
     html += '</div>'
     return html
 
-def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
+def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -> str:
     secilen_set = set(secilen)
     bildi_sayac = Counter()
     satirlar = []
@@ -294,24 +294,36 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
         cekilen = row["sayilar"]
         eslesen = secilen_set & set(cekilen)
         bildi = len(eslesen)
-        bildi_sayac[bildi] += 1
-        satirlar.append((row["tarih"], cekilen, eslesen, bildi))
+        # Bonus kontrolü
+        bonus_eslesti = False
+        if secilen_bonus and row.get("bonus"):
+            bonus_eslesti = (secilen_bonus == row["bonus"])
+        anahtar = (bildi, 1 if bonus_eslesti else 0) if secilen_bonus else bildi
+        bildi_sayac[anahtar] += 1
+        satirlar.append((row["tarih"], cekilen, eslesen, bildi,
+                         row.get("bonus"), bonus_eslesti))
 
     # Özet kartlar
     ozet = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">'
-    for b in sorted(bildi_sayac.keys(), reverse=True):
-        if b == 0: renk = "#888"
-        elif b >= len(secilen):    renk = "#c0392b"
-        elif b >= len(secilen)-2:  renk = "#e67e22"
-        elif b >= len(secilen)-4:  renk = "#8e44ad"
+    for anahtar in sorted(bildi_sayac.keys(), reverse=True):
+        if secilen_bonus:
+            ana_b, bon_b = anahtar
+            etiket = f"{ana_b}+{bon_b} Bildi"
+        else:
+            ana_b = anahtar; etiket = f"{ana_b} Bildi"
+        if   ana_b == 0 and (not secilen_bonus or bon_b == 0): renk = "#888"
+        elif ana_b >= len(secilen):    renk = "#c0392b"
+        elif ana_b >= len(secilen)-2:  renk = "#e67e22"
+        elif ana_b >= len(secilen)-4:  renk = "#8e44ad"
         else: renk = "#555"
         ozet += (f'<div style="text-align:center;padding:8px 14px;border-radius:10px;' +
                  f'background:#f8f8f8;border:1px solid #eee">' +
-                 f'<div style="font-size:18px;font-weight:700;color:{renk}">{b} Bildi</div>' +
-                 f'<div style="font-size:12px;color:#888">{bildi_sayac[b]} Kez</div></div>')
+                 f'<div style="font-size:18px;font-weight:700;color:{renk}">{etiket}</div>' +
+                 f'<div style="font-size:12px;color:#888">{bildi_sayac[anahtar]} Kez</div></div>')
     ozet += '</div>'
 
-    n_col = len(set(len(r["sayilar"]) for r in arsiv)) and max(len(r["sayilar"]) for r in arsiv)
+    n_col = max(len(r["sayilar"]) for r in arsiv) if arsiv else 6
+    has_bonus_col = secilen_bonus is not None
 
     tablo = """<style>
     .kt{width:100%;border-collapse:collapse;font-size:12px;}
@@ -329,20 +341,33 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
     <table class="kt"><thead><tr><th>Tarih</th>"""
     for i in range(1, n_col+1):
         tablo += f'<th>{i}</th>'
+    if has_bonus_col:
+        tablo += '<th style="background:#b7860a">+</th>'
     tablo += '<th>Sonuç</th></tr></thead><tbody>'
 
-    for tarih, cekilen, eslesen, bildi in satirlar:
+    for tarih, cekilen, eslesen, bildi, row_bonus, bonus_eslesti in satirlar:
         max_b = len(secilen_set)
-        if   bildi >= max_b:     bg = 'style="background:#fde8e8"'
+        if   bildi >= max_b and (not secilen_bonus or bonus_eslesti): bg = 'style="background:#fde8e8"'
+        elif bildi >= max_b:     bg = 'style="background:#fde8e8"'
         elif bildi >= max_b-2:   bg = 'style="background:#fef3e2"'
         elif bildi >= max_b-4:   bg = 'style="background:#f3e8fd"'
         else: bg = ""
 
-        if   bildi == 0:         badge = '<span class="bb" style="background:#eee;color:#888">0 Bildi</span>'
-        elif bildi >= max_b:     badge = f'<span class="bb" style="background:#c0392b;color:#fff">{bildi} Bildi</span>'
-        elif bildi >= max_b-2:   badge = f'<span class="bb" style="background:#e67e22;color:#fff">{bildi} Bildi</span>'
-        elif bildi >= max_b-4:   badge = f'<span class="bb" style="background:#8e44ad;color:#fff">{bildi} Bildi</span>'
-        else:                    badge = f'<span class="bb" style="background:#bdc3c7;color:#555">{bildi} Bildi</span>'
+        if secilen_bonus:
+            bon_str = f"+{1 if bonus_eslesti else 0}"
+            etiket = f"{bildi}{bon_str}"
+            if bildi == max_b and bonus_eslesti:  bc = "#c0392b"
+            elif bildi >= max_b-1:                bc = "#e67e22"
+            elif bildi >= max_b-3:                bc = "#8e44ad"
+            elif bildi == 0 and not bonus_eslesti: bc = "#888"
+            else: bc = "#bdc3c7"
+            badge = f'<span class="bb" style="background:{bc};color:#fff">{etiket} Bildi</span>'
+        else:
+            if   bildi == 0:         badge = '<span class="bb" style="background:#eee;color:#888">0 Bildi</span>'
+            elif bildi >= max_b:     badge = f'<span class="bb" style="background:#c0392b;color:#fff">{bildi} Bildi</span>'
+            elif bildi >= max_b-2:   badge = f'<span class="bb" style="background:#e67e22;color:#fff">{bildi} Bildi</span>'
+            elif bildi >= max_b-4:   badge = f'<span class="bb" style="background:#8e44ad;color:#fff">{bildi} Bildi</span>'
+            else:                    badge = f'<span class="bb" style="background:#bdc3c7;color:#555">{bildi} Bildi</span>'
 
         tablo += f'<tr {bg}><td><b>{tarih}</b></td>'
         for n in sorted(cekilen):
@@ -350,6 +375,10 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
             tablo += f'<td><span class="{cls}">{n}</span></td>'
         for _ in range(n_col - len(cekilen)):
             tablo += '<td></td>'
+        # Bonus sütunu
+        if secilen_bonus is not None and row_bonus:
+            bon_cls = "te" if bonus_eslesti else "tn"
+            tablo += f'<td><span class="{bon_cls}" style="background:{"#e6a817" if bonus_eslesti else "#aaa"}">{row_bonus}</span></td>'
         tablo += f'<td>{badge}</td></tr>'
     tablo += '</tbody></table>'
     return ozet + tablo
@@ -405,9 +434,7 @@ def kolon_analizi_sayfasi():
 
     c1, c2 = st.columns([4, 1])
     with c1:
-        # Session state'ten gelen sayıları default olarak kullan
         default_sec = st.session_state.get("kolon_secim", [])
-        # Havuz dışı sayıları temizle
         default_sec = [n for n in default_sec if 1 <= n <= havuz]
         secilen = st.multiselect(
             f"Sayılarınızı seçin ({min_sec}–{max_sec} arası):",
@@ -421,6 +448,30 @@ def kolon_analizi_sayfasi():
     with c2:
         st.write("")
         st.metric("Seçilen", f"{len(secilen)} / {max_sec}")
+
+    # Şans Topu: bonus seçici (1-14)
+    secilen_bonus = None
+    if cfg_k["slug"] == "Sans-Topu":
+        st.markdown("**Şans Topu (opsiyonel):**")
+        default_bon = st.session_state.get("kolon_secim_bonus")
+        c_bon, c_bon2 = st.columns([3, 1])
+        with c_bon:
+            bon_opts = [None] + list(range(1, 15))
+            bon_labels = {None: "Seçme", **{i: f"{i:02d}" for i in range(1, 15)}}
+            secilen_bonus = st.selectbox(
+                "Şans Topu seçin (1–14):",
+                options=bon_opts,
+                index=bon_opts.index(default_bon) if default_bon in bon_opts else 0,
+                format_func=lambda x: bon_labels.get(x, str(x)),
+                key=f"kolon_bonus_{oyun_adi}"
+            )
+        with c_bon2:
+            if secilen_bonus:
+                st.markdown(
+                    f'<div style="margin-top:28px">' +
+                    f'<div class="ball" style="background:#e6a817;width:42px;height:42px;font-size:16px;margin:auto">{secilen_bonus}</div>' +
+                    f'</div>',
+                    unsafe_allow_html=True)
 
     # Görsel grid
     st.markdown(sayi_gridi_html(secilen, havuz), unsafe_allow_html=True)
@@ -455,7 +506,7 @@ def kolon_analizi_sayfasi():
                   if yil_aralik[0] <= int(r["tarih"].split("/")[2]) <= yil_aralik[1]]
         filtre = sorted(filtre, key=lambda r: r["sira"], reverse=True)
         st.markdown(f"**{len(filtre)}** çekiliş analiz edildi ({yil_aralik[0]}–{yil_aralik[1]})")
-        st.markdown(kolon_sonuc_tablosu(filtre, secilen), unsafe_allow_html=True)
+        st.markdown(kolon_sonuc_tablosu(filtre, secilen, secilen_bonus), unsafe_allow_html=True)
 
 
 def oyun_sekmesi(cfg):
@@ -603,6 +654,7 @@ def oyun_sekmesi(cfg):
                         st.write("")
                         if st.button("🔍", key=f"kolon_gonder_{i}", help="Kolon Analizine Gönder"):
                             st.session_state["kolon_secim"] = nums
+                            st.session_state["kolon_secim_bonus"] = bon
                             st.session_state["kolon_oyun_adi"] = [k for k,v in KOLON_OYUN_CFG.items() if v["slug"]==slug][0]
                             st.session_state["kolon_gonderildi"] = True
                             st.rerun()
