@@ -125,16 +125,57 @@ def veri_yukle(slug):
     return sicak, soguk, yedek.get("bonus_sicak",[]), yedek.get("bonus_soguk",[]), kaynak
 
 # ─── Son çekilişlere dayalı mod ───────────────────────────────────────────────
-def son_cekilis_mod(arsiv, n_cekilis, secim=10, aday_sayisi=30):
+def son_cekilis_adaylar(arsiv, n_cekilis, aday_sayisi=30):
+    """Son N çekilişe göre frekans hesapla ve 30 aday belirle."""
     son_n = arsiv[:n_cekilis]
     tum = []
     for row in son_n:
         tum.extend(row["sayilar"])
     freq = Counter(tum)
-    adaylar = [num for num, _ in freq.most_common(aday_sayisi)]
-    if len(adaylar) < secim:
-        adaylar += [x for x in range(1,81) if x not in adaylar]
-    return sorted(random.sample(adaylar[:aday_sayisi], min(secim, len(adaylar)))), freq, son_n
+    # En çok çıkan aday_sayisi kadar sayı
+    adaylar_sirali = [num for num, _ in freq.most_common(aday_sayisi)]
+    return adaylar_sirali, freq
+
+def son_cekilis_mod(arsiv, n_cekilis, alt_mod="🎲 Rastgele", secim=10, aday_sayisi=30):
+    """30 aday belirle, alt moda göre 10 seç."""
+    adaylar_sirali, freq = son_cekilis_adaylar(arsiv, n_cekilis, aday_sayisi)
+
+    if len(adaylar_sirali) < secim:
+        adaylar_sirali += [x for x in range(1, 81) if x not in adaylar_sirali]
+
+    aday_set = adaylar_sirali[:aday_sayisi]
+
+    if alt_mod == "🎲 Rastgele":
+        secilen = random.sample(aday_set, min(secim, len(aday_set)))
+
+    elif alt_mod == "🔥 Sıcak":
+        # 30 içinde en çok çıkan 10
+        sirali = sorted(aday_set, key=lambda x: freq.get(x, 0), reverse=True)
+        havuz = sirali[:max(secim * 2, 15)]
+        secilen = random.sample(havuz, min(secim, len(havuz)))
+
+    elif alt_mod == "❄️ Soğuk":
+        # 30 içinde en az çıkan 10
+        sirali = sorted(aday_set, key=lambda x: freq.get(x, 0))
+        havuz = sirali[:max(secim * 2, 15)]
+        secilen = random.sample(havuz, min(secim, len(havuz)))
+
+    elif alt_mod == "🎭 Karma":
+        # Yarısı sıcak yarısı soğuk
+        sirali_sicak = sorted(aday_set, key=lambda x: freq.get(x, 0), reverse=True)
+        sirali_soguk = sorted(aday_set, key=lambda x: freq.get(x, 0))
+        yarim = secim // 2
+        diger = secim - yarim
+        s_havuz = sirali_sicak[:max(yarim * 2, 10)]
+        g_havuz = [x for x in sirali_soguk[:max(diger * 2, 10)] if x not in s_havuz]
+        if len(g_havuz) < diger:
+            g_havuz += [x for x in aday_set if x not in s_havuz and x not in g_havuz]
+        secilen = (random.sample(s_havuz, min(yarim, len(s_havuz))) +
+                   random.sample(g_havuz, min(diger, len(g_havuz))))
+    else:
+        secilen = random.sample(aday_set, min(secim, len(aday_set)))
+
+    return sorted(secilen), freq, aday_set
 
 # ─── Kombinasyon üretici ──────────────────────────────────────────────────────
 def uret(mod, havuz, secim, sicak, soguk):
@@ -241,14 +282,31 @@ def oyun_sekmesi(cfg):
         tarihler = f"{son_n_rows[-1]['tarih_str']} – {son_n_rows[0]['tarih_str']}"
         st.caption(f"📅 Baz alınan dönem: **{tarihler}** ({n_cekilis} çekiliş)")
 
+    # Son Çekilişlere Dayalı alt mod
+    alt_mod = "🎲 Rastgele"
+    if on_numara and mod == "📅 Son Çekilişlere Dayalı":
+        alt_mod = st.radio(
+            "30 aday içinden seçim stratejisi",
+            ["🎲 Rastgele", "🔥 Sıcak", "❄️ Soğuk", "🎭 Karma"],
+            horizontal=True,
+            key="alt_mod_son_cekilis",
+            help="Önce son N çekilişten 30 aday belirlenir, sonra bu strateji uygulanır."
+        )
+
+    ALT_MOD_ACIK = {
+        "🎲 Rastgele": "30 aday içinden tamamen rastgele 10 sayı seçilir.",
+        "🔥 Sıcak":    "30 aday içinde son N çekilişte en çok çıkan 10 sayı seçilir.",
+        "❄️ Soğuk":    "30 aday içinde son N çekilişte en az çıkan 10 sayı seçilir.",
+        "🎭 Karma":    "30 aday içinden 5 sıcak + 5 soğuk karma seçim yapılır.",
+    }
     MOD_ACIK={
         "Rastgele":"Tüm sayılar eşit olasılıkla — tamamen şansa bırak.",
         "🔥 Sıcak":"Tüm zamanların en sık çıkan sayılarından oluşturulur.",
         "❄️ Soğuk":"En uzun süredir çıkmayan sayılardan oluşturulur.",
         "🎲 Karma":"Yarısı sıcak, yarısı soğuk sayılardan karma seçim.",
-        "📅 Son Çekilişlere Dayalı":f"Son {n_cekilis} çekilişte en çok tekrar eden sayılar 30'a indirilir, oradan 10 seçilir.",
+        "📅 Son Çekilişlere Dayalı":f"Son {n_cekilis} çekilişten 30 aday belirlenir → {ALT_MOD_ACIK.get(alt_mod,'')}",
     }
-    st.caption(f"ℹ️ {MOD_ACIK.get(mod,'')}")
+    st.caption(f"ℹ️ {MOD_ACIK.get(mod,'')}") 
     st.divider()
 
     # Üret
@@ -257,25 +315,35 @@ def oyun_sekmesi(cfg):
         top_renk=mod_rengi(mod,renk)
 
         if on_numara and mod=="📅 Son Çekilişlere Dayalı":
-            _, freq, son_n_rows = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, secim, 30)
+            _, freq, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
             for i in range(kolon):
-                nums,_,_ = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, secim, 30)
+                nums, _, aday_set = son_cekilis_mod(ON_NUMARA_ARSIV, n_cekilis, alt_mod, secim, 30)
                 st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
                 st.markdown(toplar_html(nums,top_renk),unsafe_allow_html=True)
 
             # 30 aday göster
             st.divider()
-            tum=[]
-            for row in ON_NUMARA_ARSIV[:n_cekilis]: tum.extend(row["sayilar"])
-            freq=Counter(tum)
-            adaylar=[num for num,_ in freq.most_common(30)]
-            adaylar.sort()
-            st.caption(f"**30 Aday Sayı** (son {n_cekilis} çekilişe göre):")
-            aday_html='<div class="ball-row">'
+            adaylar_sirali, freq = son_cekilis_adaylar(ON_NUMARA_ARSIV, n_cekilis, 30)
+            adaylar = sorted(adaylar_sirali)
+            st.caption(f"**30 Aday Sayı** (son {n_cekilis} çekilişe göre) — koyu = daha çok çıktı:")
+            aday_html = '<div class="ball-row">'
+            max_freq = max(freq.get(n,1) for n in adaylar)
+            min_freq = min(freq.get(n,1) for n in adaylar)
             for n in adaylar:
-                aday_html+=f'<div class="ball" style="background:{top_renk};width:36px;height:36px;font-size:12px">{n}</div>'
-            aday_html+='</div>'
-            st.markdown(aday_html,unsafe_allow_html=True)
+                f = freq.get(n, 1)
+                # Frekansa göre opaklık: çok çıkan daha koyu
+                oran = (f - min_freq) / max((max_freq - min_freq), 1)
+                r_val = int(208 - oran * 100)
+                g_val = int(53  - oran * 30)
+                b_val = int(26  - oran * 10)
+                bg = f"rgb({r_val},{g_val},{b_val})"
+                isaretli = "★" if n in aday_set else ""
+                aday_html += (f'<div style="text-align:center;margin:2px">' +
+                              f'<div class="ball" style="background:{bg};width:36px;height:36px;font-size:12px">{n}</div>' +
+                              f'<div style="font-size:9px;color:#888">{f}×</div>' +
+                              f'</div>')
+            aday_html += '</div>'
+            st.markdown(aday_html, unsafe_allow_html=True)
         else:
             for i in range(kolon):
                 nums=uret(mod,havuz,secim,sicak,soguk)
