@@ -235,6 +235,169 @@ def goster_top_listesi(data, renk, suffix, n=10):
     for col,(num,val) in zip(cols,top):
         col.markdown(f'<div style="text-align:center"><div class="ball" style="background:{renk};margin:0 auto 4px">{num}</div><div style="font-size:11px;color:#888">{val}{suffix}</div></div>',unsafe_allow_html=True)
 
+
+# ─── Kolon Analizi ────────────────────────────────────────────────────────────
+def sayi_gridi_html(secilen: list) -> str:
+    """1-80 arası sayıları top olarak göster, seçilenler vurgulu."""
+    html = '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:10px 0">' 
+    for n in range(1, 81):
+        if n in secilen:
+            stil = "background:#8e44ad;color:#fff;font-weight:700;border:2px solid #6c3483"
+        else:
+            stil = "background:#f0f0f0;color:#555;border:1px solid #ddd"
+        html += (f'<div style="width:36px;height:36px;border-radius:50%;' +
+                 f'{stil};display:flex;align-items:center;justify-content:center;' +
+                 f'font-size:12px">{n:02d}</div>')
+    html += '</div>'
+    return html
+
+def kolon_sonuc_tablosu(arsiv: list, secilen: list) -> str:
+    """Her çekiliş için HTML tablo satırı üret."""
+    secilen_set = set(secilen)
+
+    # Özet say
+    from collections import Counter
+    bildi_sayac = Counter()
+    satirlar = []
+    for row in arsiv:
+        cekilen = row["sayilar"]
+        cekilen_set = set(cekilen)
+        eslesen = secilen_set & cekilen_set
+        bildi = len(eslesen)
+        bildi_sayac[bildi] += 1
+        satirlar.append((row["tarih"], cekilen, eslesen, bildi))
+
+    # Özet satırı
+    ozet_html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">' 
+    for b in sorted(bildi_sayac.keys(), reverse=True):
+        if b == 0:
+            renk = "#888"
+        elif b >= 10:
+            renk = "#c0392b"
+        elif b >= 8:
+            renk = "#e67e22"
+        elif b >= 6:
+            renk = "#8e44ad"
+        else:
+            renk = "#555"
+        ozet_html += (f'<div style="text-align:center;padding:8px 14px;border-radius:10px;' +
+                      f'background:#f8f8f8;border:1px solid #eee">' +
+                      f'<div style="font-size:18px;font-weight:700;color:{renk}">{b} Bildi</div>' +
+                      f'<div style="font-size:13px;color:#888">{bildi_sayac[b]} Kez</div>' +
+                      f'</div>')
+    ozet_html += '</div>'
+
+    # Tablo
+    tablo_html = """
+    <style>
+    .kolon-tablo {width:100%;border-collapse:collapse;font-size:12px;}
+    .kolon-tablo th {background:#2c3e50;color:#fff;padding:6px 4px;text-align:center;}
+    .kolon-tablo td {padding:3px 2px;text-align:center;border-bottom:1px solid #f0f0f0;}
+    .kolon-tablo tr:hover td {background:#fafafa;}
+    .top-normal  {display:inline-flex;width:24px;height:24px;border-radius:50%;
+                  background:#e74c3c;color:#fff;align-items:center;justify-content:center;
+                  font-size:10px;font-weight:600;margin:1px;}
+    .top-eslesen {display:inline-flex;width:24px;height:24px;border-radius:50%;
+                  background:#8e44ad;color:#fff;align-items:center;justify-content:center;
+                  font-size:10px;font-weight:700;margin:1px;}
+    .bildi-badge {padding:2px 8px;border-radius:12px;font-weight:600;font-size:11px;}
+    </style>
+    <table class="kolon-tablo">
+    <thead><tr>
+      <th>Tarih</th>
+    """
+    for i in range(1, 23):
+        tablo_html += f'<th>{i}</th>'
+    tablo_html += '<th>Sonuç</th></tr></thead><tbody>'
+
+    for tarih, cekilen, eslesen, bildi in satirlar:
+        if bildi == 0:
+            satir_bg = ""
+        elif bildi >= 10:
+            satir_bg = 'style="background:#fde8e8"'
+        elif bildi >= 8:
+            satir_bg = 'style="background:#fef3e2"'
+        elif bildi >= 6:
+            satir_bg = 'style="background:#f3e8fd"'
+        else:
+            satir_bg = ""
+
+        if bildi == 0:
+            badge = '<span class="bildi-badge" style="background:#eee;color:#888">0 Bildi</span>'
+        elif bildi >= 10:
+            badge = f'<span class="bildi-badge" style="background:#c0392b;color:#fff">{bildi} Bildi</span>'
+        elif bildi >= 8:
+            badge = f'<span class="bildi-badge" style="background:#e67e22;color:#fff">{bildi} Bildi</span>'
+        elif bildi >= 6:
+            badge = f'<span class="bildi-badge" style="background:#8e44ad;color:#fff">{bildi} Bildi</span>'
+        else:
+            badge = f'<span class="bildi-badge" style="background:#bdc3c7;color:#555">{bildi} Bildi</span>'
+
+        tablo_html += f'<tr {satir_bg}><td><b>{tarih}</b></td>'
+        for n in sorted(cekilen):
+            cls = "top-eslesen" if n in eslesen else "top-normal"
+            tablo_html += f'<td><span class="{cls}">{n}</span></td>'
+        # Eksik hücreleri doldur
+        for _ in range(22 - len(cekilen)):
+            tablo_html += '<td></td>'
+        tablo_html += f'<td>{badge}</td></tr>'
+
+    tablo_html += '</tbody></table>'
+    return ozet_html + tablo_html
+
+def kolon_analizi_sayfasi(arsiv: list):
+    st.caption("On Numara için 6–15 arası sayı seçerek, seçtiğiniz sayıların geçmişteki bütün çekilişlerde kaç kez çıktığını görün.")
+
+    if not arsiv:
+        st.warning("Arşiv yüklenemedi.")
+        return
+
+    # Sayı seçimi
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        secilen = st.multiselect(
+            "Sayılarınızı seçin (6–15 arası):",
+            options=list(range(1, 81)),
+            format_func=lambda x: f"{x:02d}",
+            max_selections=15,
+            key="kolon_secim",
+            placeholder="Sayı seçin..."
+        )
+    with c2:
+        st.write("")
+        st.metric("Seçilen", f"{len(secilen)} / 15")
+
+    # Görsel grid
+    st.markdown(sayi_gridi_html(secilen), unsafe_allow_html=True)
+
+    # Validasyon
+    if len(secilen) < 6:
+        st.info(f"En az 6 sayı seçmelisiniz. ({len(secilen)} seçili)")
+        return
+
+    # Filtre
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        min_yil = min(int(r["tarih"].split("/")[2]) for r in arsiv)
+        max_yil = max(int(r["tarih"].split("/")[2]) for r in arsiv)
+        yil_aralik = st.slider("Yıl aralığı", min_yil, max_yil, (min_yil, max_yil), key="kolon_yil")
+    with col_f2:
+        st.write("")
+        st.write("")
+        test_btn = st.button("🔍 Kolon Test", type="primary", use_container_width=True, key="kolon_test_btn")
+
+    if test_btn:
+        # Yıla göre filtrele
+        filtrelenmis = [r for r in arsiv
+                        if yil_aralik[0] <= int(r["tarih"].split("/")[2]) <= yil_aralik[1]]
+        # En eski önce
+        filtrelenmis = sorted(filtrelenmis, key=lambda r: r["sira"], reverse=True)
+
+        st.markdown(f"**{len(filtrelenmis)}** çekiliş analiz edildi ({yil_aralik[0]}–{yil_aralik[1]})")
+        html = kolon_sonuc_tablosu(filtrelenmis, secilen)
+        st.markdown(html, unsafe_allow_html=True)
+
+
 # ─── Oyun sekmesi ─────────────────────────────────────────────────────────────
 def oyun_sekmesi(cfg):
     slug=cfg["slug"]; havuz=cfg["havuz"]; secim=cfg["secim"]
@@ -397,10 +560,12 @@ def oyun_sekmesi(cfg):
 st.title("🍀 Loto Kombinasyon Üretici")
 st.caption(f"Sayısal Loto · Süper Loto · Şans Topu · On Numara  |  On Numara arşivi: {len(ON_NUMARA_ARSIV)} çekiliş ({ON_NUMARA_ARSIV[0]['tarih_str']} – {ON_NUMARA_ARSIV[-1]['tarih_str']})")
 
-tab1,tab2,tab3,tab4=st.tabs(list(OYUNLAR.keys()))
+tab1,tab2,tab3,tab4,tab5=st.tabs(list(OYUNLAR.keys()) + ["🔍 Kolon Analizi"])
 for tab,(isim,cfg) in zip([tab1,tab2,tab3,tab4],OYUNLAR.items()):
     with tab:
         oyun_sekmesi(cfg)
+with tab5:
+    kolon_analizi_sayfasi(ON_NUMARA_ARSIV)
 
 st.divider()
 st.caption(f"Son yükleme: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
