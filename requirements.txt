@@ -7,3 +7,4 @@ reportlab
 openpyxl
 folium
 streamlit_folium
+BeautifulSoup
