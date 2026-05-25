@@ -146,6 +146,22 @@ def son_cekilis_adaylar(arsiv, n_cekilis, aday_sayisi=30):
     adaylar_sirali = [num for num, _ in freq.most_common(aday_sayisi)]
     return adaylar_sirali, freq
 
+def son_cekilis_bonus(arsiv, n_cekilis, alt_mod, bonus_havuz=14):
+    """Son N çekilişe göre şans topu (bonus) üret."""
+    son_n = arsiv[:n_cekilis]
+    bonus_freq = Counter()
+    for row in son_n:
+        if row.get("bonus"):
+            bonus_freq[row["bonus"]] += 1
+    tum = list(range(1, bonus_havuz + 1))
+    if alt_mod == "🔥 Sıcak" and bonus_freq:
+        sirali = sorted(tum, key=lambda x: bonus_freq.get(x, 0), reverse=True)
+        return random.choice(sirali[:5])
+    elif alt_mod == "❄️ Soğuk" and bonus_freq:
+        sirali = sorted(tum, key=lambda x: bonus_freq.get(x, 0))
+        return random.choice(sirali[:5])
+    return random.randint(1, bonus_havuz)
+
 def son_cekilis_mod(arsiv, n_cekilis, alt_mod="🎲 Rastgele", secim=10, aday_sayisi=30):
     """30 aday belirle, alt moda göre 10 seç."""
     adaylar_sirali, freq = son_cekilis_adaylar(arsiv, n_cekilis, aday_sayisi)
