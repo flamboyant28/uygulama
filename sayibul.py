@@ -626,17 +626,8 @@ def oyun_sekmesi(cfg):
                 bon = None
                 if bonus:
                     bon = son_cekilis_bonus(arsiv_filtered, n_cekilis, alt_mod, bonus_havuz)
-                c_top, c_btn = st.columns([5, 1])
-                with c_top:
-                    st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                    st.markdown(toplar_html(nums, top_renk, bon, bonus_renk),unsafe_allow_html=True)
-                with c_btn:
-                    st.write("")
-                    if st.button("🔍", key=f"kolon_gonder_son_{i}", help="Kolon Analizine Gönder"):
-                        st.session_state["kolon_secim"] = nums
-                        st.session_state["kolon_secim_bonus"] = bon
-                        st.session_state["kolon_gonderildi"] = True
-                        st.rerun()
+                st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
+                st.markdown(toplar_html(nums, top_renk, bon, bonus_renk),unsafe_allow_html=True)
 
             # 30 aday göster
             st.divider()
@@ -665,22 +656,8 @@ def oyun_sekmesi(cfg):
             for i in range(kolon):
                 nums=uret(mod,havuz,secim,sicak,soguk)
                 bon=uret_bonus(mod,bonus_havuz,b_sicak,b_soguk) if bonus else None
-                if on_numara:
-                    c_top, c_btn = st.columns([5, 1])
-                    with c_top:
-                        st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                        st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
-                    with c_btn:
-                        st.write("")
-                        if st.button("🔍", key=f"kolon_gonder_{i}", help="Kolon Analizine Gönder"):
-                            st.session_state["kolon_secim"] = nums
-                            st.session_state["kolon_secim_bonus"] = bon
-                            st.session_state["kolon_oyun_adi"] = [k for k,v in KOLON_OYUN_CFG.items() if v["slug"]==slug][0]
-                            st.session_state["kolon_gonderildi"] = True
-                            st.rerun()
-                else:
-                    st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                    st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
+                st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
+                st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
 
         st.divider()
         st.success("Hayırlısı olsun! 🍀")
