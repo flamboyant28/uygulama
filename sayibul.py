@@ -607,6 +607,8 @@ def oyun_sekmesi(cfg):
     slug=cfg["slug"]; havuz=cfg["havuz"]; secim=cfg["secim"]
     bonus=cfg["bonus"]; bonus_havuz=cfg.get("bonus_havuz",14)
     bonus_renk=cfg.get("bonus_renk","#e6a817"); renk=cfg["renk"]
+    has_joker=cfg.get("joker",False); joker_renk=cfg.get("joker_renk","#e67e22")
+    has_super=cfg.get("super_star",False); super_renk=cfg.get("super_renk","#f1c40f")
     on_numara = slug == "On-Numara"
     arsiv = OYUN_ARSIVLERI.get(slug, [])
     has_arsiv = len(arsiv) > 0
