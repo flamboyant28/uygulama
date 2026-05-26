@@ -46,17 +46,112 @@ def sf(val, dec=1, suffix=""):
     return f"{v}{suffix}"
 
 HAVA_KODU = {
-    0:("☀️","Açık"), 1:("🌤","Az Bulutlu"), 2:("⛅","Parçalı Bulutlu"),
-    3:("☁️","Bulutlu"), 45:("🌫","Sisli"), 48:("🌫","Yoğun Sis"),
-    51:("🌦","Hafif Çisenti"), 53:("🌦","Çisenti"), 55:("🌧","Yoğun Çisenti"),
-    61:("🌧","Hafif Yağmur"), 63:("🌧","Yağmur"), 65:("🌧","Yoğun Yağmur"),
-    71:("🌨","Hafif Kar"), 73:("❄️","Kar"), 75:("❄️","Yoğun Kar"),
-    80:("🌦","Sağanak"), 81:("⛈","Kuvvetli Sağanak"), 82:("⛈","Çok Kuvvetli"),
-    85:("🌨","Kar Sağanağı"), 95:("⛈","Fırtına"), 96:("⛈","Dolu+Fırtına"), 99:("⛈","Yoğun Dolu"),
+    0: ("☀️","Açık Gökyüzü"),
+    1: ("🌤","Az Bulutlu"),
+    2: ("⛅","Parçalı Bulutlu"),
+    3: ("☁️","Kapalı"),
+    45:("🌫","Sisli"),
+    48:("🌫","Buz Sisi"),
+    51:("🌦","Hafif Çise"),
+    53:("🌦","Orta Çise"),
+    55:("🌧","Yoğun Çise"),
+    56:("🌨","Hafif Donlu Çise"),
+    57:("🌨","Yoğun Donlu Çise"),
+    61:("🌧","Hafif Yağmur"),
+    63:("🌧","Orta Yağmur"),
+    65:("🌧","Şiddetli Yağmur"),
+    66:("🌨","Hafif Donlu Yağmur"),
+    67:("🌨","Şiddetli Donlu Yağmur"),
+    71:("❄️","Hafif Kar"),
+    73:("❄️","Kar"),
+    75:("❄️","Yoğun Kar"),
+    77:("❄️","Kar Taneleri"),
+    80:("🌦","Hafif Sağanak"),
+    81:("🌦","Orta Sağanak"),
+    82:("⛈","Şiddetli Sağanak"),
+    85:("🌨","Hafif Kar Sağanağı"),
+    86:("🌨","Yoğun Kar Sağanağı"),
+    95:("⛈","Gök Gürültülü Fırtına"),
+    96:("⛈","Gök Gürültülü Dolu"),
+    99:("⛈","Şiddetli Dolu Fırtınası"),
 }
 def hk(code):
     try: return HAVA_KODU.get(int(float(code)), ("🌡","Bilinmiyor"))
     except: return ("🌡","Bilinmiyor")
+
+SICAKLIK_YORUMU = [
+    (-100,-35,"🧊 Donmuş Dünya"),
+    (-35, -30,"🥶 Felaket Soğuk"),
+    (-30, -27,"❄️ Kutup Soğuğu"),
+    (-27, -24,"❄️ Sert Buzlanma"),
+    (-24, -21,"🧥 Yoğun Üşüme"),
+    (-21, -18,"🧥 Dondurucu Hava"),
+    (-18, -15,"🧤 Eldiven Zorunlu"),
+    (-15, -12,"🧣 Soğuğa Dikkat"),
+    (-12,  -9,"🌀 Soğuk Rüzgar Etkisi"),
+    ( -9,  -6,"🧊 Hafif Donma"),
+    ( -6,  -3,"🌫️ Üşütücü Soğuk"),
+    ( -3,   0,"🧊 Soğuk Ama Katlanılır"),
+    (  0,   3,"🍃 Ilık-Soğuk Arası"),
+    (  3,   6,"🌿 Bahar Serinliği"),
+    (  6,   9,"🌤️ Hafif Serin"),
+    (  9,  12,"🌞 Ilık Hava"),
+    ( 12,  15,"🟢 Konforlu (Serin)"),
+    ( 15,  18,"🟢 Konforlu"),
+    ( 18,  21,"🟢 Konforlu (Sıcakça)"),
+    ( 21,  24,"🌼 Sıcakça"),
+    ( 24,  27,"🟡 Ilık-Sıcak"),
+    ( 27,  30,"🟡 Sıcak"),
+    ( 30,  33,"🟠 Çok Sıcak"),
+    ( 33,  36,"🔥 Bunaltıcı"),
+    ( 36,  39,"🔴 Aşırı Sıcak"),
+    ( 39,  42,"☀️ Ciddi Risk"),
+    ( 42,  45,"☠️ Tehlikeli Sıcaklık"),
+    ( 45,  48,"🌋 Yaşamsal Risk"),
+    ( 48,  52,"💀 Ölümcül Isı"),
+    ( 52, 100,"🚫 İnsan Yaşamına Elverişsiz"),
+]
+
+RUZGAR_YORUMU = [
+    (  0,   1,"🌫️ Rüzgar yok, hava durgun"),
+    (  1,   3,"🪁 Hava çok hafif esiyor"),
+    (  3,   5,"🌬️ Hafif esinti hissedilir"),
+    (  5,   8,"🍃 Serinlik sağlayan rüzgar"),
+    (  8,  12,"🌿 Hoş bir esinti"),
+    ( 12,  16,"🌬️ Belirgin rüzgar, rahatlatıcı"),
+    ( 16,  20,"🍃 Güçlü ama hoş rüzgar"),
+    ( 20,  25,"🌬️ Sıcak havayı bastıran rüzgar"),
+    ( 25,  30,"🌀 Serinletici kuvvetli rüzgar"),
+    ( 30,  35,"🌪️ Sınırda rahatsız edici rüzgar"),
+    ( 35,  40,"🌪️ Sert ve rahatsız edici rüzgar"),
+    ( 40,  50,"🌪️ Tehlikeli seviyede rüzgar"),
+    ( 50,  60,"🌪️ Fırtınamsı etki yaratır"),
+    ( 60,  80,"🌪️ Dış ortamda bulunmak zor"),
+    ( 80, 100,"🌪️ Uçuşan cisimlere dikkat"),
+    (100, 120,"🌪️ Fırtına şiddetinde rüzgar"),
+    (120, 150,"🌪️ Kasırga benzeri etki"),
+    (150, 200,"🌪️ Aşırı tehlikeli rüzgar!"),
+    (200, 300,"🌪️ Yapısal hasar riski!"),
+    (300,1000,"💀 Felaket düzeyinde rüzgar!"),
+]
+
+def sicaklik_yorum(t):
+    try:
+        t = float(t)
+        for lo, hi, yorum in SICAKLIK_YORUMU:
+            if lo <= t < hi:
+                return yorum
+        return "—"
+    except: return "—"
+
+def ruzgar_yorum(w):
+    try:
+        w = float(w)
+        for lo, hi, yorum in RUZGAR_YORUMU:
+            if lo <= w < hi:
+                return yorum
+        return "—"
+    except: return "—"
 
 RYON = ["K","KKD","KD","DKD","D","DGD","GD","GGD","G","GGB","GB","BGB","B","BKB","KB","KKB"]
 def ryon(deg):
@@ -331,11 +426,13 @@ with tab_anlik:
             <div>
               <div style="font-size:4rem;font-weight:800;line-height:1">{sf(cur.get('temperature'),0)}°C</div>
               <div style="opacity:.75;font-style:italic">{acik0}</div>
+              <div style="font-size:.82rem;opacity:.85;margin-top:4px">{sicaklik_yorum(cur.get('temperature'))}</div>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
             <div class="m-kutu"><div class="m-lbl">💨 Rüzgar</div>
-              <div class="m-val">{sf(cur.get('windspeed'),0)} km/s {ryon(cur.get('winddirection'))}</div></div>
+              <div class="m-val">{sf(cur.get('windspeed'),0)} km/s {ryon(cur.get('winddirection'))}</div>
+              <div style="font-size:.72rem;opacity:.8;margin-top:2px">{ruzgar_yorum(cur.get('windspeed'))}</div></div>
             <div class="m-kutu"><div class="m-lbl">🌡 Max / Min</div>
               <div class="m-val">{sf(d_val(d1,'temperature_2m_max',0),0)}° / {sf(d_val(d1,'temperature_2m_min',0),0)}°</div></div>
             <div class="m-kutu"><div class="m-lbl">💧 Yağış (bugün)</div>
@@ -417,7 +514,9 @@ with tab_temel:
             "G/G":          "☀️" if h_val(h1,"is_day",i,0) else "🌙",
             "Durum":        f"{ikon_s} {acik_s}",
             "Sıcaklık °C":  h_val(h1,"temperature_2m",i),
+            "Sıcaklık Yorum": sicaklik_yorum(h_val(h1,"temperature_2m",i)),
             "Hissedilen":   h_val(h1,"apparent_temperature",i),
+            "Hiss. Yorum":  sicaklik_yorum(h_val(h1,"apparent_temperature",i)),
             "Nem %":        h_val(h1,"relativehumidity_2m",i,0),
             "Çiy Noktası":  h_val(h1,"dewpoint_2m",i),
             "Basınç hPa":   h_val(h1,"pressure_msl",i,0),
@@ -459,8 +558,10 @@ with tab_ruzgar:
             "Tarih":        dt.strftime("%d.%m"),
             "Saat":         dt.strftime("%H:%M"),
             "10m km/s":     h_val(h1,"windspeed_10m",i),
+            "10m Yorum":    ruzgar_yorum(h_val(h1,"windspeed_10m",i)),
             "10m Yön":      ryon(h_val(h1,"winddirection_10m",i,0)),
             "10m Gusto":    h_val(h1,"windgusts_10m",i),
+            "Gusto Yorum":  ruzgar_yorum(h_val(h1,"windgusts_10m",i)),
             "80m km/s":     h_val(h1,"windspeed_80m",i),
             "80m Yön":      ryon(h_val(h1,"winddirection_80m",i,0)),
             "120m km/s":    h_val(h1,"windspeed_120m",i),
