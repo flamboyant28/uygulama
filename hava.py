@@ -33,133 +33,103 @@ html,body,[class*="css"]{ font-family:'Outfit',sans-serif; }
 """, unsafe_allow_html=True)
 
 # ── Yardımcı ──────────────────────────────────────────────────────────────────
-OW_IKONLAR = {
-    "01d":"☀️","01n":"🌙","02d":"🌤","02n":"🌤",
-    "03d":"⛅","03n":"⛅","04d":"☁️","04n":"☁️",
-    "09d":"🌧","09n":"🌧","10d":"🌦","10n":"🌦",
-    "11d":"⛈","11n":"⛈","13d":"❄️","13n":"❄️",
-    "50d":"🌫","50n":"🌫",
+HAVA_KODU = {
+    0:("☀️","Açık"), 1:("🌤","Az Bulutlu"), 2:("⛅","Parçalı Bulutlu"),
+    3:("☁️","Bulutlu"), 45:("🌫","Sisli"), 48:("🌫","Yoğun Sis"),
+    51:("🌦","Hafif Çisenti"), 53:("🌦","Çisenti"), 55:("🌧","Yoğun Çisenti"),
+    61:("🌧","Hafif Yağmur"), 63:("🌧","Yağmur"), 65:("🌧","Yoğun Yağmur"),
+    71:("🌨","Hafif Kar"), 73:("❄️","Kar"), 75:("❄️","Yoğun Kar"),
+    80:("🌦","Sağanak"), 81:("⛈","Kuvvetli Sağanak"), 82:("⛈","Çok Kuvvetli"),
+    85:("🌨","Kar Sağanağı"), 95:("⛈","Fırtına"), 96:("⛈","Dolu+Fırtına"), 99:("⛈","Yoğun Dolu"),
 }
-def ikon(code): return OW_IKONLAR.get(code, "🌡")
+def hk(code): return HAVA_KODU.get(int(code) if code else 0, ("🌡","Bilinmiyor"))
 
 RYON = ["K","KKD","KD","DKD","D","DGD","GD","GGD","G","GGB","GB","BGB","B","BKB","KB","KKB"]
-def ryon(deg): return RYON[round(deg/22.5)%16]
+def ryon(deg): return RYON[round(float(deg)/22.5)%16] if deg is not None else "—"
 
 def uv_yorum(uv):
     if uv is None: return "—"
+    uv = float(uv)
     if uv < 3:  return "🟢 Düşük"
     if uv < 6:  return "🟡 Orta"
     if uv < 8:  return "🟠 Yüksek"
     if uv < 11: return "🔴 Çok Yüksek"
     return "🟣 Aşırı"
 
-def hiz_yon(speed, deg): return f"{speed:.0f} km/s {ryon(deg)}"
-
 # ── API ───────────────────────────────────────────────────────────────────────
-BASE = "https://api.openweathermap.org"
-
 @st.cache_data(ttl=3600)
-def sehir_ara(q, key):
+def sehir_ara(q):
     try:
-        r = requests.get(f"{BASE}/geo/1.0/direct",
-            params={"q":q,"limit":5,"appid":key}, timeout=10)
+        r = requests.get("https://nominatim.openstreetmap.org/search",
+            params={"q":q,"format":"json","limit":5},
+            headers={"User-Agent":"hava-v3/1.0"}, timeout=10)
         return r.json()
     except Exception as e:
-        st.error(f"Geocoding hatası: {e}"); return []
+        st.error(f"Şehir arama hatası: {e}"); return []
 
 @st.cache_data(ttl=1800)
-def anlik_hava(lat, lon, key):
+def hava_cek(lat, lon, forecast_days=16):
+    """Open-Meteo: saatlik + günlük, forecast_days=16 → 384 saatlik veri"""
     try:
-        r = requests.get(f"{BASE}/data/2.5/weather",
-            params={"lat":lat,"lon":lon,"appid":key,
-                    "units":"metric","lang":"tr"}, timeout=10)
+        r = requests.get("https://api.open-meteo.com/v1/forecast", params={
+            "latitude":  lat,
+            "longitude": lon,
+            "current_weather": "true",
+            "hourly": ",".join([
+                "temperature_2m","apparent_temperature",
+                "relativehumidity_2m","dewpoint_2m",
+                "precipitation","precipitation_probability","snowfall","snow_depth",
+                "weathercode","pressure_msl","surface_pressure",
+                "cloudcover","cloudcover_low","cloudcover_mid","cloudcover_high",
+                "visibility","windspeed_10m","winddirection_10m","windgusts_10m",
+                "uv_index","is_day","shortwave_radiation",
+            ]),
+            "daily": ",".join([
+                "weathercode","temperature_2m_max","temperature_2m_min",
+                "apparent_temperature_max","apparent_temperature_min",
+                "precipitation_sum","precipitation_hours","precipitation_probability_max",
+                "windspeed_10m_max","windgusts_10m_max","winddirection_10m_dominant",
+                "shortwave_radiation_sum","uv_index_max",
+                "sunrise","sunset","rain_sum","snowfall_sum",
+            ]),
+            "timezone":       "auto",
+            "forecast_days":  forecast_days,
+            "wind_speed_unit":"kmh",
+        }, timeout=20)
         return r.json()
     except Exception as e:
-        st.error(f"Anlık veri hatası: {e}"); return None
+        st.error(f"Open-Meteo hatası: {e}"); return None
 
-@st.cache_data(ttl=1800)
-def tahmin_3saatlik(lat, lon, key):
-    """5 günlük / 3 saatlik tahmin (ücretsiz)"""
-    try:
-        r = requests.get(f"{BASE}/data/2.5/forecast",
-            params={"lat":lat,"lon":lon,"appid":key,
-                    "units":"metric","lang":"tr","cnt":40}, timeout=10)
-        return r.json()
-    except Exception as e:
-        st.error(f"Tahmin hatası: {e}"); return None
-
-@st.cache_data(ttl=1800)
-def onecall(lat, lon, key):
-    """One Call API 3.0 — saatlik + 8 günlük (abonelik gerekebilir)"""
-    try:
-        r = requests.get(f"{BASE}/data/3.0/onecall",
-            params={"lat":lat,"lon":lon,"appid":key,
-                    "units":"metric","lang":"tr",
-                    "exclude":"minutely,alerts"}, timeout=10)
-        d = r.json()
-        return d if "daily" in d else None
-    except:
-        return None
-
-def gunluk_ozet(forecast_json):
-    """3 saatlik veriyi günlük özetlere dönüştür"""
-    if not forecast_json or "list" not in forecast_json:
-        return []
-    gunler = {}
-    for item in forecast_json["list"]:
-        gun = item["dt_txt"][:10]
-        t   = item["main"]["temp"]
-        if gun not in gunler:
-            gunler[gun] = {
-                "max": t, "min": t,
-                "icon": item["weather"][0]["icon"],
-                "desc": item["weather"][0]["description"],
-                "yagis": item.get("rain",{}).get("3h",0) + item.get("snow",{}).get("3h",0),
-                "nem": item["main"]["humidity"],
-                "ruzgar": item["wind"]["speed"]*3.6,
-                "samples": 1,
-            }
-        else:
-            gunler[gun]["max"]    = max(gunler[gun]["max"], t)
-            gunler[gun]["min"]    = min(gunler[gun]["min"], t)
-            gunler[gun]["yagis"] += item.get("rain",{}).get("3h",0) + item.get("snow",{}).get("3h",0)
-            gunler[gun]["nem"]   += item["main"]["humidity"]
-            gunler[gun]["ruzgar"]+= item["wind"]["speed"]*3.6
-            gunler[gun]["samples"]+= 1
-    # Ortalama
-    for g in gunler.values():
-        g["nem"]    = round(g["nem"]    / g["samples"])
-        g["ruzgar"] = round(g["ruzgar"] / g["samples"], 1)
-    return [(gun, val) for gun, val in gunler.items()]
-
-# ── Session state ──────────────────────────────────────────────────────────────
-for k,v in [("konum1",None),("konum2",None),("tetik1",False),("tetik2",False),
+# ── Session State ─────────────────────────────────────────────────────────────
+for k,v in [("konum1",None),("konum2",None),
+             ("tetik1",False),("tetik2",False),
              ("ara1",""),("ara2","")]:
     if k not in st.session_state: st.session_state[k] = v
 
-# ── Başlık & API Key ──────────────────────────────────────────────────────────
+# ── Başlık ────────────────────────────────────────────────────────────────────
 st.markdown("# 🌤 Hava Durumu Dashboard")
+st.caption("Open-Meteo API · Ücretsiz · API key gerektirmez · 16 gün / 384 saat")
 
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### ⚙️ Ayarlar")
-    api_key = st.text_input("🔑 OpenWeather API Key",
-                             type="password", placeholder="xxxxxxxxxxxxx")
-    st.caption("Ücretsiz key: openweathermap.org/api")
+    forecast_days = st.slider("Tahmin Günü", 1, 16, 16,
+        help="Maksimum 16 gün = 384 saatlik veri")
     st.divider()
     st.markdown("**Hızlı Şehirler**")
-    hizli = ["İstanbul","Ankara","İzmir","Antalya",
-             "Bursa","London","New York","Paris","Tokyo","Dubai"]
+    hizli = ["İstanbul","Ankara","İzmir","Antalya","Bursa","Trabzon",
+             "London","New York","Paris","Tokyo","Dubai","Berlin"]
     for s in hizli:
         if st.button(s, key=f"hz_{s}", use_container_width=True):
             st.session_state.ara1 = s
             st.session_state.tetik1 = True
+            st.session_state.konum1 = None
             st.rerun()
+    st.divider()
+    st.caption("Veri: [Open-Meteo](https://open-meteo.com) · "
+               "Şehir: [Nominatim/OSM](https://nominatim.openstreetmap.org)")
 
-if not api_key:
-    st.info("👈 Sol panelden OpenWeather API key'ini gir.")
-    st.stop()
-
-# ── Arama ──────────────────────────────────────────────────────────────────────
+# ── Arama ─────────────────────────────────────────────────────────────────────
 c1, c2, c3 = st.columns([3,3,1])
 with c1:
     girdi1 = st.text_input("Şehir 1", placeholder="İstanbul, Ankara...",
@@ -169,23 +139,23 @@ with c2:
                             placeholder="London, Berlin...",
                             value=st.session_state.ara2, key="g2")
 with c3:
-    ara_btn = st.button("🔍 Ara", type="primary", use_container_width=True)
+    if st.button("🔍 Ara", type="primary", use_container_width=True):
+        if girdi1:
+            st.session_state.ara1=girdi1; st.session_state.tetik1=True
+            st.session_state.konum1=None
+        if girdi2:
+            st.session_state.ara2=girdi2; st.session_state.tetik2=True
+            st.session_state.konum2=None
+        st.rerun()
 
-if ara_btn:
-    if girdi1: st.session_state.ara1=girdi1; st.session_state.tetik1=True; st.session_state.konum1=None
-    if girdi2: st.session_state.ara2=girdi2; st.session_state.tetik2=True; st.session_state.konum2=None
-    st.rerun()
-
-# Koordinat çöz
 for ara_k, tetik_k, konum_k in [("ara1","tetik1","konum1"),("ara2","tetik2","konum2")]:
     if st.session_state[tetik_k] and st.session_state[ara_k]:
         with st.spinner(f"{st.session_state[ara_k]} aranıyor..."):
-            sonuclar = sehir_ara(st.session_state[ara_k], api_key)
+            sonuclar = sehir_ara(st.session_state[ara_k])
         if sonuclar:
             s = sonuclar[0]
-            ad = s.get("local_names",{}).get("tr") or s.get("name","")
-            ulke = s.get("country","")
-            st.session_state[konum_k] = (float(s["lat"]),float(s["lon"]),f"{ad}, {ulke}")
+            ad = s.get("display_name","").split(",")[0]
+            st.session_state[konum_k] = (float(s["lat"]),float(s["lon"]),ad)
         else:
             st.error(f"'{st.session_state[ara_k]}' bulunamadı.")
         st.session_state[tetik_k] = False
@@ -196,258 +166,197 @@ if not st.session_state.konum1:
 
 # ── Veri Çek ──────────────────────────────────────────────────────────────────
 lat1,lon1,sehir1 = st.session_state.konum1
+with st.spinner(f"{sehir1} hava verisi alınıyor..."):
+    v1 = hava_cek(lat1, lon1, forecast_days)
+if not v1: st.stop()
 
-with st.spinner("Veri alınıyor..."):
-    anlik1   = anlik_hava(lat1, lon1, api_key)
-    tahmin1  = tahmin_3saatlik(lat1, lon1, api_key)
-    oc1      = onecall(lat1, lon1, api_key)   # None olabilir
-
-if not anlik1: st.stop()
-
-v2_anlik = v2_tahmin = v2_oc = None
-sehir2 = ""
+v2 = None; sehir2 = ""
 if st.session_state.konum2:
     lat2,lon2,sehir2 = st.session_state.konum2
     with st.spinner(f"{sehir2} verisi alınıyor..."):
-        v2_anlik  = anlik_hava(lat2, lon2, api_key)
-        v2_tahmin = tahmin_3saatlik(lat2, lon2, api_key)
-        v2_oc     = onecall(lat2, lon2, api_key)
+        v2 = hava_cek(lat2, lon2, forecast_days)
 
-gunluk1  = gunluk_ozet(tahmin1)
-gunluk2  = gunluk_ozet(v2_tahmin) if v2_tahmin else []
+h1 = v1["hourly"]; d1 = v1["daily"]; cur = v1["current_weather"]
+toplam_saat = len(h1["time"])
 
 # ── Sekmeler ──────────────────────────────────────────────────────────────────
-tab_listesi = ["🌡 Anlık","📅 Günlük Tahmin","⏰ Saatlik Tablo","📈 Grafikler"]
-if sehir2: tab_listesi.append("🔄 Karşılaştırma")
+tab_listesi = ["🌡 Anlık","📅 Günlük","⏰ Saatlik Tablo","📆 16 Günlük Tablo","📈 Grafikler"]
+if v2: tab_listesi.append("🔄 Karşılaştırma")
 tabs = st.tabs(tab_listesi)
-tab_anlik, tab_gunluk, tab_saatlik, tab_grafik = tabs[:4]
-tab_kars = tabs[4] if len(tabs) > 4 else None
+tab_anlik, tab_gunluk, tab_saatlik, tab_16gun, tab_grafik = tabs[:5]
+tab_kars = tabs[5] if len(tabs)>5 else None
 
 # ══════════════════════════════════════════════════════════════
 # 🌡 ANLIK
 # ══════════════════════════════════════════════════════════════
 with tab_anlik:
-    w = anlik1
-    ic = ikon(w["weather"][0]["icon"])
-    ac = w["weather"][0]["description"].capitalize()
-    gd = datetime.fromtimestamp(w["sys"]["sunrise"]).strftime("%H:%M")
-    gb = datetime.fromtimestamp(w["sys"]["sunset"]).strftime("%H:%M")
+    ikon0, acik0 = hk(cur["weathercode"])
+    gd = d1["sunrise"][0][11:16]
+    gb = d1["sunset"][0][11:16]
 
-    col_a, col_b = st.columns([1.2, 1])
-    with col_a:
+    ca, cb = st.columns([1.2,1])
+    with ca:
         st.markdown(f"""
         <div class="anlik-kart">
-          <div style="font-size:.85rem;opacity:.65">{datetime.now().strftime('%d %B %Y  %H:%M')}</div>
+          <div style="font-size:.82rem;opacity:.6">{datetime.now().strftime('%d %B %Y  %H:%M')}</div>
           <div style="font-size:1.3rem;font-weight:700;margin:4px 0">📍 {sehir1}</div>
           <div style="display:flex;align-items:center;gap:20px;margin:14px 0">
-            <div style="font-size:3.5rem">{ic}</div>
+            <div style="font-size:3.5rem">{ikon0}</div>
             <div>
-              <div style="font-size:4rem;font-weight:800;line-height:1">{w['main']['temp']:.0f}°C</div>
-              <div style="opacity:.75;font-style:italic">{ac}</div>
-              <div style="font-size:.85rem;opacity:.7">Hissedilen {w['main']['feels_like']:.0f}°C</div>
+              <div style="font-size:4rem;font-weight:800;line-height:1">{cur['temperature']:.0f}°C</div>
+              <div style="opacity:.75;font-style:italic">{acik0}</div>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-            <div class="m-kutu">
-              <div class="m-lbl">💨 Rüzgar</div>
-              <div class="m-val">{w['wind']['speed']*3.6:.0f} km/s {ryon(w['wind'].get('deg',0))}</div>
-            </div>
-            <div class="m-kutu">
-              <div class="m-lbl">💧 Nem</div>
-              <div class="m-val">%{w['main']['humidity']}</div>
-            </div>
-            <div class="m-kutu">
-              <div class="m-lbl">🌡 Max / Min</div>
-              <div class="m-val">{w['main']['temp_max']:.0f}° / {w['main']['temp_min']:.0f}°</div>
-            </div>
-            <div class="m-kutu">
-              <div class="m-lbl">🌬 Basınç</div>
-              <div class="m-val">{w['main']['pressure']} hPa</div>
-            </div>
-            <div class="m-kutu">
-              <div class="m-lbl">👁 Görüş</div>
-              <div class="m-val">{w.get('visibility',0)//1000} km</div>
-            </div>
-            <div class="m-kutu">
-              <div class="m-lbl">🌅 Gün D/B</div>
-              <div class="m-val">{gd} / {gb}</div>
-            </div>
+            <div class="m-kutu"><div class="m-lbl">💨 Rüzgar</div>
+              <div class="m-val">{cur['windspeed']:.0f} km/s {ryon(cur['winddirection'])}</div></div>
+            <div class="m-kutu"><div class="m-lbl">🌡 Max / Min</div>
+              <div class="m-val">{d1['temperature_2m_max'][0]:.0f}° / {d1['temperature_2m_min'][0]:.0f}°</div></div>
+            <div class="m-kutu"><div class="m-lbl">💧 Yağış</div>
+              <div class="m-val">{d1['precipitation_sum'][0]:.1f} mm</div></div>
+            <div class="m-kutu"><div class="m-lbl">☀️ UV İndeks</div>
+              <div class="m-val">{uv_yorum(d1['uv_index_max'][0])}</div></div>
+            <div class="m-kutu"><div class="m-lbl">🌅 Gün Doğumu</div>
+              <div class="m-val">{gd}</div></div>
+            <div class="m-kutu"><div class="m-lbl">🌇 Gün Batımı</div>
+              <div class="m-val">{gb}</div></div>
           </div>
         </div>""", unsafe_allow_html=True)
 
-    with col_b:
-        # One Call varsa UV ve günlük detay
-        if oc1 and "current" in oc1:
-            cur = oc1["current"]
-            st.markdown("### Ek Detaylar (One Call)")
-            m1,m2 = st.columns(2)
-            with m1:
-                st.metric("☀️ UV İndeksi",    uv_yorum(cur.get("uvi")))
-                st.metric("☁️ Bulut",          f"%{cur.get('clouds',0)}")
-                st.metric("💧 Çiy Noktası",    f"{cur.get('dew_point',0):.1f}°C")
-            with m2:
-                st.metric("👁 Görüş",          f"{cur.get('visibility',0)//1000} km")
-                st.metric("💨 Gusto",          f"{cur.get('wind_gust',0)*3.6:.0f} km/s")
-                st.metric("🌧 Son 1s Yağış",  f"{cur.get('rain',{}).get('1h',0):.1f} mm")
-        else:
-            st.info("One Call API verisi yok (ücretsiz planlarda kısıtlı olabilir). "
-                    "Temel veriler anlık sekmede görünüyor.")
+    with cb:
+        # Bugünün saatlik sıcaklık grafiği
+        bugun = d1["time"][0]
+        idx_b = [i for i,t in enumerate(h1["time"]) if t.startswith(bugun)]
+        fig_b = go.Figure()
+        fig_b.add_trace(go.Scatter(
+            x=[h1["time"][i][11:16] for i in idx_b],
+            y=[h1["temperature_2m"][i] for i in idx_b],
+            mode="lines+markers", name="Sıcaklık",
+            line=dict(color="#ff7043",width=2.5),
+            fill="tozeroy", fillcolor="rgba(255,112,67,.08)"))
+        fig_b.add_trace(go.Scatter(
+            x=[h1["time"][i][11:16] for i in idx_b],
+            y=[h1["apparent_temperature"][i] for i in idx_b],
+            mode="lines", name="Hissedilen",
+            line=dict(color="#ffa726",width=2,dash="dot")))
+        fig_b.update_layout(title="Bugün Saatlik Sıcaklık", height=230,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0,r=0,t=35,b=0), hovermode="x unified",
+            xaxis=dict(showgrid=False, nticks=8),
+            yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+            legend=dict(orientation="h",y=1.15))
+        st.plotly_chart(fig_b, use_container_width=True)
 
-        # Son 24 saatin saatlik tahmini (3h forecast'tan)
-        if tahmin1 and "list" in tahmin1:
-            st.markdown("### Yakın Tahmin (3 Saatlik)")
-            items = tahmin1["list"][:8]
-            df_kisa = pd.DataFrame({
-                "Saat":    [datetime.fromtimestamp(x["dt"]).strftime("%H:%M") for x in items],
-                "°C":      [round(x["main"]["temp"],1) for x in items],
-                "Durum":   [f"{ikon(x['weather'][0]['icon'])} {x['weather'][0]['description']}" for x in items],
-                "Nem %":   [x["main"]["humidity"] for x in items],
-                "Yağış mm":[round(x.get("rain",{}).get("3h",0)+x.get("snow",{}).get("3h",0),1) for x in items],
-            })
-            st.dataframe(df_kisa, use_container_width=True, hide_index=True)
+        # Bugünün detay metrikleri
+        m1,m2,m3 = st.columns(3)
+        with m1:
+            nem_b  = h1["relativehumidity_2m"][idx_b[len(idx_b)//2]] if idx_b else 0
+            st.metric("💧 Nem", f"%{nem_b}")
+        with m2:
+            bas_b  = h1["pressure_msl"][idx_b[len(idx_b)//2]] if idx_b else 0
+            st.metric("🌬 Basınç", f"{bas_b:.0f} hPa")
+        with m3:
+            gus_b  = h1["windgusts_10m"][idx_b[len(idx_b)//2]] if idx_b else 0
+            st.metric("💨 Gusto", f"{gus_b:.0f} km/s")
 
 # ══════════════════════════════════════════════════════════════
-# 📅 GÜNLÜK TAHMİN
+# 📅 GÜNLÜK (7 kartlı)
 # ══════════════════════════════════════════════════════════════
 with tab_gunluk:
-    st.markdown("### 📅 Günlük Tahmin")
+    st.markdown("### 📅 7 Günlük Tahmin")
+    cols7 = st.columns(7)
+    for i,col in enumerate(cols7):
+        tarih = datetime.strptime(d1["time"][i],"%Y-%m-%d")
+        ikon_g, acik_g = hk(d1["weathercode"][i])
+        with col:
+            st.markdown(f"""
+            <div class="gun-karti">
+              <div class="gun-adi">{"Bugün" if i==0 else tarih.strftime("%a")}<br>{tarih.strftime("%d/%m")}</div>
+              <div class="gun-ikon">{ikon_g}</div>
+              <div class="gun-max">{d1['temperature_2m_max'][i]:.0f}°</div>
+              <div class="gun-min">{d1['temperature_2m_min'][i]:.0f}°</div>
+              <div class="gun-alt">💧{d1['precipitation_sum'][i]:.1f}mm
+              %{d1['precipitation_probability_max'][i]:.0f}</div>
+              <div class="gun-alt">💨{d1['windspeed_10m_max'][i]:.0f}km/s
+              UV:{d1['uv_index_max'][i]:.0f}</div>
+            </div>""", unsafe_allow_html=True)
 
-    # One Call varsa 8 günlük, yoksa 3h özetinden
-    if oc1 and "daily" in oc1:
-        st.success("✅ One Call API — 8 günlük tahmin")
-        daily = oc1["daily"]
-        n = len(daily)
-        cols = st.columns(min(n, 7))
-        for i, col in enumerate(cols):
-            d  = daily[i]
-            dt = datetime.fromtimestamp(d["dt"])
-            ic = ikon(d["weather"][0]["icon"])
-            ac = d["weather"][0]["description"]
-            with col:
-                st.markdown(f"""
-                <div class="gun-karti">
-                  <div class="gun-adi">{"Bugün" if i==0 else dt.strftime("%a")}<br>{dt.strftime("%d/%m")}</div>
-                  <div class="gun-ikon">{ic}</div>
-                  <div class="gun-max">{d['temp']['max']:.0f}°</div>
-                  <div class="gun-min">{d['temp']['min']:.0f}°</div>
-                  <div class="gun-alt">💧{d.get('rain',0)+d.get('snow',0):.1f}mm  {d.get('pop',0)*100:.0f}%</div>
-                  <div class="gun-alt">💨{d['wind_speed']*3.6:.0f}km/s  UV:{d.get('uvi',0):.0f}</div>
-                </div>""", unsafe_allow_html=True)
-
-        # 8 günlük tablo
-        st.markdown("---")
-        rows = []
-        for d in daily:
-            dt = datetime.fromtimestamp(d["dt"])
-            ic = ikon(d["weather"][0]["icon"])
-            rows.append({
-                "Tarih":       dt.strftime("%d.%m.%Y"),
-                "Gün":         dt.strftime("%A"),
-                "Durum":       f"{ic} {d['weather'][0]['description']}",
-                "Max (°C)":    d["temp"]["max"],
-                "Min (°C)":    d["temp"]["min"],
-                "Hiss. Max":   d["feels_like"]["day"],
-                "Hiss. Gece":  d["feels_like"]["night"],
-                "Yağış mm":    round(d.get("rain",0)+d.get("snow",0),1),
-                "Yağış %":     round(d.get("pop",0)*100),
-                "Nem %":       d["humidity"],
-                "Rüzgar":      f"{d['wind_speed']*3.6:.0f} km/s {ryon(d.get('wind_deg',0))}",
-                "Gusto":       f"{d.get('wind_gust',0)*3.6:.0f} km/s",
-                "UV":          d.get("uvi",0),
-                "Gün D.":      datetime.fromtimestamp(d["sunrise"]).strftime("%H:%M"),
-                "Gün B.":      datetime.fromtimestamp(d["sunset"]).strftime("%H:%M"),
-            })
-        df_daily = pd.DataFrame(rows)
-
-        def renk_max(val):
-            try:
-                t = float(val)
-                if t<0:  return "background-color:#bbdefb;color:#0d47a1"
-                if t<10: return "background-color:#e0f7fa"
-                if t<20: return "background-color:#e8f5e9"
-                if t<30: return "background-color:#fff9c4"
-                return "background-color:#ffccbc"
-            except: return ""
-
-        styled_d = df_daily.style.map(renk_max, subset=["Max (°C)","Min (°C)"])
-        st.dataframe(styled_d, use_container_width=True, hide_index=True)
-
-    else:
-        st.info("ℹ️ One Call API yok — 3 saatlik veriden günlük özet gösteriliyor (5 gün)")
-        cols = st.columns(min(len(gunluk1), 5))
-        for i, (tarih, d) in enumerate(gunluk1[:5]):
-            dt = datetime.strptime(tarih,"%Y-%m-%d")
-            ic = ikon(d["icon"])
-            with cols[i]:
-                st.markdown(f"""
-                <div class="gun-karti">
-                  <div class="gun-adi">{"Bugün" if i==0 else dt.strftime("%a")}<br>{dt.strftime("%d/%m")}</div>
-                  <div class="gun-ikon">{ic}</div>
-                  <div class="gun-max">{d['max']:.0f}°</div>
-                  <div class="gun-min">{d['min']:.0f}°</div>
-                  <div class="gun-alt">💧{d['yagis']:.1f}mm</div>
-                  <div class="gun-alt">💨{d['ruzgar']:.0f}km/s</div>
-                </div>""", unsafe_allow_html=True)
+    # 7 günlük grafik
+    st.markdown("---")
+    lbls7 = [datetime.strptime(d1["time"][i],"%Y-%m-%d").strftime("%d %b") for i in range(7)]
+    fig7 = go.Figure()
+    fig7.add_trace(go.Scatter(x=lbls7, y=d1["temperature_2m_max"][:7],
+        name="Max", line=dict(color="#ff7043",width=3),
+        fill="tozeroy", fillcolor="rgba(255,112,67,.07)"))
+    fig7.add_trace(go.Scatter(x=lbls7, y=d1["temperature_2m_min"][:7],
+        name="Min", line=dict(color="#42a5f5",width=3),
+        fill="tozeroy", fillcolor="rgba(66,165,245,.07)"))
+    fig7.add_trace(go.Bar(x=lbls7, y=d1["precipitation_sum"][:7],
+        name="Yağış mm", yaxis="y2", marker_color="rgba(100,180,255,.6)"))
+    fig7.update_layout(title="7 Günlük Sıcaklık & Yağış", height=280,
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0,r=0,t=35,b=0), hovermode="x unified",
+        yaxis=dict(title="°C",gridcolor="rgba(0,0,0,.05)"),
+        yaxis2=dict(title="mm",overlaying="y",side="right",showgrid=False),
+        legend=dict(orientation="h",y=1.12), xaxis=dict(showgrid=False))
+    st.plotly_chart(fig7, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════
 # ⏰ SAATLİK TABLO
 # ══════════════════════════════════════════════════════════════
 with tab_saatlik:
     st.markdown("### ⏰ Saatlik Veri Tablosu")
+    st.success(f"✅ Open-Meteo · **{toplam_saat} saat** ({forecast_days} gün × 24 saat)")
 
-    kaynak = "One Call API (saatlik)" if oc1 and "hourly" in oc1 else "3 Saatlik Tahmin"
-    st.caption(f"Kaynak: {kaynak}")
+    # Gün filtresi
+    gunler_lst = sorted(set(t[:10] for t in h1["time"]))
+    gun_sec_lbls = ["Tümü"] + [
+        datetime.strptime(g,"%Y-%m-%d").strftime("%d %B %Y (%A)")
+        for g in gunler_lst
+    ]
+    gun_sec = st.selectbox("📅 Gün filtresi", range(len(gun_sec_lbls)),
+                           format_func=lambda i: gun_sec_lbls[i])
 
-    if oc1 and "hourly" in oc1:
-        items = oc1["hourly"][:48]
-        rows = []
-        for x in items:
-            dt = datetime.fromtimestamp(x["dt"])
-            rows.append({
-                "Tarih":        dt.strftime("%d.%m"),
-                "Saat":         dt.strftime("%H:%M"),
-                "Durum":        f"{ikon(x['weather'][0]['icon'])} {x['weather'][0]['description']}",
-                "Sıcaklık":     x["temp"],
-                "Hissedilen":   x["feels_like"],
-                "Nem %":        x["humidity"],
-                "Çiy Noktası":  x.get("dew_point",0),
-                "Basınç hPa":   x["pressure"],
-                "Bulut %":      x["clouds"],
-                "Görüş km":     round(x.get("visibility",10000)/1000,1),
-                "Rüzgar km/s":  round(x["wind_speed"]*3.6,1),
-                "Yön":          ryon(x.get("wind_deg",0)),
-                "Gusto km/s":   round(x.get("wind_gust",0)*3.6,1),
-                "Yağış mm":     round(x.get("rain",{}).get("1h",0)+x.get("snow",{}).get("1h",0),2),
-                "Yağış %":      round(x.get("pop",0)*100),
-                "UV":           x.get("uvi",0),
-            })
+    if gun_sec == 0:
+        idx_filtre = range(len(h1["time"]))
     else:
-        items = tahmin1["list"] if tahmin1 and "list" in tahmin1 else []
-        rows = []
-        for x in items:
-            dt = datetime.fromtimestamp(x["dt"])
-            rows.append({
-                "Tarih":        dt.strftime("%d.%m"),
-                "Saat":         dt.strftime("%H:%M"),
-                "Durum":        f"{ikon(x['weather'][0]['icon'])} {x['weather'][0]['description']}",
-                "Sıcaklık":     x["main"]["temp"],
-                "Hissedilen":   x["main"]["feels_like"],
-                "Nem %":        x["main"]["humidity"],
-                "Çiy Noktası":  "—",
-                "Basınç hPa":   x["main"]["pressure"],
-                "Bulut %":      x["clouds"]["all"],
-                "Görüş km":     round(x.get("visibility",10000)/1000,1),
-                "Rüzgar km/s":  round(x["wind"]["speed"]*3.6,1),
-                "Yön":          ryon(x["wind"].get("deg",0)),
-                "Gusto km/s":   round(x["wind"].get("gust",0)*3.6,1),
-                "Yağış mm":     round(x.get("rain",{}).get("3h",0)+x.get("snow",{}).get("3h",0),2),
-                "Yağış %":      round(x.get("pop",0)*100),
-                "UV":           "—",
-            })
+        secili_gun = gunler_lst[gun_sec-1]
+        idx_filtre = [i for i,t in enumerate(h1["time"]) if t.startswith(secili_gun)]
+
+    rows = []
+    for i in idx_filtre:
+        dt = datetime.strptime(h1["time"][i], "%Y-%m-%dT%H:%M")
+        ikon_s, acik_s = hk(h1["weathercode"][i])
+        rows.append({
+            "Tarih":        dt.strftime("%d.%m"),
+            "Saat":         dt.strftime("%H:%M"),
+            "Gün/Gece":     "☀️" if h1["is_day"][i] else "🌙",
+            "Durum":        f"{ikon_s} {acik_s}",
+            "Sıcaklık °C":  h1["temperature_2m"][i],
+            "Hissedilen":   h1["apparent_temperature"][i],
+            "Nem %":        h1["relativehumidity_2m"][i],
+            "Çiy Noktası":  round(h1["dewpoint_2m"][i],1),
+            "Basınç hPa":   h1["pressure_msl"][i],
+            "Bulut %":      h1["cloudcover"][i],
+            "Bulut Alçak":  h1["cloudcover_low"][i],
+            "Bulut Orta":   h1["cloudcover_mid"][i],
+            "Bulut Yüksek": h1["cloudcover_high"][i],
+            "Görüş km":     round(h1["visibility"][i]/1000,1) if h1["visibility"][i] else 0,
+            "Yağış mm":     h1["precipitation"][i],
+            "Yağış %":      h1["precipitation_probability"][i],
+            "Kar cm":       h1["snowfall"][i],
+            "Rüzgar km/s":  h1["windspeed_10m"][i],
+            "Rüzgar Yönü":  ryon(h1["winddirection_10m"][i]),
+            "Gusto km/s":   h1["windgusts_10m"][i],
+            "UV":           round(h1["uv_index"][i],1),
+            "Işınım W/m²":  round(h1["shortwave_radiation"][i],0),
+        })
 
     df_saat = pd.DataFrame(rows)
+    st.caption(f"Gösterilen: {len(rows)} veri noktası")
 
-    def rs(val):  # renk sıcaklık
+    # Renk fonksiyonları
+    def rs(val):
         try:
             t=float(val)
             if t<0:  return "background-color:#bbdefb;color:#0d47a1"
@@ -457,7 +366,7 @@ with tab_saatlik:
             return "background-color:#ffccbc"
         except: return ""
 
-    def ry(val):  # renk yağış
+    def ry(val):
         try:
             y=float(val)
             if y==0: return ""
@@ -466,7 +375,7 @@ with tab_saatlik:
             return "background-color:#42a5f5;color:white"
         except: return ""
 
-    def rn(val):  # renk nem
+    def rn(val):
         try:
             n=float(val)
             if n<40: return "background-color:#fff9c4"
@@ -475,13 +384,105 @@ with tab_saatlik:
             return "background-color:#bbdefb"
         except: return ""
 
+    def rb(val):
+        try:
+            b=float(val)
+            if b<25:  return ""
+            if b<50:  return "background-color:#f5f5f5"
+            if b<75:  return "background-color:#eeeeee"
+            return "background-color:#e0e0e0"
+        except: return ""
+
     styled_s = df_saat.style\
-        .map(rs, subset=["Sıcaklık","Hissedilen"])\
+        .map(rs, subset=["Sıcaklık °C","Hissedilen"])\
         .map(ry, subset=["Yağış mm"])\
         .map(rn, subset=["Nem %"])\
+        .map(rb, subset=["Bulut %"])\
         .format(precision=1)
 
-    st.dataframe(styled_s, use_container_width=True, height=500)
+    st.dataframe(styled_s, use_container_width=True, height=520)
+
+    # Seçili gün grafiği
+    if gun_sec > 0 and len(rows) > 0:
+        st.markdown("---")
+        sg1, sg2 = st.columns(2)
+        saatler = [r["Saat"] for r in rows]
+        with sg1:
+            fig_sg = go.Figure()
+            fig_sg.add_trace(go.Scatter(x=saatler, y=[r["Sıcaklık °C"] for r in rows],
+                name="Sıcaklık", line=dict(color="#ff7043",width=2.5),
+                fill="tozeroy", fillcolor="rgba(255,112,67,.08)"))
+            fig_sg.add_trace(go.Scatter(x=saatler, y=[r["Hissedilen"] for r in rows],
+                name="Hissedilen", line=dict(color="#ffa726",width=2,dash="dot")))
+            fig_sg.update_layout(title="Sıcaklık", height=220,
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=0,r=0,t=35,b=0),
+                xaxis=dict(showgrid=False), yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+                legend=dict(orientation="h",y=1.2))
+            st.plotly_chart(fig_sg, use_container_width=True)
+        with sg2:
+            fig_rg = go.Figure()
+            fig_rg.add_trace(go.Bar(x=saatler, y=[r["Rüzgar km/s"] for r in rows],
+                name="Rüzgar", marker_color="rgba(66,165,245,.75)"))
+            fig_rg.add_trace(go.Scatter(x=saatler, y=[r["Gusto km/s"] for r in rows],
+                name="Gusto", line=dict(color="#ef5350",width=2)))
+            fig_rg.update_layout(title="Rüzgar & Gusto (km/s)", height=220,
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=0,r=0,t=35,b=0),
+                xaxis=dict(showgrid=False), yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+                legend=dict(orientation="h",y=1.2))
+            st.plotly_chart(fig_rg, use_container_width=True)
+
+# ══════════════════════════════════════════════════════════════
+# 📆 16 GÜNLÜK TABLO
+# ══════════════════════════════════════════════════════════════
+with tab_16gun:
+    st.markdown(f"### 📆 {forecast_days} Günlük Tahmin Tablosu")
+    n = len(d1["time"])
+    rows_d = []
+    for i in range(n):
+        tarih = datetime.strptime(d1["time"][i],"%Y-%m-%d")
+        ikon_d, acik_d = hk(d1["weathercode"][i])
+        rows_d.append({
+            "Tarih":        tarih.strftime("%d.%m.%Y"),
+            "Gün":          "Bugün" if i==0 else tarih.strftime("%A"),
+            "Durum":        f"{ikon_d} {acik_d}",
+            "Max °C":       d1["temperature_2m_max"][i],
+            "Min °C":       d1["temperature_2m_min"][i],
+            "Hiss. Max":    d1["apparent_temperature_max"][i],
+            "Hiss. Min":    d1["apparent_temperature_min"][i],
+            "Yağış mm":     d1["precipitation_sum"][i],
+            "Yağış Saat":   d1["precipitation_hours"][i],
+            "Yağış %":      d1["precipitation_probability_max"][i],
+            "Kar mm":       d1["snowfall_sum"][i],
+            "Yağmur mm":    d1["rain_sum"][i],
+            "Rüzgar km/s":  d1["windspeed_10m_max"][i],
+            "Gusto km/s":   d1["windgusts_10m_max"][i],
+            "Rüzgar Yönü":  ryon(d1["winddirection_10m_dominant"][i]),
+            "UV Max":       d1["uv_index_max"][i],
+            "Işınım MJ/m²": d1["shortwave_radiation_sum"][i],
+            "Gün Doğumu":   d1["sunrise"][i][11:16],
+            "Gün Batımı":   d1["sunset"][i][11:16],
+        })
+
+    df_gun = pd.DataFrame(rows_d)
+
+    def rm(val):
+        try:
+            t=float(val)
+            if t<0:  return "background-color:#bbdefb;color:#0d47a1"
+            if t<10: return "background-color:#e0f7fa"
+            if t<20: return "background-color:#e8f5e9"
+            if t<30: return "background-color:#fff9c4"
+            return "background-color:#ffccbc"
+        except: return ""
+
+    styled_g = df_gun.style\
+        .map(rm, subset=["Max °C","Min °C","Hiss. Max","Hiss. Min"])\
+        .map(ry, subset=["Yağış mm"])\
+        .format(precision=1)
+
+    st.dataframe(styled_g, use_container_width=True, height=600)
 
 # ══════════════════════════════════════════════════════════════
 # 📈 GRAFİKLER
@@ -489,156 +490,163 @@ with tab_saatlik:
 with tab_grafik:
     st.markdown("### 📈 Grafikler")
 
-    if tahmin1 and "list" in tahmin1:
-        items = tahmin1["list"]
-        zamanlar = [datetime.fromtimestamp(x["dt"]).strftime("%d/%m %H:%M") for x in items]
-        sicaklik = [x["main"]["temp"]    for x in items]
-        hissed   = [x["main"]["feels_like"] for x in items]
-        nem      = [x["main"]["humidity"] for x in items]
-        basınc   = [x["main"]["pressure"] for x in items]
-        ruzgar   = [x["wind"]["speed"]*3.6 for x in items]
-        gusto    = [x["wind"].get("gust",0)*3.6 for x in items]
-        yagis    = [x.get("rain",{}).get("3h",0)+x.get("snow",{}).get("3h",0) for x in items]
-        bulut    = [x["clouds"]["all"]   for x in items]
+    n    = len(d1["time"])
+    lbls = [datetime.strptime(d1["time"][i],"%Y-%m-%d").strftime("%d %b") for i in range(n)]
 
-        # Sıcaklık
-        fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=zamanlar, y=sicaklik, name="Sıcaklık",
-            line=dict(color="#ff7043",width=2.5), fill="tozeroy",
-            fillcolor="rgba(255,112,67,.08)"))
-        fig1.add_trace(go.Scatter(x=zamanlar, y=hissed, name="Hissedilen",
-            line=dict(color="#ffa726",width=2,dash="dot")))
-        fig1.update_layout(title="Sıcaklık & Hissedilen (5 Gün)",height=260,
-            plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=0,r=0,t=35,b=0),hovermode="x unified",
-            xaxis=dict(showgrid=False,tickangle=-45,nticks=10),
+    # 16 günlük sıcaklık
+    fig_g1 = go.Figure()
+    fig_g1.add_trace(go.Scatter(x=lbls, y=d1["temperature_2m_max"],
+        name="Max", line=dict(color="#ff7043",width=2.5),
+        fill="tozeroy", fillcolor="rgba(255,112,67,.07)"))
+    fig_g1.add_trace(go.Scatter(x=lbls, y=d1["temperature_2m_min"],
+        name="Min", line=dict(color="#42a5f5",width=2.5),
+        fill="tozeroy", fillcolor="rgba(66,165,245,.07)"))
+    fig_g1.add_trace(go.Scatter(x=lbls, y=d1["apparent_temperature_max"],
+        name="Hiss. Max", line=dict(color="#ffa726",width=1.5,dash="dot")))
+    fig_g1.update_layout(title=f"{forecast_days} Günlük Sıcaklık", height=270,
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0,r=0,t=35,b=0), hovermode="x unified",
+        xaxis=dict(showgrid=False), yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+        legend=dict(orientation="h",y=1.12))
+    st.plotly_chart(fig_g1, use_container_width=True)
+
+    gc1, gc2 = st.columns(2)
+    with gc1:
+        fig_g2 = go.Figure()
+        fig_g2.add_trace(go.Bar(x=lbls, y=d1["precipitation_sum"],
+            name="Yağış mm",
+            marker_color=["#42a5f5" if y<5 else "#1565c0" if y<15 else "#0d47a1"
+                          for y in d1["precipitation_sum"]],
+            text=[f"{y:.1f}" for y in d1["precipitation_sum"]],
+            textposition="outside"))
+        fig_g2.add_trace(go.Scatter(x=lbls, y=d1["precipitation_probability_max"],
+            name="Olas. %", yaxis="y2",
+            line=dict(color="#ff8f00",width=2,dash="dot"), mode="lines+markers"))
+        fig_g2.update_layout(title="Yağış & Olasılık", height=260,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0,r=0,t=35,b=0),
+            yaxis=dict(title="mm",gridcolor="rgba(0,0,0,.05)"),
+            yaxis2=dict(title="%",overlaying="y",side="right",range=[0,100],showgrid=False),
+            legend=dict(orientation="h",y=1.15), xaxis=dict(showgrid=False))
+        st.plotly_chart(fig_g2, use_container_width=True)
+
+    with gc2:
+        fig_g3 = go.Figure()
+        fig_g3.add_trace(go.Bar(x=lbls, y=d1["windspeed_10m_max"],
+            name="Rüzgar", marker_color="rgba(66,165,245,.8)"))
+        fig_g3.add_trace(go.Scatter(x=lbls, y=d1["windgusts_10m_max"],
+            name="Gusto", line=dict(color="#ef5350",width=2)))
+        fig_g3.update_layout(title="Rüzgar & Gusto (km/s)", height=260,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0,r=0,t=35,b=0),
             yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
-            legend=dict(orientation="h",y=1.15))
-        st.plotly_chart(fig1, use_container_width=True)
+            legend=dict(orientation="h",y=1.15), xaxis=dict(showgrid=False))
+        st.plotly_chart(fig_g3, use_container_width=True)
 
-        gc1, gc2 = st.columns(2)
-        with gc1:
-            # Yağış
-            fig2 = go.Figure()
-            fig2.add_trace(go.Bar(x=zamanlar, y=yagis, name="Yağış mm",
-                marker_color="rgba(66,165,245,.75)"))
-            fig2.update_layout(title="Yağış (3 Saatlik)",height=240,
-                plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=0,r=0,t=35,b=0),
-                xaxis=dict(showgrid=False,tickangle=-45,nticks=10),
-                yaxis=dict(gridcolor="rgba(0,0,0,.05)"))
-            st.plotly_chart(fig2, use_container_width=True)
+    gc3, gc4 = st.columns(2)
+    with gc3:
+        uv_renk = ["#66bb6a" if u<3 else "#ffa726" if u<6 else
+                   "#ef5350" if u<8 else "#ab47bc" for u in d1["uv_index_max"]]
+        fig_g4 = go.Figure(go.Bar(x=lbls, y=d1["uv_index_max"],
+            marker_color=uv_renk,
+            text=[f"{u:.0f}" for u in d1["uv_index_max"]],
+            textposition="outside"))
+        fig_g4.update_layout(title="UV İndeksi", height=230,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0,r=0,t=35,b=0),
+            yaxis=dict(gridcolor="rgba(0,0,0,.05)"), xaxis=dict(showgrid=False))
+        st.plotly_chart(fig_g4, use_container_width=True)
+        st.caption("🟢<3  🟡3-5  🟠6-7  🔴8-10  🟣11+")
 
-        with gc2:
-            # Rüzgar
-            fig3 = go.Figure()
-            fig3.add_trace(go.Bar(x=zamanlar, y=ruzgar, name="Rüzgar",
-                marker_color="rgba(66,165,245,.7)"))
-            fig3.add_trace(go.Scatter(x=zamanlar, y=gusto, name="Gusto",
-                line=dict(color="#ef5350",width=2)))
-            fig3.update_layout(title="Rüzgar & Gusto (km/s)",height=240,
-                plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=0,r=0,t=35,b=0),
-                xaxis=dict(showgrid=False,tickangle=-45,nticks=10),
-                yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
-                legend=dict(orientation="h",y=1.15))
-            st.plotly_chart(fig3, use_container_width=True)
+    with gc4:
+        fig_g5 = go.Figure(go.Bar(x=lbls, y=d1["shortwave_radiation_sum"],
+            marker_color="rgba(255,193,7,.8)",
+            text=[f"{r:.0f}" for r in d1["shortwave_radiation_sum"]],
+            textposition="outside"))
+        fig_g5.update_layout(title="Güneş Işınımı (MJ/m²)", height=230,
+            plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=0,r=0,t=35,b=0),
+            yaxis=dict(gridcolor="rgba(0,0,0,.05)"), xaxis=dict(showgrid=False))
+        st.plotly_chart(fig_g5, use_container_width=True)
 
-        gc3, gc4 = st.columns(2)
-        with gc3:
-            # Basınç
-            fig4 = go.Figure(go.Scatter(x=zamanlar, y=basınc,
-                line=dict(color="#7e57c2",width=2.5),
-                fill="tozeroy", fillcolor="rgba(126,87,194,.08)"))
-            fig4.update_layout(title="Basınç (hPa)",height=220,
-                plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=0,r=0,t=35,b=0),
-                xaxis=dict(showgrid=False,tickangle=-45,nticks=10),
-                yaxis=dict(gridcolor="rgba(0,0,0,.05)"))
-            st.plotly_chart(fig4, use_container_width=True)
-
-        with gc4:
-            # Nem & Bulut
-            fig5 = go.Figure()
-            fig5.add_trace(go.Scatter(x=zamanlar, y=nem,
-                name="Nem %", line=dict(color="#26c6da",width=2),
-                fill="tozeroy", fillcolor="rgba(38,198,218,.06)"))
-            fig5.add_trace(go.Scatter(x=zamanlar, y=bulut,
-                name="Bulut %", line=dict(color="#90a4ae",width=2,dash="dot")))
-            fig5.update_layout(title="Nem & Bulut (%)",height=220,
-                plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=0,r=0,t=35,b=0),
-                xaxis=dict(showgrid=False,tickangle=-45,nticks=10),
-                yaxis=dict(range=[0,100],gridcolor="rgba(0,0,0,.05)"),
-                legend=dict(orientation="h",y=1.15))
-            st.plotly_chart(fig5, use_container_width=True)
+    # 384 saatlik sıcaklık trendi
+    st.markdown("---")
+    st.markdown(f"### 📈 {toplam_saat} Saatlik Sıcaklık Trendi")
+    fig_tam = go.Figure()
+    fig_tam.add_trace(go.Scatter(
+        x=h1["time"], y=h1["temperature_2m"],
+        name="Sıcaklık", line=dict(color="#ff7043",width=1.5),
+        fill="tozeroy", fillcolor="rgba(255,112,67,.06)"))
+    fig_tam.add_trace(go.Scatter(
+        x=h1["time"], y=h1["apparent_temperature"],
+        name="Hissedilen", line=dict(color="#ffa726",width=1.5,dash="dot")))
+    fig_tam.update_layout(height=280,
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=0,r=0,t=10,b=0), hovermode="x unified",
+        xaxis=dict(showgrid=False, nticks=16),
+        yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+        legend=dict(orientation="h",y=1.08))
+    st.plotly_chart(fig_tam, use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════
 # 🔄 KARŞILAŞTIRMA
 # ══════════════════════════════════════════════════════════════
-if tab_kars and v2_anlik:
+if tab_kars and v2:
     with tab_kars:
         st.markdown(f"### 🔄 {sehir1} vs {sehir2}")
+        d2 = v2["daily"]
+        cur2 = v2["current_weather"]
 
         k1, k2 = st.columns(2)
-        for col, anlik, sehir in [(k1,anlik1,sehir1),(k2,v2_anlik,sehir2)]:
+        for col, cur_k, sehir_k in [(k1,cur,sehir1),(k2,cur2,sehir2)]:
             with col:
-                ic = ikon(anlik["weather"][0]["icon"])
+                ik,ak = hk(cur_k["weathercode"])
                 st.markdown(f"""
                 <div class="anlik-kart" style="padding:18px 22px">
-                  <div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">📍 {sehir}</div>
-                  <div style="font-size:2.5rem;font-weight:800">{ic} {anlik['main']['temp']:.0f}°C</div>
-                  <div style="opacity:.75;margin-bottom:10px">{anlik['weather'][0]['description'].capitalize()}</div>
+                  <div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">📍 {sehir_k}</div>
+                  <div style="font-size:2.5rem;font-weight:800">{ik} {cur_k['temperature']:.0f}°C</div>
+                  <div style="opacity:.75;margin-bottom:10px">{ak}</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-                    <div class="m-kutu"><div class="m-lbl">Hissedilen</div><div class="m-val">{anlik['main']['feels_like']:.0f}°C</div></div>
-                    <div class="m-kutu"><div class="m-lbl">Nem</div><div class="m-val">%{anlik['main']['humidity']}</div></div>
-                    <div class="m-kutu"><div class="m-lbl">Rüzgar</div><div class="m-val">{anlik['wind']['speed']*3.6:.0f} km/s</div></div>
-                    <div class="m-kutu"><div class="m-lbl">Basınç</div><div class="m-val">{anlik['main']['pressure']} hPa</div></div>
+                    <div class="m-kutu"><div class="m-lbl">💨 Rüzgar</div>
+                      <div class="m-val">{cur_k['windspeed']:.0f} km/s</div></div>
+                    <div class="m-kutu"><div class="m-lbl">🌡 Max/Min</div>
+                      <div class="m-val">{v1['daily']['temperature_2m_max'][0] if sehir_k==sehir1 else d2['temperature_2m_max'][0]:.0f}°/{v1['daily']['temperature_2m_min'][0] if sehir_k==sehir1 else d2['temperature_2m_min'][0]:.0f}°</div></div>
                   </div>
                 </div>""", unsafe_allow_html=True)
 
-        # 5 günlük karşılaştırma grafikleri
-        if gunluk1 and gunluk2:
-            st.markdown("---")
-            n = min(len(gunluk1), len(gunluk2), 5)
-            lbls = [datetime.strptime(g[0],"%Y-%m-%d").strftime("%d %b") for g in gunluk1[:n]]
+        n = min(len(d1["time"]),len(d2["time"]),7)
+        lbls7 = [datetime.strptime(d1["time"][i],"%Y-%m-%d").strftime("%d %b") for i in range(n)]
 
-            fg1, fg2 = st.columns(2)
-            with fg1:
-                figk1 = go.Figure()
-                figk1.add_trace(go.Scatter(x=lbls,
-                    y=[g[1]["max"] for g in gunluk1[:n]],
-                    name=f"{sehir1} Max", line=dict(color="#ff7043",width=2.5)))
-                figk1.add_trace(go.Scatter(x=lbls,
-                    y=[g[1]["max"] for g in gunluk2[:n]],
-                    name=f"{sehir2} Max", line=dict(color="#ff7043",width=2.5,dash="dot")))
-                figk1.add_trace(go.Scatter(x=lbls,
-                    y=[g[1]["min"] for g in gunluk1[:n]],
-                    name=f"{sehir1} Min", line=dict(color="#42a5f5",width=2.5)))
-                figk1.add_trace(go.Scatter(x=lbls,
-                    y=[g[1]["min"] for g in gunluk2[:n]],
-                    name=f"{sehir2} Min", line=dict(color="#42a5f5",width=2.5,dash="dot")))
-                figk1.update_layout(title="Sıcaklık Karşılaştırma",height=280,
-                    plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=0,r=0,t=35,b=0),hovermode="x unified",
-                    xaxis=dict(showgrid=False),yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
-                    legend=dict(orientation="h",y=1.2,font=dict(size=10)))
-                st.plotly_chart(figk1, use_container_width=True)
+        fk1, fk2 = st.columns(2)
+        with fk1:
+            figk = go.Figure()
+            figk.add_trace(go.Scatter(x=lbls7, y=d1["temperature_2m_max"][:n],
+                name=f"{sehir1} Max", line=dict(color="#ff7043",width=2.5)))
+            figk.add_trace(go.Scatter(x=lbls7, y=d2["temperature_2m_max"][:n],
+                name=f"{sehir2} Max", line=dict(color="#ff7043",width=2.5,dash="dot")))
+            figk.add_trace(go.Scatter(x=lbls7, y=d1["temperature_2m_min"][:n],
+                name=f"{sehir1} Min", line=dict(color="#42a5f5",width=2.5)))
+            figk.add_trace(go.Scatter(x=lbls7, y=d2["temperature_2m_min"][:n],
+                name=f"{sehir2} Min", line=dict(color="#42a5f5",width=2.5,dash="dot")))
+            figk.update_layout(title="Sıcaklık Karşılaştırma", height=280,
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=0,r=0,t=35,b=0), hovermode="x unified",
+                xaxis=dict(showgrid=False), yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+                legend=dict(orientation="h",y=1.25,font=dict(size=9)))
+            st.plotly_chart(figk, use_container_width=True)
 
-            with fg2:
-                figk2 = go.Figure()
-                figk2.add_trace(go.Bar(x=lbls,
-                    y=[g[1]["yagis"] for g in gunluk1[:n]],
-                    name=sehir1, marker_color="rgba(66,165,245,.7)"))
-                figk2.add_trace(go.Bar(x=lbls,
-                    y=[g[1]["yagis"] for g in gunluk2[:n]],
-                    name=sehir2, marker_color="rgba(239,83,80,.7)"))
-                figk2.update_layout(title="Yağış Karşılaştırma (mm)",height=280,
-                    plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)",
-                    margin=dict(l=0,r=0,t=35,b=0),barmode="group",
-                    xaxis=dict(showgrid=False),yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
-                    legend=dict(orientation="h",y=1.15))
-                st.plotly_chart(figk2, use_container_width=True)
+        with fk2:
+            figky = go.Figure()
+            figky.add_trace(go.Bar(x=lbls7, y=d1["precipitation_sum"][:n],
+                name=sehir1, marker_color="rgba(66,165,245,.7)"))
+            figky.add_trace(go.Bar(x=lbls7, y=d2["precipitation_sum"][:n],
+                name=sehir2, marker_color="rgba(239,83,80,.7)"))
+            figky.update_layout(title="Yağış Karşılaştırma (mm)", height=280,
+                plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=0,r=0,t=35,b=0), barmode="group",
+                xaxis=dict(showgrid=False), yaxis=dict(gridcolor="rgba(0,0,0,.05)"),
+                legend=dict(orientation="h",y=1.15))
+            st.plotly_chart(figky, use_container_width=True)
 
 st.divider()
-st.caption("🌍 OpenWeather API • Free tier: anlık + 5 günlük/3s • One Call 3.0: 8 günlük/saatlik")
+st.caption("🌍 Open-Meteo API · Ücretsiz, açık kaynak · openweathermap'tan farklı olarak API key gerektirmez")
