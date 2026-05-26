@@ -87,7 +87,7 @@ YEDEK = {
 }
 
 OYUNLAR = {
-    "🎯 Sayısal Loto": {"slug":"Sayisal-Loto","havuz":90,"secim":6,"bonus":False,"renk":"#1a4fa0","aciklama":"1–90 arası 6 sayı","olasilik":"1 / 622.614.630"},
+    "🎯 Sayısal Loto": {"slug":"Sayisal-Loto","havuz":90,"secim":6,"bonus":False,"joker":True,"joker_renk":"#e67e22","super_star":True,"super_renk":"#f1c40f","renk":"#1a4fa0","aciklama":"1–90 arası 6 sayı + Joker + SüperStar","olasilik":"1 / 622.614.630"},
     "⭐ Süper Loto":   {"slug":"Super-Loto",  "havuz":60,"secim":6,"bonus":False,"renk":"#7d3c98","aciklama":"1–60 arası 6 sayı","olasilik":"1 / 50.063.860"},
     "🔵 Şans Topu":   {"slug":"Sans-Topu",   "havuz":34,"secim":5,"bonus":True, "bonus_havuz":14,"bonus_renk":"#e6a817","renk":"#16a085","aciklama":"1–34 arası 5 sayı + Şans Topu (1–14)","olasilik":"1 / 3.895.584"},
     "🔴 On Numara":   {"slug":"On-Numara",   "havuz":80,"secim":10,"bonus":False,"renk":"#c0392b","aciklama":"1–80 arası 10 sayı (22 çekilir)","olasilik":"1 / 2.545.786"},
