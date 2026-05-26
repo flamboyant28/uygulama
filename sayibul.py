@@ -146,6 +146,33 @@ def son_cekilis_adaylar(arsiv, n_cekilis, aday_sayisi=30):
     adaylar_sirali = [num for num, _ in freq.most_common(aday_sayisi)]
     return adaylar_sirali, freq
 
+def uret_joker(sayilar: list, havuz: int = 90) -> int:
+    """Joker: ana sayılardan farklı, aynı havuzdan 1 sayı."""
+    kalan = [x for x in range(1, havuz + 1) if x not in sayilar]
+    return random.choice(kalan) if kalan else random.randint(1, havuz)
+
+def uret_super(havuz: int = 90) -> int:
+    """SüperStar: bağımsız ayrı küreden 1 sayı."""
+    return random.randint(1, havuz)
+
+def son_cekilis_joker(arsiv, n_cekilis, alt_mod, sayilar, havuz=90):
+    """Son N çekilişe göre joker üret — ana sayılardan farklı."""
+    son_n = arsiv[:n_cekilis]
+    joker_freq = Counter()
+    for row in son_n:
+        if row.get('joker'):
+            joker_freq[row['joker']] += 1
+    kalan = [x for x in range(1, havuz + 1) if x not in sayilar]
+    if not kalan:
+        return random.randint(1, havuz)
+    if alt_mod == "🔥 Sıcak" and joker_freq:
+        sirali = sorted(kalan, key=lambda x: joker_freq.get(x, 0), reverse=True)
+        return random.choice(sirali[:min(10, len(sirali))])
+    elif alt_mod == "❄️ Soğuk" and joker_freq:
+        sirali = sorted(kalan, key=lambda x: joker_freq.get(x, 0))
+        return random.choice(sirali[:min(10, len(sirali))])
+    return random.choice(kalan)
+
 def son_cekilis_bonus(arsiv, n_cekilis, alt_mod, bonus_havuz=14):
     """Son N çekilişe göre şans topu (bonus) üret."""
     son_n = arsiv[:n_cekilis]
@@ -238,10 +265,18 @@ def mod_rengi(mod, varsayilan):
     return {"🔥 Sıcak":"#c0392b","❄️ Soğuk":"#16a085","🎲 Karma":"#7d3c98",
             "📅 Son Çekilişlere Dayalı":"#d35400"}.get(mod, varsayilan)
 
-def toplar_html(nums, renk, bonus=None, bonus_renk="#e6a817"):
+def toplar_html(nums, renk, bonus=None, bonus_renk="#e6a817",
+                joker=None, joker_renk="#e67e22",
+                super_val=None, super_renk="#f1c40f"):
     html='<div class="ball-row">'
     for n in nums:
         html+=f'<div class="ball" style="background:{renk}">{n}</div>'
+    if joker is not None:
+        html+=(f'<div class="sep" title="Joker">J</div>' +
+               f'<div class="ball" style="background:{joker_renk}">{joker}</div>')
+    if super_val is not None:
+        html+=(f'<div class="sep" title="SüperStar">S</div>' +
+               f'<div class="ball" style="background:{super_renk};color:#333">{super_val}</div>')
     if bonus is not None:
         html+=f'<div class="sep">+</div><div class="ball" style="background:{bonus_renk}">{bonus}</div>'
     html+='</div>'
@@ -267,6 +302,8 @@ KOLON_OYUN_CFG = {
     "🎯 Sayısal Loto": {
         "slug": "Sayisal-Loto", "havuz_yeni": 90, "havuz_eski": 49,
         "secim": 6, "arsiv_key": "SAYISAL_ARSIV", "bonus": False,
+        "joker": True, "joker_renk": "#e67e22",
+        "super_star": True, "super_renk": "#f1c40f",
     },
     "⭐ Süper Loto": {
         "slug": "Super-Loto", "havuz_yeni": 60, "havuz_eski": 54,
@@ -302,7 +339,7 @@ def sayi_gridi_html(secilen: list, havuz: int) -> str:
     html += '</div>'
     return html
 
-def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -> str:
+def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None, secilen_joker: int = None) -> str:
     secilen_set = set(secilen)
     bildi_sayac = Counter()
     satirlar = []
@@ -310,23 +347,37 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -
         cekilen = row["sayilar"]
         eslesen = secilen_set & set(cekilen)
         bildi = len(eslesen)
-        # Bonus kontrolü
+        # Bonus kontrolü (Şans Topu)
         bonus_eslesti = False
         if secilen_bonus and row.get("bonus"):
             bonus_eslesti = (secilen_bonus == row["bonus"])
-        anahtar = (bildi, 1 if bonus_eslesti else 0) if secilen_bonus else bildi
+        # Joker kontrolü (Sayısal Loto)
+        joker_eslesti = False
+        if secilen_joker and row.get("joker"):
+            joker_eslesti = (secilen_joker == row["joker"])
+        if secilen_joker:
+            # "5+Joker" kategorisi: 5 ana doğru + joker doğru
+            anahtar = (bildi, 1 if joker_eslesti else 0)
+        elif secilen_bonus:
+            anahtar = (bildi, 1 if bonus_eslesti else 0)
+        else:
+            anahtar = bildi
         bildi_sayac[anahtar] += 1
         satirlar.append((row["tarih"], cekilen, eslesen, bildi,
-                         row.get("bonus"), bonus_eslesti))
+                         row.get("bonus"), bonus_eslesti,
+                         row.get("joker"), joker_eslesti))
 
     # Özet kartlar
     ozet = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0">'
     for anahtar in sorted(bildi_sayac.keys(), reverse=True):
-        if secilen_bonus:
+        if secilen_joker:
+            ana_b, jkr_b = anahtar
+            etiket = f"{ana_b}+J{jkr_b} Bildi" if jkr_b else f"{ana_b} Bildi"
+        elif secilen_bonus:
             ana_b, bon_b = anahtar
             etiket = f"{ana_b}+{bon_b} Bildi"
         else:
-            ana_b = anahtar; etiket = f"{ana_b} Bildi"
+            ana_b = anahtar; etiket = f"{ana_b} Bildi"; jkr_b = 0; bon_b = 0
         if   ana_b == 0 and (not secilen_bonus or bon_b == 0): renk = "#888"
         elif ana_b >= len(secilen):    renk = "#c0392b"
         elif ana_b >= len(secilen)-2:  renk = "#e67e22"
@@ -340,6 +391,7 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -
 
     n_col = max(len(r["sayilar"]) for r in arsiv) if arsiv else 6
     has_bonus_col = secilen_bonus is not None
+    has_joker_col = secilen_joker is not None
 
     tablo = """<style>
     .kt{width:100%;border-collapse:collapse;font-size:12px;}
@@ -357,11 +409,13 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -
     <table class="kt"><thead><tr><th>Tarih</th>"""
     for i in range(1, n_col+1):
         tablo += f'<th>{i}</th>'
+    if secilen_joker is not None:
+        tablo += '<th style="background:#e67e22">J</th>'
     if has_bonus_col:
         tablo += '<th style="background:#b7860a">+</th>'
     tablo += '<th>Sonuç</th></tr></thead><tbody>'
 
-    for tarih, cekilen, eslesen, bildi, row_bonus, bonus_eslesti in satirlar:
+    for tarih, cekilen, eslesen, bildi, row_bonus, bonus_eslesti, row_joker, joker_eslesti in satirlar:
         max_b = len(secilen_set)
         if   bildi >= max_b and (not secilen_bonus or bonus_eslesti): bg = 'style="background:#fde8e8"'
         elif bildi >= max_b:     bg = 'style="background:#fde8e8"'
@@ -391,7 +445,11 @@ def kolon_sonuc_tablosu(arsiv: list, secilen: list, secilen_bonus: int = None) -
             tablo += f'<td><span class="{cls}">{n}</span></td>'
         for _ in range(n_col - len(cekilen)):
             tablo += '<td></td>'
-        # Bonus sütunu
+        # Joker sütunu (Sayısal Loto)
+        if secilen_joker is not None and row_joker:
+            jkr_bg = "#e67e22" if joker_eslesti else "#aaa"
+            tablo += f'<td><span class="te" style="background:{jkr_bg}">{row_joker}</span></td>'
+        # Bonus sütunu (Şans Topu)
         if secilen_bonus is not None and row_bonus:
             bon_cls = "te" if bonus_eslesti else "tn"
             tablo += f'<td><span class="{bon_cls}" style="background:{"#e6a817" if bonus_eslesti else "#aaa"}">{row_bonus}</span></td>'
@@ -465,6 +523,26 @@ def kolon_analizi_sayfasi():
         st.write("")
         st.metric("Seçilen", f"{len(secilen)} / {max_sec}")
 
+    # Sayısal Loto: Joker seçici (1-90, ana sayılardan farklı)
+    secilen_joker = None
+    if cfg_k.get("joker") and cfg_k["slug"] == "Sayisal-Loto":
+        st.markdown("**Joker (opsiyonel — ana sayılardan farklı 1-90):**")
+        c_jkr1, c_jkr2 = st.columns([3, 1])
+        with c_jkr1:
+            jkr_opts = [None] + list(range(1, 91))
+            secilen_joker = st.selectbox(
+                "Joker sayısı seçin:",
+                options=jkr_opts,
+                format_func=lambda x: "Seçme" if x is None else f"{x:02d}",
+                key=f"kolon_joker_{oyun_adi}"
+            )
+        with c_jkr2:
+            if secilen_joker:
+                st.markdown(
+                    f'<div style="margin-top:28px">' +
+                    f'<div class="ball" style="background:#e67e22;width:42px;height:42px;font-size:16px;margin:auto">{secilen_joker}</div>' +
+                    f'</div>', unsafe_allow_html=True)
+
     # Şans Topu: bonus seçici (1-14)
     secilen_bonus = None
     if cfg_k["slug"] == "Sans-Topu":
@@ -522,7 +600,7 @@ def kolon_analizi_sayfasi():
                   if yil_aralik[0] <= int(r["tarih"].split("/")[2]) <= yil_aralik[1]]
         filtre = sorted(filtre, key=lambda r: r["sira"], reverse=True)
         st.markdown(f"**{len(filtre)}** çekiliş analiz edildi ({yil_aralik[0]}–{yil_aralik[1]})")
-        st.markdown(kolon_sonuc_tablosu(filtre, secilen, secilen_bonus), unsafe_allow_html=True)
+        st.markdown(kolon_sonuc_tablosu(filtre, secilen, secilen_bonus, secilen_joker), unsafe_allow_html=True)
 
 
 def oyun_sekmesi(cfg):
@@ -626,8 +704,10 @@ def oyun_sekmesi(cfg):
                 bon = None
                 if bonus:
                     bon = son_cekilis_bonus(arsiv_filtered, n_cekilis, alt_mod, bonus_havuz)
+                jkr = son_cekilis_joker(arsiv_filtered, n_cekilis, alt_mod, nums, havuz) if has_joker else None
+                sup = uret_super(havuz) if has_super else None
                 st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                st.markdown(toplar_html(nums, top_renk, bon, bonus_renk),unsafe_allow_html=True)
+                st.markdown(toplar_html(nums, top_renk, bon, bonus_renk, jkr, joker_renk, sup, super_renk),unsafe_allow_html=True)
 
             # 30 aday göster
             st.divider()
@@ -656,8 +736,10 @@ def oyun_sekmesi(cfg):
             for i in range(kolon):
                 nums=uret(mod,havuz,secim,sicak,soguk)
                 bon=uret_bonus(mod,bonus_havuz,b_sicak,b_soguk) if bonus else None
+                jkr=uret_joker(nums, havuz) if has_joker else None
+                sup=uret_super(havuz) if has_super else None
                 st.markdown(f'<div class="row-label">Kolon {i+1}</div>',unsafe_allow_html=True)
-                st.markdown(toplar_html(nums,top_renk,bon,bonus_renk),unsafe_allow_html=True)
+                st.markdown(toplar_html(nums,top_renk,bon,bonus_renk,jkr,joker_renk,sup,super_renk),unsafe_allow_html=True)
 
         st.divider()
         st.success("Hayırlısı olsun! 🍀")
