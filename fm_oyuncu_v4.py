@@ -5774,12 +5774,44 @@ with tab9:
                     st.markdown("---")
                     _sell_c1, _sell_c2 = st.columns([1, 3])
                     with _sell_c1:
-                        sell_price = sp["value"] * random.uniform(0.80, 1.15)
-                        if st.button(f"💰 Sat ({sell_price/1e6:.1f}M €)",
-                                     key=f"sell_{sidx}"):
-                            st.session_state.tr_revenue += sell_price
+                        # Satış fiyatı: PA potansiyeli + kişilik + pazar talebi
+                        _pa_mult = 1.0 + (sp["pa"] - sp["ca"]) / 200 * 0.8
+                        _age_mult = max(0.7, 1.15 - (sp["age"] - 22) * 0.03)
+                        _base_sell = sp["value"] * _pa_mult * _age_mult
+                        # Alış fiyatının altına düşme - minimum %95'i
+                        _buy_floor = sp.get("satin_alma_fiyati", sp["value"]) * 0.95
+                        sell_price = max(_buy_floor, _base_sell * random.uniform(1.05, 1.55))
+                        profit = sell_price - sp.get("satin_alma_fiyati", sp["value"])
+                        profit_str = (f"+{profit/1e6:.1f}M €" if profit >= 0
+                                      else f"{profit/1e6:.1f}M €")
+                        profit_c = "#2ecc71" if profit >= 0 else "#e74c3c"
+                        st.markdown(
+                            f"<div style='font-size:11px;color:#8b949e'>Tahmini satış</div>"
+                            f"<div style='font-weight:700;color:#f1c40f'>{sell_price/1e6:.1f}M €</div>"
+                            f"<div style='font-size:11px;color:{profit_c}'>"
+                            f"Kâr/Zarar: {profit_str}</div>",
+                            unsafe_allow_html=True
+                        )
+                    with _sell_c2:
+                        # Manuel fiyat ayarı
+                        custom_price = st.number_input(
+                            "Satış fiyatını belirle (M €)",
+                            min_value=0.1,
+                            max_value=500.0,
+                            value=round(sell_price/1e6, 1),
+                            step=0.5,
+                            key=f"sell_price_{sidx}",
+                            format="%.1f"
+                        )
+                        if st.button(f"💰 Sat ({custom_price:.1f}M €)",
+                                     key=f"sell_{sidx}", type="primary"):
+                            final_sell = custom_price * 1e6
+                            final_profit = final_sell - sp.get("satin_alma_fiyati", sp["value"])
+                            fp_str = (f"+{final_profit/1e6:.1f}M €" if final_profit >= 0
+                                      else f"{final_profit/1e6:.1f}M €")
+                            st.session_state.tr_revenue += final_sell
                             st.session_state.tr_log.append(
-                                f"💰 Satıldı: {sp['isim']} — {sell_price/1e6:.1f}M €")
+                                f"💰 Satıldı: {sp['isim']} — {custom_price:.1f}M € ({fp_str})")
                             st.session_state.tr_squad.pop(sidx)
                             st.rerun()
 
