@@ -861,7 +861,7 @@ with st.sidebar:
     st.markdown("### ⚡ Elektrikli Araç (EV)")
     ev_fiyat   = st.number_input("Elektrik (TL/kWh)", value=st.session_state.fiyatlar.get("elektrik", 12.0), min_value=0.01, step=0.5, format="%.2f", key="inp_elektrik")
     st.session_state.fiyatlar["elektrik"] = ev_fiyat
-    ev_tuketim = st.number_input("EV 100km (kWh)",    value=16.2,  min_value=0.1,  step=0.1, format="%.1f")
+    ev_tuketim = st.number_input("EV 100km (kWh)",    value=17.0,  min_value=0.1,  step=0.1, format="%.1f")
     ev_batarya = st.number_input("Batarya (kWh)",     value=64.8,  min_value=1.0,  step=1.0, format="%.1f")
 
 # ── Hesaplamalar ─────────────────────────────────────────────────────────────
