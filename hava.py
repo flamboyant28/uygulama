@@ -299,8 +299,8 @@ with st.sidebar:
     forecast_days = st.slider("Tahmin Günü", 1, 16, 16)
     st.divider()
     st.markdown("**Hızlı Şehirler**")
-    for s in ["İstanbul","Ankara","İzmir","Antalya","Trabzon",
-              "London","New York","Paris","Tokyo","Dubai","Yakutsk","Reykjavik"]:
+    for s in ["Üsküdar","Çankaya","Seyhan","Görele",
+              "Basra","Sukkur","He'an","Tokyo","Helsinki","Yakutsk","Reykjavik","Mykines"]:
         if st.button(s, key=f"hz_{s}", use_container_width=True):
             st.session_state.ara1 = s
             st.session_state.tetik1 = True
