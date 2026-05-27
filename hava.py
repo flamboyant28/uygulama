@@ -80,36 +80,36 @@ def hk(code):
     except: return ("🌡","Bilinmiyor")
 
 SICAKLIK_YORUMU = [
-    (-100,-35,"🧊 Donmuş Dünya",     "midnightblue",  "white"),
-    (-35, -30,"🥶 Felaket Soğuk",    "navy",           "white"),
-    (-30, -27,"❄️ Kutup Soğuğu",     "darkblue",       "white"),
-    (-27, -24,"❄️ Sert Buzlanma",    "blue",           "white"),
-    (-24, -21,"🧥 Yoğun Üşüme",      "deepskyblue",    "black"),
-    (-21, -18,"🧥 Dondurucu Hava",   "lightskyblue",   "black"),
-    (-18, -15,"🧤 Eldiven Zorunlu",  "skyblue",        "black"),
-    (-15, -12,"🧣 Soğuğa Dikkat",    "dodgerblue",     "white"),
-    (-12,  -9,"🌀 Soğuk Rüzgar",     "cadetblue",      "white"),
-    ( -9,  -6,"🧊 Hafif Donma",       "lightblue",      "black"),
-    ( -6,  -3,"🌫️ Üşütücü Soğuk",   "paleturquoise",  "black"),
-    ( -3,   0,"🧊 Soğuk Katlanılır",  "aquamarine",     "black"),
-    (  0,   3,"🍃 Ilık-Soğuk Arası", "mediumaquamarine","black"),
-    (  3,   6,"🌿 Bahar Serinliği",  "mediumseagreen", "white"),
-    (  6,   9,"🌤️ Hafif Serin",      "seagreen",       "white"),
-    (  9,  12,"🌞 Ilık Hava",         "green",          "white"),
-    ( 12,  15,"🟢 Konforlu (Serin)",  "limegreen",      "black"),
-    ( 15,  18,"🟢 Konforlu",          "lawngreen",      "black"),
-    ( 18,  21,"🟢 Konforlu (Sıcakça)","chartreuse",     "black"),
-    ( 21,  24,"🌼 Sıcakça",           "greenyellow",    "black"),
-    ( 24,  27,"🟡 Ilık-Sıcak",        "yellowgreen",    "black"),
-    ( 27,  30,"🟡 Sıcak",             "yellow",         "black"),
-    ( 30,  33,"🟠 Çok Sıcak",         "gold",           "black"),
-    ( 33,  36,"🔥 Bunaltıcı",          "orange",         "black"),
-    ( 36,  39,"🔴 Aşırı Sıcak",       "darkorange",     "white"),
-    ( 39,  42,"☀️ Ciddi Risk",         "orangered",      "white"),
-    ( 42,  45,"☠️ Tehlikeli",          "red",            "white"),
-    ( 45,  48,"🌋 Yaşamsal Risk",      "firebrick",      "white"),
-    ( 48,  52,"💀 Ölümcül Isı",        "darkred",        "white"),
-    ( 52, 100,"🚫 Elverişsiz",         "black",          "white"),
+    (-100,-35,"🧊 Donmuş Dünya"),
+    (-35, -30,"🥶 Felaket Soğuk"),
+    (-30, -27,"❄️ Kutup Soğuğu"),
+    (-27, -24,"❄️ Sert Buzlanma"),
+    (-24, -21,"🧥 Yoğun Üşüme"),
+    (-21, -18,"🧥 Dondurucu Hava"),
+    (-18, -15,"🧤 Eldiven Zorunlu"),
+    (-15, -12,"🧣 Soğuğa Dikkat"),
+    (-12,  -9,"🌀 Soğuk Rüzgar Etkisi"),
+    ( -9,  -6,"🧊 Hafif Donma"),
+    ( -6,  -3,"🌫️ Üşütücü Soğuk"),
+    ( -3,   0,"🧊 Soğuk Ama Katlanılır"),
+    (  0,   3,"🍃 Ilık-Soğuk Arası"),
+    (  3,   6,"🌿 Bahar Serinliği"),
+    (  6,   9,"🌤️ Hafif Serin"),
+    (  9,  12,"🌞 Ilık Hava"),
+    ( 12,  15,"✅ Konforlu (Serin)"),
+    ( 15,  18,"✅ Konforlu"),
+    ( 18,  21,"✅ Konforlu (Sıcakça)"),
+    ( 21,  24,"🌼 Sıcakça"),
+    ( 24,  27,"🟡 Ilık-Sıcak"),
+    ( 27,  30,"🟡 Sıcak"),
+    ( 30,  33,"🟠 Çok Sıcak"),
+    ( 33,  36,"🔥 Bunaltıcı"),
+    ( 36,  39,"🔴 Aşırı Sıcak"),
+    ( 39,  42,"☀️ Ciddi Risk"),
+    ( 42,  45,"☠️ Tehlikeli Sıcaklık"),
+    ( 45,  48,"🌋 Yaşamsal Risk"),
+    ( 48,  52,"💀 Ölümcül Isı"),
+    ( 52, 100,"🚫 İnsan Yaşamına Elverişsiz"),
 ]
 
 RUZGAR_YORUMU = [
@@ -138,26 +138,18 @@ RUZGAR_YORUMU = [
 def sicaklik_yorum(t):
     try:
         t = float(t)
-        for lo,hi,yorum,_bg,_fg in SICAKLIK_YORUMU:
-            if lo <= t < hi: return yorum
+        for lo, hi, yorum in SICAKLIK_YORUMU:
+            if lo <= t < hi:
+                return yorum
         return "—"
     except: return "—"
-
-def sicaklik_css(t):
-    """DataFrame hücresine uygulanacak CSS string'i döndürür"""
-    try:
-        t = float(t)
-        for lo,hi,_y,bg,fg in SICAKLIK_YORUMU:
-            if lo <= t < hi:
-                return f"background-color:{bg};color:{fg}"
-        return ""
-    except: return ""
 
 def ruzgar_yorum(w):
     try:
         w = float(w)
-        for lo,hi,yorum in RUZGAR_YORUMU:
-            if lo <= w < hi: return yorum
+        for lo, hi, yorum in RUZGAR_YORUMU:
+            if lo <= w < hi:
+                return yorum
         return "—"
     except: return "—"
 
@@ -297,7 +289,7 @@ with st.sidebar:
     forecast_days = st.slider("Tahmin Günü", 1, 16, 16)
     st.divider()
     st.markdown("**Hızlı Şehirler**")
-    for s in ["İstanbul","Ankara","İzmir","Antalya","Trabzon",
+    for s in ["İstanbul","Ankara","İzmir","Antalya","Giresun",
               "London","New York","Paris","Tokyo","Dubai","Yakutsk","Reykjavik"]:
         if st.button(s, key=f"hz_{s}", use_container_width=True):
             st.session_state.ara1 = s
@@ -545,7 +537,7 @@ with tab_temel:
         })
     df = pd.DataFrame(rows)
     styled = df.style\
-        .map(sicaklik_css, subset=["Sıcaklık °C","Hissedilen","Çiy Noktası"])\
+        .map(rs, subset=["Sıcaklık °C","Hissedilen","Çiy Noktası"])\
         .map(ry, subset=["Yağış mm","Yağmur mm","Sağanak mm"])\
         .map(rn, subset=["Nem %"])\
         .map(rb, subset=["Bulut %"])\
@@ -650,7 +642,7 @@ with tab_toprak:
             return "background-color:#ffccbc"
         except: return ""
     styled_t = df_t.style\
-        .map(sicaklik_css, subset=["T 0cm °C","T 6cm °C","T 18cm °C","T 54cm °C"])\
+        .map(rt, subset=["T 0cm °C","T 6cm °C","T 18cm °C","T 54cm °C"])\
         .format(precision=2, na_rep="—")
     st.dataframe(styled_t, use_container_width=True, height=520)
 
@@ -751,7 +743,7 @@ with tab_16gun:
         })
     df_gun = pd.DataFrame(rows_d)
     styled_gun = df_gun.style\
-        .map(sicaklik_css, subset=["Max °C","Min °C","Hiss. Max","Hiss. Min"])\
+        .map(rs, subset=["Max °C","Min °C","Hiss. Max","Hiss. Min"])\
         .map(ry, subset=["Toplam Yağış","Yağmur mm","Sağanak mm"])\
         .format(precision=1, na_rep="—")
     st.dataframe(styled_gun, use_container_width=True, height=600)
