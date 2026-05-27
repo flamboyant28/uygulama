@@ -5689,6 +5689,34 @@ with tab9:
                             unsafe_allow_html=True
                         )
 
+                    # ── Attribute Detayı ─────────────────
+                    st.markdown("---")
+                    def _tr_tbl(attrs, title, color):
+                        h = (f"<div style='font-size:10px;font-weight:700;"
+                             f"color:{color};margin-bottom:3px'>{title}</div>"
+                             "<table style='width:100%;border-collapse:collapse;font-size:0.75rem'>")
+                        for k, v in attrs.items():
+                            c = ("#3498db" if v>=17 else "#2ecc71" if v>=14
+                                 else "#f1c40f" if v>=10 else "#e0e0e0" if v>=5 else "#9e9e9e")
+                            h += (f"<tr><td style='padding:1px 3px;color:#aaa'>{k}</td>"
+                                  f"<td style='padding:1px 3px;text-align:right;"
+                                  f"font-weight:700;color:{c}'>{v}</td></tr>")
+                        return h + "</table>"
+
+                    _col_t, _col_m, _col_p, _col_r = st.columns([1, 1, 1, 1.8])
+                    with _col_t:
+                        st.markdown(_tr_tbl(p["tech"],   "⚙️ TEKNİK",   "#58a6ff"), unsafe_allow_html=True)
+                    with _col_m:
+                        st.markdown(_tr_tbl(p["mental"], "🧠 ZİHİNSEL", "#bc8cff"), unsafe_allow_html=True)
+                    with _col_p:
+                        st.markdown(_tr_tbl(p["phys"],   "💪 FİZİKSEL", "#2ecc71"), unsafe_allow_html=True)
+                    with _col_r:
+                        _aa_tr = {**p["tech"], **p["mental"], **p["phys"]}
+                        _fig_tr = radar_chart(_aa_tr, p["pos"])
+                        st.pyplot(_fig_tr, use_container_width=True)
+                        plt.close(_fig_tr)
+                    st.markdown("---")
+
                     # Satın Al butonu
                     btn_cols = st.columns([1, 1, 2])
                     with btn_cols[0]:
@@ -5717,35 +5745,36 @@ with tab9:
         # ── Kadrom (satın alınanlar) & Satış ─────────────
         if st.session_state.tr_squad:
             st.markdown("### 👥 Kadrom")
+            st.caption("▶ Oyuncuya tıkla → özellikler görünsün")
             for sidx, sp in enumerate(st.session_state.tr_squad):
-                sc1, sc2, sc3 = st.columns([2, 1, 1])
-                with sc1:
-                    fiyat = sp.get("satin_alma_fiyati", sp["value"])
-                    st.markdown(
-                        f"<div style='background:#0a1f0a;border-radius:6px;padding:6px 12px;margin-bottom:4px'>"
-                        f"<span style='font-weight:700;color:#f0f0f0'>{sp['flag']} {sp['isim']}</span>"
-                        f"<span style='color:#8b949e;margin-left:8px'>{sp['pos']} · {sp['age']} yaş</span>"
-                        f"<span style='color:#2ecc71;font-weight:700;margin-left:8px'>CA {sp['ca']}</span>"
-                        f"<span style='color:#8b949e;margin-left:8px;font-size:11px'>"
-                        f"Ödenen: {fiyat/1e6:.1f}M €</span></div>",
-                        unsafe_allow_html=True
-                    )
-                with sc2:
-                    st.markdown(
-                        f"<div style='font-size:11px;color:#8b949e'>"
-                        f"{format_wage(sp['weekly'])}</div>",
-                        unsafe_allow_html=True
-                    )
-                with sc3:
-                    # Satış fiyatı: değerin %80-115'i
-                    sell_price = sp["value"] * random.uniform(0.80, 1.15)
-                    if st.button(f"💰 Sat ({sell_price/1e6:.1f}M €)",
-                                 key=f"sell_{sidx}"):
-                        st.session_state.tr_revenue += sell_price
-                        st.session_state.tr_log.append(
-                            f"💰 Satıldı: {sp['isim']} — {sell_price/1e6:.1f}M €")
-                        st.session_state.tr_squad.pop(sidx)
-                        st.rerun()
+                fiyat = sp.get("satin_alma_fiyati", sp["value"])
+                _lbl = (f"{sp['flag']} {sp['isim']}  ·  {sp['pos']}  ·  "
+                        f"CA {sp['ca']} / PA {sp['pa']}  ·  "
+                        f"Ödenen: {fiyat/1e6:.1f}M €  ·  {format_wage(sp['weekly'])}")
+                with st.expander(_lbl, expanded=False):
+                    _sq_t, _sq_m, _sq_p, _sq_r = st.columns([1, 1, 1, 1.8])
+                    with _sq_t:
+                        st.markdown(_tr_tbl(sp["tech"],   "⚙️ TEKNİK",   "#58a6ff"), unsafe_allow_html=True)
+                    with _sq_m:
+                        st.markdown(_tr_tbl(sp["mental"], "🧠 ZİHİNSEL", "#bc8cff"), unsafe_allow_html=True)
+                    with _sq_p:
+                        st.markdown(_tr_tbl(sp["phys"],   "💪 FİZİKSEL", "#2ecc71"), unsafe_allow_html=True)
+                    with _sq_r:
+                        _aa_sq = {**sp["tech"], **sp["mental"], **sp["phys"]}
+                        _fig_sq = radar_chart(_aa_sq, sp["pos"])
+                        st.pyplot(_fig_sq, use_container_width=True)
+                        plt.close(_fig_sq)
+                    st.markdown("---")
+                    _sell_c1, _sell_c2 = st.columns([1, 3])
+                    with _sell_c1:
+                        sell_price = sp["value"] * random.uniform(0.80, 1.15)
+                        if st.button(f"💰 Sat ({sell_price/1e6:.1f}M €)",
+                                     key=f"sell_{sidx}"):
+                            st.session_state.tr_revenue += sell_price
+                            st.session_state.tr_log.append(
+                                f"💰 Satıldı: {sp['isim']} — {sell_price/1e6:.1f}M €")
+                            st.session_state.tr_squad.pop(sidx)
+                            st.rerun()
 
         # ── İşlem Geçmişi ─────────────────────────────────
         if st.session_state.tr_log:
