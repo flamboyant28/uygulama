@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
+from streamlit_folium import st_folium
+import folium
 
 st.set_page_config(page_title="Hava Durumu", page_icon="🌤", layout="wide")
 
@@ -306,17 +308,81 @@ with st.sidebar:
             st.rerun()
 
 # ── Arama ─────────────────────────────────────────────────────────────────────
-c1, c2, c3 = st.columns([3,3,1])
-with c1: girdi1 = st.text_input("Şehir 1", value=st.session_state.ara1,
-                                 placeholder="İstanbul, Yakutsk...", key="g1")
-with c2: girdi2 = st.text_input("Şehir 2 (Karşılaştırma)",
-                                 value=st.session_state.ara2,
-                                 placeholder="London, Reykjavik...", key="g2")
-with c3:
-    if st.button("🔍 Ara", type="primary", use_container_width=True):
-        if girdi1: st.session_state.ara1=girdi1; st.session_state.tetik1=True; st.session_state.konum1=None
-        if girdi2: st.session_state.ara2=girdi2; st.session_state.tetik2=True; st.session_state.konum2=None
-        st.rerun()
+mod = st.radio("Konum seçim yöntemi", ["🔍 Şehir Ara", "🗺 Haritadan Seç"],
+               horizontal=True, label_visibility="collapsed")
+
+if mod == "🔍 Şehir Ara":
+    c1, c2, c3 = st.columns([3,3,1])
+    with c1: girdi1 = st.text_input("Şehir 1", value=st.session_state.ara1,
+                                     placeholder="İstanbul, Yakutsk...", key="g1")
+    with c2: girdi2 = st.text_input("Şehir 2 (Karşılaştırma)",
+                                     value=st.session_state.ara2,
+                                     placeholder="London, Reykjavik...", key="g2")
+    with c3:
+        if st.button("🔍 Ara", type="primary", use_container_width=True):
+            if girdi1: st.session_state.ara1=girdi1; st.session_state.tetik1=True; st.session_state.konum1=None
+            if girdi2: st.session_state.ara2=girdi2; st.session_state.tetik2=True; st.session_state.konum2=None
+            st.rerun()
+
+else:  # Haritadan Seç
+    st.caption("🖱 Haritada istediğin noktaya tıkla → hava verisi o koordinattan gelecek")
+
+    # Mevcut konum varsa oraya odaklan, yoksa Türkiye merkezi
+    if st.session_state.konum1:
+        harita_lat, harita_lon = st.session_state.konum1[0], st.session_state.konum1[1]
+        harita_zoom = 8
+    else:
+        harita_lat, harita_lon = 39.0, 35.0
+        harita_zoom = 5
+
+    m = folium.Map(
+        location=[harita_lat, harita_lon],
+        zoom_start=harita_zoom,
+        tiles="OpenStreetMap"
+    )
+
+    # Mevcut konum işaretçisi
+    if st.session_state.konum1:
+        folium.Marker(
+            location=[st.session_state.konum1[0], st.session_state.konum1[1]],
+            popup=st.session_state.konum1[2],
+            icon=folium.Icon(color="blue", icon="cloud", prefix="fa")
+        ).add_to(m)
+
+    harita_veri = st_folium(m, width="100%", height=420,
+                             returned_objects=["last_clicked"])
+
+    # Tıklanan noktayı al
+    if harita_veri and harita_veri.get("last_clicked"):
+        klik_lat = harita_veri["last_clicked"]["lat"]
+        klik_lon = harita_veri["last_clicked"]["lng"]
+
+        # Koordinattan şehir adı bul (reverse geocoding)
+        @st.cache_data(ttl=3600)
+        def ters_cevir(lat, lon):
+            try:
+                r = requests.get("https://nominatim.openstreetmap.org/reverse",
+                    params={"lat":lat,"lon":lon,"format":"json"},
+                    headers={"User-Agent":"hava-v4/1.0"}, timeout=10)
+                d = r.json()
+                adres = d.get("address", {})
+                ad = (adres.get("city") or adres.get("town") or
+                      adres.get("village") or adres.get("county") or
+                      f"{lat:.2f}, {lon:.2f}")
+                ulke = adres.get("country", "")
+                return f"{ad}, {ulke}"
+            except: return f"{lat:.2f}°N, {lon:.2f}°E"
+
+        with st.spinner("Konum belirleniyor..."):
+            yer_adi = ters_cevir(klik_lat, klik_lon)
+
+        mevcut_konum = st.session_state.konum1
+        yeni_konum   = (klik_lat, klik_lon, yer_adi)
+
+        if mevcut_konum is None or abs(mevcut_konum[0]-klik_lat)>0.01 or abs(mevcut_konum[1]-klik_lon)>0.01:
+            st.session_state.konum1 = yeni_konum
+            st.info(f"📍 Seçilen konum: **{yer_adi}** ({klik_lat:.4f}°, {klik_lon:.4f}°)")
+            st.rerun()
 
 for ara_k, tetik_k, konum_k in [("ara1","tetik1","konum1"),("ara2","tetik2","konum2")]:
     if st.session_state[tetik_k] and st.session_state[ara_k]:
@@ -333,7 +399,7 @@ for ara_k, tetik_k, konum_k in [("ara1","tetik1","konum1"),("ara2","tetik2","kon
         st.session_state[tetik_k] = False
 
 if not st.session_state.konum1:
-    st.info("👆 Şehir ara veya sol panelden hızlı seçim yap.")
+    st.info("👆 Şehir ara veya haritadan bir nokta seç.")
     st.stop()
 
 # ── Veri Çek ──────────────────────────────────────────────────────────────────
