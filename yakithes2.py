@@ -132,82 +132,152 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Hava durumu ──────────────────────────────────────────────────────────────
-HAVA_EMOJI = {
-    "01": "☀️", "02": "🌤", "03": "⛅", "04": "☁️",
-    "09": "🌧", "10": "🌦", "11": "⛈", "13": "❄️", "50": "🌫"
+# ── Hava durumu (Open-Meteo — API key gerektirmez) ───────────────────────────
+# WMO 4677 hava kodu → (emoji, Türkçe açıklama)
+WMO_KODU = {
+    0:  ("☀️",  "Açık gökyüzü"),
+    1:  ("🌤",  "Çoğunlukla açık"),
+    2:  ("⛅",  "Parçalı bulutlu"),
+    3:  ("☁️",  "Kapalı"),
+    45: ("🌫",  "Sisli"),
+    48: ("🌫",  "Kırağılı sis"),
+    51: ("🌦",  "Hafif çiseleyen"),
+    53: ("🌦",  "Orta çiseleyen"),
+    55: ("🌧",  "Yoğun çiseleyen"),
+    56: ("🌦",  "Dondurucu hafif çiseleyen"),
+    57: ("🌧",  "Dondurucu yoğun çiseleyen"),
+    61: ("🌧",  "Hafif yağmur"),
+    63: ("🌧",  "Orta yağmur"),
+    65: ("🌧",  "Yoğun yağmur"),
+    66: ("🌧",  "Dondurucu hafif yağmur"),
+    67: ("🌧",  "Dondurucu yoğun yağmur"),
+    71: ("❄️",  "Hafif kar"),
+    73: ("❄️",  "Orta kar yağışı"),
+    75: ("❄️",  "Yoğun kar yağışı"),
+    77: ("❄️",  "Kar taneleri"),
+    80: ("🌦",  "Hafif sağanak"),
+    81: ("🌧",  "Orta sağanak"),
+    82: ("⛈",  "Şiddetli sağanak"),
+    85: ("❄️",  "Hafif kar sağanağı"),
+    86: ("❄️",  "Yoğun kar sağanağı"),
+    95: ("⛈",  "Gök gürültülü fırtına"),
+    96: ("⛈",  "Dolu fırtınası (küçük)"),
+    99: ("⛈",  "Dolu fırtınası (büyük)"),
 }
 
-def hava_emoji(icon_code):
-    return HAVA_EMOJI.get(icon_code[:2], "🌡")
-
-def hava_getir(lat, lon, hedef_dt, api_key):
-    """OpenWeather 5 günlük tahmin → hedef saate en yakın 3h dilimi"""
-    cache_key = (round(lat,2), round(lon,2), hedef_dt.strftime("%Y%m%d%H"))
+def hava_getir(lat, lon, hedef_dt):
+    """Open-Meteo saatlik tahmin → hedef saate en yakın dilim (API key yok, 16 gün)"""
+    cache_key = (round(lat, 2), round(lon, 2), hedef_dt.strftime("%Y%m%d%H"))
     if cache_key in st.session_state.hava_cache:
         return st.session_state.hava_cache[cache_key]
 
     try:
+        params = {
+            "latitude":        lat,
+            "longitude":       lon,
+            "hourly": ",".join([
+                "temperature_2m", "apparent_temperature", "dewpoint_2m",
+                "precipitation_probability", "precipitation", "rain",
+                "snowfall", "weathercode", "cloudcover",
+                "windspeed_10m", "windgusts_10m", "winddirection_10m",
+                "visibility", "relativehumidity_2m", "surface_pressure",
+                "uv_index", "is_day", "freezing_level_height",
+            ]),
+            "timezone":        "Europe/Istanbul",
+            "forecast_days":   16,
+            "wind_speed_unit": "kmh",
+        }
         r = requests.get(
-            "https://api.openweathermap.org/data/2.5/forecast",
-            params={"lat": lat, "lon": lon, "appid": api_key,
-                    "units": "metric", "lang": "tr"},
-            timeout=8
+            "https://api.open-meteo.com/v1/forecast",
+            params=params, timeout=10
         )
         r.raise_for_status()
-        tahminler = r.json()["list"]
-        # Hedef zamana en yakın 3h dilimi
-        hedef_ts = hedef_dt.timestamp()
-        en_yakin = min(tahminler, key=lambda x: abs(x["dt"] - hedef_ts))
-        st.session_state.hava_cache[cache_key] = en_yakin
-        return en_yakin
+        data  = r.json()
+        times = data["hourly"]["time"]
+
+        # Hedef zamana en yakın saati bul
+        hedef_ts  = hedef_dt.timestamp()
+        best_idx  = 0
+        best_diff = float("inf")
+        for i, t_str in enumerate(times):
+            diff = abs(datetime.fromisoformat(t_str).timestamp() - hedef_ts)
+            if diff < best_diff:
+                best_diff = diff
+                best_idx  = i
+
+        h = data["hourly"]
+        result = {
+            "temp":          h["temperature_2m"][best_idx],
+            "feels_like":    h["apparent_temperature"][best_idx],
+            "dewpoint":      h["dewpoint_2m"][best_idx],
+            "humidity":      h["relativehumidity_2m"][best_idx],
+            "pressure":      h["surface_pressure"][best_idx],
+            "cloudcover":    h["cloudcover"][best_idx],
+            "weathercode":   h["weathercode"][best_idx],
+            "precip_prob":   h["precipitation_probability"][best_idx],
+            "precip":        h["precipitation"][best_idx],
+            "rain":          h["rain"][best_idx],
+            "snow_cm":       h["snowfall"][best_idx],           # cm
+            "windspeed":     h["windspeed_10m"][best_idx],      # km/s
+            "windgusts":     h["windgusts_10m"][best_idx],      # km/s
+            "winddirection": h["winddirection_10m"][best_idx],
+            "visibility":    h["visibility"][best_idx],         # metre
+            "uv_index":      h["uv_index"][best_idx],
+            "is_day":        h["is_day"][best_idx],
+            "freeze_lvl_m":  h["freezing_level_height"][best_idx],
+            "time_str":      times[best_idx],
+        }
+        st.session_state.hava_cache[cache_key] = result
+        return result
     except Exception as e:
         return {"hata": str(e)}
 
 def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
-    """Tek durak için hava durumu HTML kartı — tüm veriler"""
+    """Tek durak için hava durumu HTML kartı (Open-Meteo)"""
     if "hata" in veri:
-        return f"""<div style="background:#FFF3CD;border-radius:10px;padding:12px;margin:6px 0;border-left:4px solid #FFC107">
-            <b>{durak_adi}</b> ({varis_str}) — ⚠️ {veri['hata']}</div>"""
+        return (f'<div style="background:#FFF3CD;border-radius:10px;padding:12px;'
+                f'margin:6px 0;border-left:4px solid #FFC107">'
+                f'<b>{durak_adi}</b> ({varis_str}) — ⚠️ {veri["hata"]}</div>')
 
-    # Temel veriler
-    sicaklik   = veri["main"]["temp"]
-    hissedilen = veri["main"]["feels_like"]
-    nem        = veri["main"]["humidity"]
-    basinc     = veri["main"]["pressure"]
-    durum      = veri["weather"][0]["description"].capitalize()
-    icon       = veri["weather"][0]["icon"]
-    emoji      = hava_emoji(icon)
-    # Gündüz/Gece: ikona değil varış saatine bak (UTC/lokal karışıklığını önler)
+    # ── Temel veriler ─────────────────────────────────────────────────────────
+    sicaklik    = veri["temp"]
+    hissedilen  = veri["feels_like"]
+    ciy_nkt     = veri["dewpoint"]
+    nem         = veri["humidity"]
+    basinc      = veri["pressure"]
+    bulut_pct   = veri["cloudcover"]
+    wcode       = veri["weathercode"]
+    yagis_pct   = veri["precip_prob"]
+    yagmur_mm   = veri["rain"]
+    kar_cm      = veri["snow_cm"]
+    kar_mm      = kar_cm * 10              # cm → mm
+    toplam_yag  = yagmur_mm + kar_mm
+    ruzgar_kmh  = veri["windspeed"]        # Open-Meteo zaten km/s verir
+    hamle_kmh   = veri["windgusts"]
+    ruzgar_deg  = veri["winddirection"]
+    gorunum_m   = veri["visibility"]
+    gorunum_km  = gorunum_m / 1000
+    uv_idx      = veri["uv_index"]
+    freeze_m    = veri["freeze_lvl_m"]
+    is_day_flag = veri["is_day"]
+
+    emoji, durum = WMO_KODU.get(wcode, ("🌡", f"WMO-{wcode}"))
+
+    yon_list   = ["K","KKD","KD","DKD","D","DGD","GD","GGD","G","GGB","GB","BGB","B","KBK","KB","KKB"]
+    ruzgar_yon = yon_list[round(ruzgar_deg / 22.5) % 16]
+
+    # Gündüz / Gece — önce varış saatine bak, yoksa Open-Meteo is_day bayrağı
     if gecis_dt is not None:
         saat = gecis_dt.hour
         gece_mi = saat < 6 or saat >= 21
     else:
-        gece_mi = icon.endswith("n")
-
-    # Rüzgar
-    ruzgar_ms  = veri["wind"]["speed"]
-    ruzgar_kmh = ruzgar_ms * 3.6
-    hamle_kmh  = veri["wind"].get("gust", ruzgar_ms) * 3.6
-    ruzgar_deg = veri["wind"].get("deg", 0)
-    yon_list   = ["K","KKD","KD","DKD","D","DGD","GD","GGD","G","GGB","GB","BGB","B","KBK","KB","KKB"]
-    ruzgar_yon = yon_list[round(ruzgar_deg / 22.5) % 16]
-
-    # Yağış & Kar
-    yagis_pct  = int(veri.get("pop", 0) * 100)
-    yagis_mm   = veri.get("rain", {}).get("3h", 0)
-    kar_mm     = veri.get("snow", {}).get("3h", 0)
-    toplam_yag = yagis_mm + kar_mm
-
-    # Görüş mesafesi
-    gorunum_m  = veri.get("visibility", 10000)
-    gorunum_km = gorunum_m / 1000
-
-    # Bulutluluk
-    bulut_pct  = veri.get("clouds", {}).get("all", 0)
-
-    # Gündüz/Gece
+        gece_mi = (is_day_flag == 0)
     zaman_ikon = "🌙 Gece" if gece_mi else "☀️ Gündüz"
+
+    # WMO kod sınıflamaları
+    is_storm  = wcode in (95, 96, 99)
+    is_snow   = wcode in (71, 73, 75, 77, 85, 86) or kar_mm > 0
+    is_freeze = wcode in (56, 57, 66, 67)
 
     # ── Sürüş Güvenlik Skoru (0–10) ──────────────────────────────────────────
     skor = 10.0
@@ -220,21 +290,23 @@ def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
         skor -= 1.0; skor_detay.append("Düşük görüş")
 
     if kar_mm > 0:
-        skor -= min(3.0, kar_mm * 0.8); skor_detay.append(f"Kar ({kar_mm:.1f}mm)")
-    if yagis_mm > 5:
-        skor -= 1.5; skor_detay.append("Yoğun yağış")
-    elif yagis_mm > 1:
-        skor -= 0.8; skor_detay.append("Yağış")
+        skor -= min(3.0, kar_mm * 0.08); skor_detay.append(f"Kar ({kar_cm:.1f}cm)")
+    if yagmur_mm > 5:
+        skor -= 1.5; skor_detay.append("Yoğun yağmur")
+    elif yagmur_mm > 1:
+        skor -= 0.8; skor_detay.append("Yağmur")
 
     if hamle_kmh > 90:
-        skor -= 2.5; skor_detay.append(f"Fırtına ({hamle_kmh:.0f}km/h)")
+        skor -= 2.5; skor_detay.append(f"Fırtına hamlesi ({hamle_kmh:.0f}km/h)")
     elif hamle_kmh > 60:
         skor -= 1.5; skor_detay.append(f"Kuvvetli rüzgar ({hamle_kmh:.0f}km/h)")
     elif hamle_kmh > 40:
         skor -= 0.5; skor_detay.append(f"Rüzgarlı ({hamle_kmh:.0f}km/h)")
 
-    if icon[:2] == "11":
-        skor -= 2.0; skor_detay.append("Fırtına/Yıldırım")
+    if is_storm:
+        skor -= 2.0; skor_detay.append("Gök gürültülü fırtına")
+    if is_freeze:
+        skor -= 1.5; skor_detay.append("Dondurucu yağış")
     if sicaklik < -5:
         skor -= 1.5; skor_detay.append("Şiddetli soğuk")
     elif sicaklik < 0:
@@ -252,20 +324,17 @@ def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
         skor_renk = "#B71C1C"; skor_bg = "#FFEBEE"; skor_lbl = "Tehlikeli"
 
     # ── Yakıt Etkisi ─────────────────────────────────────────────────────────
-    # Sıcaklık etkisi
     if    sicaklik <  0: pct_sicak = 15
     elif  sicaklik < 10: pct_sicak = 8
     elif  sicaklik < 25: pct_sicak = 0
     elif  sicaklik < 35: pct_sicak = 5
     else:                pct_sicak = 8
 
-    # Yağış etkisi (yoğun yağışta yavaşlama + silecek + lastik direnci)
     pct_yagis = 0
-    if toplam_yag > 5:   pct_yagis = 8   # yoğun yağış
-    elif toplam_yag > 1: pct_yagis = 4   # orta yağış
-    elif yagis_pct > 60: pct_yagis = 2   # hafif yağış ihtimali
+    if toplam_yag > 5:   pct_yagis = 8
+    elif toplam_yag > 1: pct_yagis = 4
+    elif yagis_pct > 60: pct_yagis = 2
 
-    # Rüzgar etkisi (karşı rüzgar)
     pct_ruzgar = 0
     if hamle_kmh > 80:   pct_ruzgar = 8
     elif hamle_kmh > 50: pct_ruzgar = 4
@@ -286,28 +355,41 @@ def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
     elif pct_toplam > 0:   yakit_renk = "#1976D2"
     else:                   yakit_renk = "#2E7D32"
 
+    # ── UV rengi ─────────────────────────────────────────────────────────────
+    if   uv_idx >= 11: uv_renk = "#B71C1C"; uv_lbl = "Aşırı"
+    elif uv_idx >= 8:  uv_renk = "#E65100"; uv_lbl = "Çok yüksek"
+    elif uv_idx >= 6:  uv_renk = "#F57F17"; uv_lbl = "Yüksek"
+    elif uv_idx >= 3:  uv_renk = "#F9A825"; uv_lbl = "Orta"
+    else:               uv_renk = "#2E7D32"; uv_lbl = "Düşük"
+
     # ── Uyarı bandı ──────────────────────────────────────────────────────────
-    uyari_html = ""
     uyarilar = []
-    if icon[:2] == "13" or kar_mm > 0:   uyarilar.append("❄️ KAR")
-    if icon[:2] == "11":                  uyarilar.append("⛈ FIRTINA")
-    if hamle_kmh > 60:                    uyarilar.append("💨 KUVVETLI RÜZGAR")
-    if sicaklik < 0:                      uyarilar.append("🧊 BUZLANMA")
-    if gorunum_km < 1:                    uyarilar.append("🌫 SIS")
-    if yagis_pct > 70:                    uyarilar.append("🌧 YOĞUN YAĞIŞ")
+    if is_snow:                          uyarilar.append("❄️ KAR")
+    if is_storm:                         uyarilar.append("⛈ FIRTINA")
+    if hamle_kmh > 60:                   uyarilar.append("💨 KUVVETLI RÜZGAR")
+    if sicaklik < 0 or is_freeze:        uyarilar.append("🧊 BUZLANMA")
+    if gorunum_km < 1:                   uyarilar.append("🌫 SIS")
+    if yagis_pct > 70:                   uyarilar.append("🌧 YOĞUN YAĞIŞ")
+    if freeze_m < 1000 and freeze_m > 0: uyarilar.append("🏔 DÜŞÜK DON YÜKSEKLİĞİ")
+    uyari_html = ""
     if uyarilar:
         uyari_html = " &nbsp;".join(f"<b style='color:#C62828'>{u}</b>" for u in uyarilar)
         uyari_html = f"<div style='margin:6px 0 2px;font-size:0.8rem'>{uyari_html}</div>"
 
-    # ── Kart border rengi ─────────────────────────────────────────────────────
     kenar = skor_renk
     arka  = skor_bg if skor < 6 else "#EBF3FB"
 
-    # ── Satır 1: Görüş & Nem & Basınç & Gündüz/gece ─────────────────────────
-    gorunum_html = (
-        f"<span style='color:#B71C1C;font-weight:700'>{gorunum_km:.1f} km ⚠️</span>"
-        if gorunum_km < 2 else f"{gorunum_km:.0f} km"
-    )
+    # Don yüksekliği satırı (sadece düşükse göster)
+    freeze_html = ""
+    if freeze_m > 0:
+        if freeze_m < 1500:
+            freeze_html = (f"<span style='color:#C62828'>🏔 Don yüksekliği: "
+                           f"<b>{freeze_m:.0f}m</b> ⚠️ yol buzlanma riski</span>")
+        else:
+            freeze_html = (f"<span style='color:#666'>🏔 Don yüksekliği: "
+                           f"<b>{freeze_m:.0f}m</b></span>")
+
+    kar_html = (f'<span>❄️ Kar: <b>{kar_cm:.1f}cm</b></span>' if kar_cm > 0 else "")
 
     return f"""<div style="background:{arka};border-radius:12px;padding:16px 20px;margin:8px 0;border-left:6px solid {kenar};box-shadow:0 2px 8px rgba(0,0,0,.06)">
 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -316,21 +398,23 @@ def hava_karti(durak_adi, varis_str, veri, gecis_dt=None):
 </div>
 {uyari_html}
 <div style="display:flex;gap:20px;margin-top:10px;font-size:0.87rem;flex-wrap:wrap">
-<span>🌡 <b>{sicaklik:.0f}°C</b> <span style="color:#888">(hissedilen {hissedilen:.0f}°C)</span></span>
-<span>☁️ {durum} ({bulut_pct}%)</span>
-<span>💧 Nem: {nem}%</span>
-<span>📊 {basinc} hPa</span>
+<span>🌡 <b>{sicaklik:.1f}°C</b> <span style="color:#888">(hissedilen {hissedilen:.1f}°C)</span></span>
+<span>🌫 {durum} (%{bulut_pct} bulut)</span>
+<span>💧 Nem: %{nem} <span style="color:#888">(çiy {ciy_nkt:.1f}°C)</span></span>
+<span>📊 {basinc:.0f} hPa</span>
 </div>
 <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
 <span>💨 Rüzgar: <b>{ruzgar_kmh:.0f} km/s</b> ({ruzgar_yon})</span>
 <span>💨 Hamle: <b style="color:{'#C62828' if hamle_kmh>60 else 'inherit'}">{hamle_kmh:.0f} km/s</b></span>
+<span>☀️ UV: <b style="color:{uv_renk}">{uv_idx:.0f} — {uv_lbl}</b></span>
 </div>
 <div style="display:flex;gap:20px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">
 <span>👁 Görüş: <b style="color:{'#C62828' if gorunum_km < 2 else 'inherit'}">{gorunum_km:.1f} km{'  ⚠️' if gorunum_km < 2 else ''}</b></span>
-<span>🌧 Yağış: <b>{yagis_pct}%</b>{f' ({yagis_mm:.1f}mm)' if yagis_mm > 0 else ''}</span>
-{f'<span>❄️ Kar: <b>{kar_mm:.1f}mm</b></span>' if kar_mm > 0 else ''}
+<span>🌧 Yağış: <b>%{yagis_pct}</b>{f' ({yagmur_mm:.1f}mm)' if yagmur_mm > 0 else ''}</span>
+{kar_html}
 <span>⛽ <b style="color:{yakit_renk}">{yakit_etki}</b> <span style="color:#888;font-size:0.8rem">({yakit_detay})</span></span>
 </div>
+{f'<div style="display:flex;gap:16px;margin-top:6px;font-size:0.87rem;flex-wrap:wrap">{freeze_html}</div>' if freeze_html else ''}
 {f'<div style="margin-top:6px;font-size:0.78rem;color:#888">Skor: {", ".join(skor_detay)}</div>' if skor_detay else ''}
 </div>"""
 
@@ -362,8 +446,6 @@ if "duraks"  not in st.session_state:
     st.session_state.duraks = [("İstanbul","Kadıköy"),("Ankara","Çankaya")]
 if "km_ov"   not in st.session_state:
     st.session_state.km_ov = [0]
-if "owm_key" not in st.session_state:
-    st.session_state.owm_key = ""
 if "hava_cache" not in st.session_state:
     st.session_state.hava_cache = {}   # key: (lat,lon,dt_str) → veri
 
@@ -542,14 +624,8 @@ with st.sidebar:
     lpg_tuketim   = st.number_input("LPG 100km (L)",   value=11.0, min_value=0.1, step=0.1, format="%.1f")
 
     st.divider()
-    st.markdown("### 🌤 Hava Durumu (OpenWeather)")
-    owm_key = st.text_input("API Key", value=st.session_state.owm_key,
-                             type="password", placeholder="Buraya API key girin",
-                             help="openweathermap.org → ücretsiz hesap → API Keys")
-    st.session_state.owm_key = owm_key
-    owm_aktif = bool(owm_key.strip())
-    if not owm_aktif:
-        st.caption("API key girilmeden hava durumu çekilemez.")
+    st.markdown("### 🌤 Hava Durumu (Open-Meteo)")
+    st.caption("✅ API key gerekmez — ücretsiz, 16 güne kadar tahmin.")
 
     st.divider()
     st.markdown("### ⚡ Elektrikli Araç (EV)")
@@ -778,127 +854,124 @@ with tab_ozet:
 with tab_hava:
     st.markdown('<div class="section-header">🌤 Güzergah Boyunca Geçilen İllerin Hava Durumu</div>',
                 unsafe_allow_html=True)
+    st.caption("🌐 Open-Meteo kullanılıyor — API key gerekmez · 16 güne kadar saatlik tahmin")
 
-    if not st.session_state.owm_key.strip():
-        st.info("Sol menüden OpenWeather API key girin. "
-                "Ücretsiz hesap: [openweathermap.org](https://openweathermap.org/api)")
-    else:
-        # ── İl merkezlerini hesapla (tüm ilçelerin ortalaması) ────────────────
-        @st.cache_data
-        def il_merkezleri():
-            merkezler = {}
-            for il, ilceler in ILCELER.items():
-                lats = [v[0] for v in ilceler.values()]
-                lons = [v[1] for v in ilceler.values()]
-                merkezler[il] = (sum(lats)/len(lats), sum(lons)/len(lons))
-            return merkezler
+    # ── İl merkezlerini hesapla (tüm ilçelerin ortalaması) ────────────────
+    @st.cache_data
+    def il_merkezleri():
+        merkezler = {}
+        for il, ilceler in ILCELER.items():
+            lats = [v[0] for v in ilceler.values()]
+            lons = [v[1] for v in ilceler.values()]
+            merkezler[il] = (sum(lats)/len(lats), sum(lons)/len(lons))
+        return merkezler
 
-        IL_MERKEZ = il_merkezleri()
+    IL_MERKEZ = il_merkezleri()
 
-        def en_yakin_il(lat, lon):
-            """Koordinata en yakın ili bul"""
-            en_az = float('inf')
-            bulunan = None
-            for il, (ilat, ilon) in IL_MERKEZ.items():
-                d = (lat - ilat)**2 + (lon - ilon)**2
-                if d < en_az:
-                    en_az = d
-                    bulunan = il
-            return bulunan
+    def en_yakin_il(lat, lon):
+        """Koordinata en yakın ili bul"""
+        en_az = float('inf')
+        bulunan = None
+        for il, (ilat, ilon) in IL_MERKEZ.items():
+            d = (lat - ilat)**2 + (lon - ilon)**2
+            if d < en_az:
+                en_az = d
+                bulunan = il
+        return bulunan
 
-        def guzergah_illeri(segments, stop_times):
-            """
-            Her segment için düz hat üzerinde her ~30 km'de bir ara nokta üret,
-            o noktaya en yakın ili bul. Zaman orantılı hesaplanır.
-            Döner: [(il_adi, lat, lon, tahmini_dt), ...]  — tekrarsız sıralı liste
-            """
-            gecilen = []   # (il, lat, lon, dt)
-            goruldü = set()
+    def guzergah_illeri(segments, stop_times):
+        """
+        Her segment için düz hat üzerinde her ~30 km'de bir ara nokta üret,
+        o noktaya en yakın ili bul. Zaman orantılı hesaplanır.
+        Döner: [(il_adi, lat, lon, tahmini_dt), ...]  — tekrarsız sıralı liste
+        """
+        gecilen = []   # (il, lat, lon, dt)
+        goruldü = set()
 
-            for seg_idx, (_, _, km, _) in enumerate(segments):
-                c1 = koordinat(*st.session_state.duraks[seg_idx])
-                c2 = koordinat(*st.session_state.duraks[seg_idx + 1])
-                dep_dt = stop_times[seg_idx]
-                arr_dt = stop_times[seg_idx + 1]
-                sure_sn = (arr_dt - dep_dt).total_seconds()
+        for seg_idx, (_, _, km, _) in enumerate(segments):
+            c1 = koordinat(*st.session_state.duraks[seg_idx])
+            c2 = koordinat(*st.session_state.duraks[seg_idx + 1])
+            dep_dt = stop_times[seg_idx]
+            arr_dt = stop_times[seg_idx + 1]
+            sure_sn = (arr_dt - dep_dt).total_seconds()
 
-                # Her ~30 km'de bir nokta (en az 2 nokta: %0 ve %100)
-                n_nokta = max(2, round(km / 30) + 1)
-                for j in range(n_nokta):
-                    t = j / (n_nokta - 1)  # 0.0 → 1.0
-                    lat = c1[0] + (c2[0] - c1[0]) * t
-                    lon = c1[1] + (c2[1] - c1[1]) * t
-                    zaman = dep_dt + timedelta(seconds=sure_sn * t)
-                    il = en_yakin_il(lat, lon)
-                    if il not in goruldü:
-                        goruldü.add(il)
-                        il_lat, il_lon = IL_MERKEZ[il]
-                        gecilen.append((il, il_lat, il_lon, zaman))
+            # Her ~30 km'de bir nokta (en az 2 nokta: %0 ve %100)
+            n_nokta = max(2, round(km / 30) + 1)
+            for j in range(n_nokta):
+                t = j / (n_nokta - 1)  # 0.0 → 1.0
+                lat = c1[0] + (c2[0] - c1[0]) * t
+                lon = c1[1] + (c2[1] - c1[1]) * t
+                zaman = dep_dt + timedelta(seconds=sure_sn * t)
+                il = en_yakin_il(lat, lon)
+                if il not in goruldü:
+                    goruldü.add(il)
+                    il_lat, il_lon = IL_MERKEZ[il]
+                    gecilen.append((il, il_lat, il_lon, zaman))
 
-            return gecilen
+        return gecilen
 
-        # Segment zamanlarını hesapla
-        _cur_dt = datetime.combine(datetime.today(), cikis)
-        _stop_times = [_cur_dt]
-        for _, _, km, _ in segments:
-            _cur_dt = _cur_dt + timedelta(hours=seg_sure_h(km))
-            _stop_times.append(_cur_dt)
+    # Segment zamanlarını hesapla
+    _cur_dt = datetime.combine(datetime.today(), cikis)
+    _stop_times = [_cur_dt]
+    for _, _, km, _ in segments:
+        _cur_dt = _cur_dt + timedelta(hours=seg_sure_h(km))
+        _stop_times.append(_cur_dt)
 
-        # Geçilen illeri hesapla
-        rota_illeri = guzergah_illeri(segments, _stop_times)
+    # Geçilen illeri hesapla
+    rota_illeri = guzergah_illeri(segments, _stop_times)
 
-        col_btn, col_bilgi = st.columns([2, 5])
-        with col_btn:
-            if st.button("🔄 Hava Durumunu Getir / Yenile"):
-                st.session_state.hava_cache = {}
-        with col_bilgi:
-            st.caption(f"Güzergahta **{len(rota_illeri)} il** tespit edildi "
-                       f"(her ~30 km'de bir nokta, il sınırı tahmini).")
+    col_btn, col_bilgi = st.columns([2, 5])
+    with col_btn:
+        if st.button("🔄 Hava Durumunu Getir / Yenile"):
+            st.session_state.hava_cache = {}
+    with col_bilgi:
+        st.caption(f"Güzergahta **{len(rota_illeri)} il** tespit edildi "
+                   f"(her ~30 km'de bir nokta, il sınırı tahmini).")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        html_kartlar = ""
-        sicakliklar  = []
-        simdi        = datetime.now()
+    html_kartlar = ""
+    sicakliklar  = []
+    simdi        = datetime.now()
 
-        for il, lat, lon, gecis_dt in rota_illeri:
-            gecis_str = gecis_dt.strftime("%d.%m %H:%M")
-            fark_gun  = (gecis_dt - simdi).total_seconds() / 86400
+    for il, lat, lon, gecis_dt in rota_illeri:
+        gecis_str = gecis_dt.strftime("%d.%m %H:%M")
+        fark_gun  = (gecis_dt - simdi).total_seconds() / 86400
 
-            if fark_gun > 5:
-                html_kartlar += (
-                    f'<div style="background:#F5F5F5;border-radius:10px;padding:10px 16px;'
-                    f'margin:6px 0;border-left:5px solid #9E9E9E;color:#666;font-size:0.85rem">'
-                    f'📅 <b>{il}</b> ({gecis_str}) — 5 günden uzak, tahmin mevcut değil</div>'
-                )
-                continue
-
-            with st.spinner(f"{il} hava durumu alınıyor..."):
-                veri = hava_getir(lat, lon, gecis_dt, st.session_state.owm_key)
-
-            if "hata" not in veri:
-                sicakliklar.append(veri["main"]["temp"])
-
-            html_kartlar += hava_karti(il, gecis_str, veri, gecis_dt)
-
-        st.markdown(html_kartlar, unsafe_allow_html=True)
-
-        # Güzergah özeti
-        if sicakliklar:
-            ort = sum(sicakliklar) / len(sicakliklar)
-            en_dusuk = min(sicakliklar)
-            en_yuksek = max(sicakliklar)
-            if    ort <  0: etki = "+15% (çok soğuk)"
-            elif  ort < 10: etki = "+8% (soğuk)"
-            elif  ort < 25: etki = "±0% (ideal)"
-            elif  ort < 35: etki = "+5% (sıcak)"
-            else:            etki = "+8% (çok sıcak)"
-            st.info(
-                f"🌡 Güzergah sıcaklık — Ort: **{ort:.0f}°C** | "
-                f"En düşük: **{en_dusuk:.0f}°C** | En yüksek: **{en_yuksek:.0f}°C**  \n"
-                f"⛽ Tahmini yakıt etkisi: **{etki}** "
-                f"(Sol menü → Hava & Yük ayarını buna göre güncelleyebilirsin)"
+        if fark_gun > 16:
+            html_kartlar += (
+                f'<div style="background:#F5F5F5;border-radius:10px;padding:10px 16px;'
+                f'margin:6px 0;border-left:5px solid #9E9E9E;color:#666;font-size:0.85rem">'
+                f'📅 <b>{il}</b> ({gecis_str}) — 16 günden uzak, tahmin mevcut değil</div>'
             )
+            continue
+
+        with st.spinner(f"{il} hava durumu alınıyor..."):
+            veri = hava_getir(lat, lon, gecis_dt)
+
+        if "hata" not in veri:
+            sicakliklar.append(veri["temp"])
+
+        html_kartlar += hava_karti(il, gecis_str, veri, gecis_dt)
+
+    st.markdown(html_kartlar, unsafe_allow_html=True)
+
+    # Güzergah özeti
+    if sicakliklar:
+        ort = sum(sicakliklar) / len(sicakliklar)
+        en_dusuk = min(sicakliklar)
+        en_yuksek = max(sicakliklar)
+        if    ort <  0: etki = "+15% (çok soğuk)"
+        elif  ort < 10: etki = "+8% (soğuk)"
+        elif  ort < 25: etki = "±0% (ideal)"
+        elif  ort < 35: etki = "+5% (sıcak)"
+        else:            etki = "+8% (çok sıcak)"
+        st.info(
+            f"🌡 Güzergah sıcaklık — Ort: **{ort:.0f}°C** | "
+            f"En düşük: **{en_dusuk:.0f}°C** | En yüksek: **{en_yuksek:.0f}°C**  \n"
+            f"⛽ Tahmini yakıt etkisi: **{etki}** "
+            f"(Sol menü → Hava & Yük ayarını buna göre güncelleyebilirsin)"
+        )
 
 with tab_harita:
     stop_coords = [koordinat(il,ilce) for il,ilce in st.session_state.duraks]
