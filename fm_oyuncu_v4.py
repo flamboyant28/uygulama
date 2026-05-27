@@ -5624,7 +5624,7 @@ with tab9:
                     "weekly": weekly, "years": years,
                     "personality": pers, "flag": COUNTRY_FLAG.get(cty,"🏳️"),
                     "tech": tech, "mental": mental, "phys": phys,
-                    "hidden": hidden,
+                    "gk": gk, "hidden": hidden,
                     "satildi": False,
                 })
             st.session_state.tr_market = market
@@ -5704,18 +5704,30 @@ with tab9:
                                   f"font-weight:700;color:{c}'>{v}</td></tr>")
                         return h + "</table>"
 
-                    _col_t, _col_m, _col_p, _col_g, _col_r = st.columns([1, 1, 1, 0.85, 1.8])
+                    _is_gk_p = POSITION_BASE[p["pos"]] == "KL"
+                    if _is_gk_p:
+                        _col_t, _col_m, _col_p, _col_k, _col_g, _col_r = st.columns([1, 1, 1, 1, 0.85, 1.8])
+                    else:
+                        _col_t, _col_m, _col_p, _col_g, _col_r = st.columns([1, 1, 1, 0.85, 1.8])
+                        _col_k = None
                     with _col_t:
                         st.markdown(_tr_tbl(p["tech"],   "⚙️ TEKNİK",   "#58a6ff"), unsafe_allow_html=True)
                     with _col_m:
                         st.markdown(_tr_tbl(p["mental"], "🧠 ZİHİNSEL", "#bc8cff"), unsafe_allow_html=True)
                     with _col_p:
                         st.markdown(_tr_tbl(p["phys"],   "💪 FİZİKSEL", "#2ecc71"), unsafe_allow_html=True)
+                    if _is_gk_p and _col_k:
+                        with _col_k:
+                            _gk_attrs = {k: v for k, v in p.get("gk", {}).items()
+                                         if k in GK_ATTRS_SET}
+                            st.markdown(_tr_tbl(_gk_attrs, "🧤 KALECİ", "#e67e22"), unsafe_allow_html=True)
                     with _col_g:
                         _hid = p.get("hidden", {})
                         st.markdown(_tr_tbl(_hid, "🔒 GİZLİ", "#f1c40f"), unsafe_allow_html=True)
                     with _col_r:
                         _aa_tr = {**p["tech"], **p["mental"], **p["phys"]}
+                        if _is_gk_p:
+                            _aa_tr.update(p.get("gk", {}))
                         _fig_tr = radar_chart(_aa_tr, p["pos"])
                         st.pyplot(_fig_tr, use_container_width=True)
                         plt.close(_fig_tr)
@@ -5756,18 +5768,30 @@ with tab9:
                         f"CA {sp['ca']} / PA {sp['pa']}  ·  "
                         f"Ödenen: {fiyat/1e6:.1f}M €  ·  {format_wage(sp['weekly'])}")
                 with st.expander(_lbl, expanded=False):
-                    _sq_t, _sq_m, _sq_p, _sq_g, _sq_r = st.columns([1, 1, 1, 0.85, 1.8])
+                    _is_gk_sq = POSITION_BASE[sp["pos"]] == "KL"
+                    if _is_gk_sq:
+                        _sq_t, _sq_m, _sq_p, _sq_k, _sq_g, _sq_r = st.columns([1, 1, 1, 1, 0.85, 1.8])
+                    else:
+                        _sq_t, _sq_m, _sq_p, _sq_g, _sq_r = st.columns([1, 1, 1, 0.85, 1.8])
+                        _sq_k = None
                     with _sq_t:
                         st.markdown(_tr_tbl(sp["tech"],   "⚙️ TEKNİK",   "#58a6ff"), unsafe_allow_html=True)
                     with _sq_m:
                         st.markdown(_tr_tbl(sp["mental"], "🧠 ZİHİNSEL", "#bc8cff"), unsafe_allow_html=True)
                     with _sq_p:
                         st.markdown(_tr_tbl(sp["phys"],   "💪 FİZİKSEL", "#2ecc71"), unsafe_allow_html=True)
+                    if _is_gk_sq and _sq_k:
+                        with _sq_k:
+                            _gk_attrs_sq = {k: v for k, v in sp.get("gk", {}).items()
+                                            if k in GK_ATTRS_SET}
+                            st.markdown(_tr_tbl(_gk_attrs_sq, "🧤 KALECİ", "#e67e22"), unsafe_allow_html=True)
                     with _sq_g:
                         _hid_sq = sp.get("hidden", {})
                         st.markdown(_tr_tbl(_hid_sq, "🔒 GİZLİ", "#f1c40f"), unsafe_allow_html=True)
                     with _sq_r:
                         _aa_sq = {**sp["tech"], **sp["mental"], **sp["phys"]}
+                        if _is_gk_sq:
+                            _aa_sq.update(sp.get("gk", {}))
                         _fig_sq = radar_chart(_aa_sq, sp["pos"])
                         st.pyplot(_fig_sq, use_container_width=True)
                         plt.close(_fig_sq)
