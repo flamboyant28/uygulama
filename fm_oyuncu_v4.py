@@ -5554,7 +5554,7 @@ with tab9:
         # ── Kontroller ────────────────────────────────────
         tr_c1, tr_c2, tr_c3, tr_c4, tr_c5 = st.columns([1.2, 1, 1, 1, 1])
         with tr_c1:
-            new_budget = st.number_input("Bütçe (€)", 10_000_000, 1_000_000_000,
+            new_budget = st.number_input("Bütçe (€)", 10_000_000, 2_000_000_000,
                                          st.session_state.tr_budget, 10_000_000,
                                          key="tr_budget_input",
                                          format="%d")
