@@ -839,15 +839,15 @@ with st.sidebar:
                        (f"\n📌 {kaynak}" if kaynak else ""))
 
     fiyat  = st.number_input("Benzin (TL/L)",  value=st.session_state.fiyatlar["benzin"],
-                              min_value=0.01, step=0.5, format="%.2f", key="inp_benzin")
+                              min_value=0.01, step=0.01, format="%.2f", key="inp_benzin")
     st.session_state.fiyatlar["benzin"] = fiyat
 
     dizel_fiyat   = st.number_input("Dizel (TL/L)",    value=st.session_state.fiyatlar["dizel"],
-                                     min_value=0.01, step=0.5, format="%.2f", key="inp_dizel")
+                                     min_value=0.01, step=0.01, format="%.2f", key="inp_dizel")
     st.session_state.fiyatlar["dizel"] = dizel_fiyat
 
     lpg_fiyat     = st.number_input("LPG (TL/L)",      value=st.session_state.fiyatlar["lpg"],
-                                     min_value=0.01, step=0.5, format="%.2f", key="inp_lpg")
+                                     min_value=0.01, step=0.01, format="%.2f", key="inp_lpg")
     st.session_state.fiyatlar["lpg"] = lpg_fiyat
 
     dizel_tuketim = st.number_input("Dizel 100km (L)", value=6.5,  min_value=0.1, step=0.1, format="%.1f")
