@@ -850,8 +850,8 @@ with st.sidebar:
                                      min_value=0.01, step=0.01, format="%.2f", key="inp_lpg")
     st.session_state.fiyatlar["lpg"] = lpg_fiyat
 
-    dizel_tuketim = st.number_input("Dizel 100km (L)", value=6.5,  min_value=0.1, step=0.1, format="%.1f")
-    lpg_tuketim   = st.number_input("LPG 100km (L)",   value=11.0, min_value=0.1, step=0.1, format="%.1f")
+    dizel_tuketim = st.number_input("Dizel 100km (L)", value=5.5,  min_value=0.1, step=0.1, format="%.1f")
+    lpg_tuketim   = st.number_input("LPG 100km (L)",   value=10.0, min_value=0.1, step=0.1, format="%.1f")
 
     st.divider()
     st.markdown("### 🌤 Hava Durumu (Open-Meteo)")
