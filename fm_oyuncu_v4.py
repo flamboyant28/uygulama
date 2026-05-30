@@ -2562,10 +2562,12 @@ with st.sidebar:
 if "position" not in st.session_state:
     st.session_state.position = "ST"
 if "gen_player" not in st.session_state:
-    st.session_state.gen_player = None  # üretilen oyuncu verisi
+    st.session_state.gen_player = None
+if "player_pool" not in st.session_state:
+    st.session_state.player_pool = []   # Oyuncu havuzu
 
 # ── ANA SEKMELER ────────────────────────────────────────
-tab1, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+tab1, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
     "🎲 Oyuncu Üret",
     "🧮 Manuel CA",
     "🏟️ Kadro Üretici",
@@ -2574,6 +2576,8 @@ tab1, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
     "🎓 Akademi",
     "🏆 Mini Lig",
     "💼 Transfer & Sözleşme",
+    "📦 Oyuncu Havuzu",
+    "🔍 FM Analiz",
 ])
 
 with tab1:
@@ -2737,6 +2741,44 @@ with tab1:
             secondary_pos=secondary_pos,
         )
         st.markdown(card_html, unsafe_allow_html=True)
+
+        # ── Havuza Ekle butonu ─────────────────────────────
+        _pool_ids = [p["_id"] for p in st.session_state.player_pool]
+        _cur_id   = f"{name}_{age_g}_{ca}_{position_g}"
+        _in_pool  = _cur_id in _pool_ids
+        _hv_col1, _hv_col2, _hv_col3 = st.columns([1, 1, 4])
+        with _hv_col1:
+            if _in_pool:
+                st.success("✅ Havuzda", icon="📦")
+            else:
+                if st.button("📦 Havuza Ekle", key="add_pool"):
+                    pool_entry = {
+                        "_id"        : _cur_id,
+                        "_idx"       : len(st.session_state.player_pool),
+                        "name"       : name,
+                        "flag"       : flag,
+                        "position"   : position_g,
+                        "age"        : age_g,
+                        "country"    : country_g,
+                        "preset"     : preset_g,
+                        "ca"         : ca,
+                        "pa"         : pa,
+                        "personality": personality,
+                        "height"     : height,
+                        "weight"     : weight,
+                        "foot"       : foot,
+                        "weak_foot"  : weak_foot,
+                        "favori"     : False,
+                        "tech"       : dict(tech),
+                        "mental"     : dict(mental),
+                        "phys"       : dict(phys),
+                        "gk"         : dict(gk),
+                        "hidden"     : dict(hidden),
+                    }
+                    st.session_state.player_pool.append(pool_entry)
+                    st.rerun()
+        with _hv_col2:
+            st.caption(f"📦 Havuzda {len(st.session_state.player_pool)} oyuncu")
 
         # ══════════════════════════════════════════════════════
         # ANA LAYOUT
@@ -5554,7 +5596,7 @@ with tab9:
         # ── Kontroller ────────────────────────────────────
         tr_c1, tr_c2, tr_c3, tr_c4, tr_c5 = st.columns([1.2, 1, 1, 1, 1])
         with tr_c1:
-            new_budget = st.number_input("Bütçe (€)", 10_000_000, 2_000_000_000,
+            new_budget = st.number_input("Bütçe (€)", 10_000_000, 1_000_000_000,
                                          st.session_state.tr_budget, 10_000_000,
                                          key="tr_budget_input",
                                          format="%d")
@@ -5957,8 +5999,782 @@ with tab9:
         st.pyplot(fig_sc, use_container_width=True)
         plt.close(fig_sc)
 
+
+# =========================================================
+# TAB 10 — OYUNCU HAVUZU
+# =========================================================
+with tab10:
+    import io
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import (Font, PatternFill, Alignment,
+                                     Border, Side, GradientFill)
+        from openpyxl.utils import get_column_letter
+        HAS_OPENPYXL = True
+    except ImportError:
+        HAS_OPENPYXL = False
+
+    st.subheader("📦 Oyuncu Havuzu")
+    st.caption("Ürettiğin tüm oyuncular burada birikir. Filtrele, karşılaştır, Excel'e aktar.")
+
+    pool = st.session_state.get("player_pool", [])
+
+    if not pool:
+        st.info("Henüz oyuncu yok. **Oyuncu Üret** sekmesinden oyuncu üretince otomatik buraya eklenir.")
+    else:
+        # ── Üst panel ────────────────────────────────────
+        ph_col1, ph_col2, ph_col3, ph_col4 = st.columns(4)
+        ph_col1.metric("Toplam Oyuncu", len(pool))
+        ph_col2.metric("Favori", sum(1 for p in pool if p.get("favori")))
+        ph_col3.metric("Ort. CA", f"{sum(p['ca'] for p in pool)//len(pool)}")
+        ph_col4.metric("Ort. PA", f"{sum(p['pa'] for p in pool)//len(pool)}")
+
+        # ── Filtreler ─────────────────────────────────────
+        with st.expander("🔍 Filtrele & Sırala", expanded=False):
+            f1, f2, f3, f4, f5 = st.columns(5)
+            with f1:
+                f_mevki = st.multiselect("Mevki", ALL_POSITIONS, key="ph_mevki")
+            with f2:
+                f_pre = st.multiselect("Profil",
+                    ["Average","Wonderkid","Star","Superstar"], key="ph_pre")
+            with f3:
+                f_ca_min, f_ca_max = st.slider("CA Aralığı", 1, 200,
+                    (1, 200), key="ph_ca")
+            with f4:
+                f_age_min, f_age_max = st.slider("Yaş Aralığı", 15, 45,
+                    (15, 45), key="ph_age")
+            with f5:
+                f_sort = st.selectbox("Sırala",
+                    ["CA ↓","CA ↑","PA ↓","Yaş ↓","Yaş ↑","Son Eklenen"],
+                    key="ph_sort")
+            f_favori = st.checkbox("Sadece favoriler", key="ph_fav")
+
+        # Filtre uygula
+        filtered = pool[:]
+        if f_mevki:
+            filtered = [p for p in filtered if p["position"] in f_mevki]
+        if f_pre:
+            filtered = [p for p in filtered if p["preset"] in f_pre]
+        filtered = [p for p in filtered
+                    if f_ca_min <= p["ca"] <= f_ca_max
+                    and f_age_min <= p["age"] <= f_age_max]
+        if f_favori:
+            filtered = [p for p in filtered if p.get("favori")]
+
+        sort_map = {
+            "CA ↓": lambda x: -x["ca"],
+            "CA ↑": lambda x:  x["ca"],
+            "PA ↓": lambda x: -x["pa"],
+            "Yaş ↓": lambda x: -x["age"],
+            "Yaş ↑": lambda x:  x["age"],
+            "Son Eklenen": lambda x: -x.get("_idx", 0),
+        }
+        filtered.sort(key=sort_map.get(f_sort, lambda x: -x["ca"]))
+
+        st.caption(f"**{len(filtered)}** oyuncu gösteriliyor (toplam {len(pool)})")
+
+        # ── Excel Export ─────────────────────────────────
+        def build_excel(players):
+            wb = Workbook()
+
+            # ── Renk paleti ──────────────────────────────
+            C_HEADER_BG  = "1E2D40"   # koyu lacivert
+            C_HEADER_FG  = "FFFFFF"
+            C_ALT_ROW    = "F0F4F8"   # açık gri-mavi
+            C_GREEN      = "2ECC71"
+            C_ORANGE     = "E67E22"
+            C_YELLOW     = "F1C40F"
+            C_BLUE       = "3498DB"
+            C_RED        = "E74C3C"
+            C_DARK       = "2C3E50"
+            C_BORDER     = "BDC3C7"
+
+            thin = Side(style="thin", color=C_BORDER)
+            border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+            def hdr_cell(ws, row, col, val, bg=C_HEADER_BG, fg=C_HEADER_FG,
+                         bold=True, sz=10, align="center"):
+                c = ws.cell(row=row, column=col, value=val)
+                c.font = Font(bold=bold, color=fg, size=sz, name="Arial")
+                c.fill = PatternFill("solid", fgColor=bg)
+                c.alignment = Alignment(horizontal=align, vertical="center",
+                                        wrap_text=True)
+                c.border = border
+                return c
+
+            def val_cell(ws, row, col, val, bold=False, color=None,
+                         align="center", bg=None):
+                c = ws.cell(row=row, column=col, value=val)
+                fc = color or C_DARK
+                c.font = Font(bold=bold, color=fc, size=9, name="Arial")
+                if bg:
+                    c.fill = PatternFill("solid", fgColor=bg)
+                c.alignment = Alignment(horizontal=align, vertical="center")
+                c.border = border
+                return c
+
+            def attr_color(v):
+                if v >= 17: return C_BLUE
+                if v >= 14: return C_GREEN
+                if v >= 10: return "7F6000"   # sarı-kahve
+                if v >= 5:  return C_DARK
+                return "808080"
+
+            # ── SAYFA 1: GENEL BİLGİ ─────────────────────
+            ws1 = wb.active
+            ws1.title = "Genel Bilgi"
+            ws1.freeze_panes = "A2"
+            ws1.sheet_view.showGridLines = False
+
+            headers1 = ["#","İsim","Ülke","Mevki","Yaş","Preset","CA","PA",
+                        "CA/PA %","Değer","Haftalık Maaş","Sözleşme (yıl)",
+                        "Baskın Ayak","Zayıf Ayak","Boy","Kilo",
+                        "Kişilik","Scout Notu","Favori"]
+            col_widths1 = [4,22,14,12,6,12,7,7,9,16,15,13,12,10,7,7,22,10,7]
+
+            for ci, (h, w) in enumerate(zip(headers1, col_widths1), 1):
+                hdr_cell(ws1, 1, ci, h)
+                ws1.column_dimensions[get_column_letter(ci)].width = w
+            ws1.row_dimensions[1].height = 30
+
+            for ri, p in enumerate(players, 2):
+                ca_pa_pct = round(p["ca"] / max(p["pa"],1) * 100, 1)
+                weekly    = calculate_wage(p["ca"], p["pa"], p["age"],
+                                           p["personality"]["name"],
+                                           p.get("country","Türkiye"))
+                yrs       = calculate_contract_years(p["age"], p["ca"], p["pa"])
+                grade     = scout_grade(p["pa"])
+                is_alt    = (ri % 2 == 0)
+                row_bg    = C_ALT_ROW if is_alt else "FFFFFF"
+                fav       = "⭐" if p.get("favori") else ""
+
+                grade_c = {"A":C_GREEN,"B":"27AE60","C":"7F6000",
+                           "D":C_ORANGE,"E":C_RED}.get(grade, C_DARK)
+                pre_c   = {"Superstar":C_RED,"Star":C_ORANGE,
+                           "Wonderkid":"7F6000","Average":C_BLUE}.get(p["preset"], C_DARK)
+
+                row_vals = [
+                    (ri-1,       False, None,    "center", row_bg),
+                    (p["name"],  True,  C_DARK,  "left",   row_bg),
+                    (p.get("country","—"), False, None, "center", row_bg),
+                    (p["position"], False, C_BLUE, "center", row_bg),
+                    (p["age"],   False, None,    "center", row_bg),
+                    (p["preset"],False, pre_c,   "center", row_bg),
+                    (p["ca"],    True,  C_GREEN, "center", row_bg),
+                    (p["pa"],    True,  C_ORANGE,"center", row_bg),
+                    (f"{ca_pa_pct}%", False,
+                     C_GREEN if ca_pa_pct>=80 else C_ORANGE if ca_pa_pct>=60 else C_RED,
+                     "center", row_bg),
+                    (calculate_transfer_value(p["ca"],p["pa"],p["age"]),
+                     False, C_GREEN, "left", row_bg),
+                    (format_wage(weekly),  False, None, "center", row_bg),
+                    (yrs,        False, None,    "center", row_bg),
+                    (p.get("foot","—"),  False, None, "center", row_bg),
+                    (p.get("weak_foot",4), False,
+                     C_GREEN if p.get("weak_foot",4)>=13 else
+                     C_ORANGE if p.get("weak_foot",4)>=9 else C_RED,
+                     "center", row_bg),
+                    (p.get("height","—"), False, None, "center", row_bg),
+                    (p.get("weight","—"), False, None, "center", row_bg),
+                    (p["personality"]["name"], False, None, "left", row_bg),
+                    (grade,      True,  grade_c, "center", row_bg),
+                    (fav,        False, None,    "center", row_bg),
+                ]
+                for ci, (val, bold, col, align, bg) in enumerate(row_vals, 1):
+                    val_cell(ws1, ri, ci, val, bold=bold,
+                             color=col, align=align, bg=bg)
+                ws1.row_dimensions[ri].height = 18
+
+            # Otofilt
+            ws1.auto_filter.ref = f"A1:{get_column_letter(len(headers1))}1"
+
+            # ── SAYFA 2: TEKNİK ──────────────────────────
+            ws2 = wb.create_sheet("Teknik")
+            ws2.freeze_panes = "C2"
+            ws2.sheet_view.showGridLines = False
+
+            tech_cols = list(players[0]["tech"].keys()) if players else []
+            hdr2 = ["#", "İsim"] + tech_cols
+            ws2.column_dimensions["A"].width = 4
+            ws2.column_dimensions["B"].width = 22
+            for ci, h in enumerate(hdr2, 1):
+                hdr_cell(ws2, 1, ci, h)
+                if ci > 2:
+                    ws2.column_dimensions[get_column_letter(ci)].width = 9
+            ws2.row_dimensions[1].height = 30
+
+            for ri, p in enumerate(players, 2):
+                is_alt = (ri % 2 == 0)
+                rb = C_ALT_ROW if is_alt else "FFFFFF"
+                val_cell(ws2, ri, 1, ri-1, bg=rb)
+                val_cell(ws2, ri, 2, p["name"], bold=True, align="left", bg=rb)
+                for ci, attr in enumerate(tech_cols, 3):
+                    v = p["tech"].get(attr, 1)
+                    val_cell(ws2, ri, ci, v, bold=(v>=14),
+                             color=attr_color(v), bg=rb)
+                ws2.row_dimensions[ri].height = 16
+
+            ws2.auto_filter.ref = f"A1:{get_column_letter(len(hdr2))}1"
+
+            # ── SAYFA 3: ZİHİNSEL ────────────────────────
+            ws3 = wb.create_sheet("Zihinsel")
+            ws3.freeze_panes = "C2"
+            ws3.sheet_view.showGridLines = False
+
+            ment_cols = list(players[0]["mental"].keys()) if players else []
+            hdr3 = ["#", "İsim"] + ment_cols
+            ws3.column_dimensions["A"].width = 4
+            ws3.column_dimensions["B"].width = 22
+            for ci, h in enumerate(hdr3, 1):
+                hdr_cell(ws3, 1, ci, h)
+                if ci > 2:
+                    ws3.column_dimensions[get_column_letter(ci)].width = 9
+            ws3.row_dimensions[1].height = 30
+
+            for ri, p in enumerate(players, 2):
+                is_alt = (ri % 2 == 0)
+                rb = C_ALT_ROW if is_alt else "FFFFFF"
+                val_cell(ws3, ri, 1, ri-1, bg=rb)
+                val_cell(ws3, ri, 2, p["name"], bold=True, align="left", bg=rb)
+                for ci, attr in enumerate(ment_cols, 3):
+                    v = p["mental"].get(attr, 1)
+                    val_cell(ws3, ri, ci, v, bold=(v>=14),
+                             color=attr_color(v), bg=rb)
+                ws3.row_dimensions[ri].height = 16
+
+            ws3.auto_filter.ref = f"A1:{get_column_letter(len(hdr3))}1"
+
+            # ── SAYFA 4: FİZİKSEL ────────────────────────
+            ws4 = wb.create_sheet("Fiziksel")
+            ws4.freeze_panes = "C2"
+            ws4.sheet_view.showGridLines = False
+
+            phys_cols = list(players[0]["phys"].keys()) if players else []
+            hdr4 = ["#", "İsim"] + phys_cols
+            ws4.column_dimensions["A"].width = 4
+            ws4.column_dimensions["B"].width = 22
+            for ci, h in enumerate(hdr4, 1):
+                hdr_cell(ws4, 1, ci, h)
+                if ci > 2:
+                    ws4.column_dimensions[get_column_letter(ci)].width = 9
+            ws4.row_dimensions[1].height = 30
+
+            for ri, p in enumerate(players, 2):
+                is_alt = (ri % 2 == 0)
+                rb = C_ALT_ROW if is_alt else "FFFFFF"
+                val_cell(ws4, ri, 1, ri-1, bg=rb)
+                val_cell(ws4, ri, 2, p["name"], bold=True, align="left", bg=rb)
+                for ci, attr in enumerate(phys_cols, 3):
+                    v = p["phys"].get(attr, 1)
+                    val_cell(ws4, ri, ci, v, bold=(v>=14),
+                             color=attr_color(v), bg=rb)
+                ws4.row_dimensions[ri].height = 16
+
+            ws4.auto_filter.ref = f"A1:{get_column_letter(len(hdr4))}1"
+
+            # ── SAYFA 5: GİZLİ ───────────────────────────
+            ws5 = wb.create_sheet("Gizli")
+            ws5.freeze_panes = "C2"
+            ws5.sheet_view.showGridLines = False
+
+            hid_cols = list(players[0]["hidden"].keys()) if players else []
+            hdr5 = ["#", "İsim", "Kişilik"] + hid_cols
+            ws5.column_dimensions["A"].width = 4
+            ws5.column_dimensions["B"].width = 22
+            ws5.column_dimensions["C"].width = 24
+            for ci, h in enumerate(hdr5, 1):
+                hdr_cell(ws5, 1, ci, h)
+                if ci > 3:
+                    ws5.column_dimensions[get_column_letter(ci)].width = 9
+            ws5.row_dimensions[1].height = 30
+
+            for ri, p in enumerate(players, 2):
+                is_alt = (ri % 2 == 0)
+                rb = C_ALT_ROW if is_alt else "FFFFFF"
+                val_cell(ws5, ri, 1, ri-1, bg=rb)
+                val_cell(ws5, ri, 2, p["name"], bold=True, align="left", bg=rb)
+                val_cell(ws5, ri, 3, p["personality"]["name"],
+                         align="left", bg=rb)
+                for ci, attr in enumerate(hid_cols, 4):
+                    v = p["hidden"].get(attr, 1)
+                    val_cell(ws5, ri, ci, v, bold=(v>=14),
+                             color=attr_color(v), bg=rb)
+                ws5.row_dimensions[ri].height = 16
+
+            ws5.auto_filter.ref = f"A1:{get_column_letter(len(hdr5))}1"
+
+            buf = io.BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            return buf
+
+        # ── Export butonları ──────────────────────────────
+        ex1, ex2, ex3 = st.columns([1, 1, 3])
+        with ex1:
+            if HAS_OPENPYXL and filtered:
+                buf = build_excel(filtered)
+                st.download_button(
+                    "📥 Excel İndir (Filtrelenen)",
+                    data=buf,
+                    file_name="fm_oyuncular.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    type="primary",
+                )
+            elif not HAS_OPENPYXL:
+                st.warning("openpyxl kurulu değil: `pip install openpyxl`")
+        with ex2:
+            if HAS_OPENPYXL and pool:
+                buf_all = build_excel(pool)
+                st.download_button(
+                    "📥 Excel İndir (Tümü)",
+                    data=buf_all,
+                    file_name="fm_oyuncular_tum.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+
+        st.divider()
+
+        # ── Oyuncu listesi ────────────────────────────────
+        st.markdown(f"### 👥 Oyuncu Listesi ({len(filtered)})")
+        for idx, p in enumerate(filtered):
+            grade = scout_grade(p["pa"])
+            gc = {"A":"#2ecc71","B":"#27ae60","C":"#f1c40f",
+                  "D":"#e67e22","E":"#e74c3c"}.get(grade,"#aaa")
+            pr_c = {"Superstar":"#e74c3c","Star":"#e67e22",
+                    "Wonderkid":"#f1c40f","Average":"#3498db"}.get(p["preset"],"#aaa")
+            fav_icon = "⭐" if p.get("favori") else "☆"
+            ca_pa_pct = int(p["ca"]/max(p["pa"],1)*100)
+            bar_c = "#2ecc71" if ca_pa_pct>=75 else "#f1c40f" if ca_pa_pct>=50 else "#e74c3c"
+
+            exp_lbl = (f"{fav_icon}  {p.get('flag','🏳️')} {p['name']}  ·  "
+                       f"{p['position']}  ·  CA {p['ca']} / PA {p['pa']}  ·  "
+                       f"{p.get('age',0)} yaş  ·  {p['preset']}")
+            with st.expander(exp_lbl, expanded=False):
+                # Üst kart
+                rc1, rc2, rc3 = st.columns([2, 1.2, 1])
+                with rc1:
+                    st.markdown(
+                        f"<div style='background:#161b22;border-left:3px solid {pr_c};"
+                        f"border-radius:8px;padding:10px 14px'>"
+                        f"<div style='font-size:15px;font-weight:800;color:#f0f0f0'>"
+                        f"{p.get('flag','🏳️')} {p['name']}</div>"
+                        f"<div style='font-size:11px;color:#8b949e'>"
+                        f"{p['position']} · {p.get('country','?')} · {p['age']} yaş · {p['preset']}</div>"
+                        f"<div style='font-size:11px;color:{p['personality']['color']};margin-top:3px'>"
+                        f"{p['personality']['name']}</div>"
+                        f"<div style='margin-top:8px'>"
+                        f"<span style='font-size:18px;font-weight:900;color:#2ecc71'>CA {p['ca']}</span>"
+                        f"<span style='color:#8b949e'> / PA {p['pa']}</span>"
+                        f"<span style='color:{gc};font-weight:700;margin-left:8px'>{grade}</span></div>"
+                        f"<div style='background:#1e1e2e;border-radius:4px;height:7px;margin-top:6px'>"
+                        f"<div style='width:{ca_pa_pct}%;height:100%;background:{bar_c};"
+                        f"border-radius:4px'></div></div></div>",
+                        unsafe_allow_html=True
+                    )
+                with rc2:
+                    st.markdown(
+                        f"<div style='background:#161b22;border-radius:8px;padding:10px 14px'>"
+                        f"<div style='font-size:10px;color:#8b949e'>Değer</div>"
+                        f"<div style='font-weight:700;color:#f1c40f'>"
+                        f"{calculate_transfer_value(p['ca'],p['pa'],p['age'])}</div>"
+                        f"<div style='font-size:10px;color:#8b949e;margin-top:6px'>Haftalık Maaş</div>"
+                        f"<div style='font-weight:700;color:#e67e22'>"
+                        f"{format_wage(calculate_wage(p['ca'],p['pa'],p['age'],p['personality']['name']))}</div>"
+                        f"<div style='font-size:10px;color:#8b949e;margin-top:6px'>Sözleşme</div>"
+                        f"<div style='color:#aaa'>{calculate_contract_years(p['age'],p['ca'],p['pa'])} yıl</div>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                with rc3:
+                    # Favori & Sil butonları
+                    fav_lbl = "⭐ Favoriden Çıkar" if p.get("favori") else "☆ Favoriye Ekle"
+                    pool_idx = next((i for i,x in enumerate(pool) if x.get("_id")==p.get("_id")), None)
+                    if pool_idx is not None:
+                        if st.button(fav_lbl, key=f"ph_fav_{idx}"):
+                            st.session_state.player_pool[pool_idx]["favori"] =                                 not pool[pool_idx].get("favori", False)
+                            st.rerun()
+                        if st.button("🗑️ Sil", key=f"ph_del_{idx}"):
+                            st.session_state.player_pool.pop(pool_idx)
+                            st.rerun()
+
+                # Attribute tabloları
+                st.markdown("---")
+                pa1, pa2, pa3, pa4 = st.columns([1,1,1,0.9])
+                def _ph_tbl(attrs, title, color):
+                    h = (f"<div style='font-size:10px;font-weight:700;color:{color};"
+                         f"margin-bottom:3px'>{title}</div>"
+                         f"<table style='width:100%;border-collapse:collapse;font-size:0.75rem'>")
+                    for k, v in attrs.items():
+                        c = ("#3498db" if v>=17 else "#2ecc71" if v>=14
+                             else "#f1c40f" if v>=10 else "#e0e0e0" if v>=5 else "#9e9e9e")
+                        h += (f"<tr><td style='padding:1px 3px;color:#aaa'>{k}</td>"
+                              f"<td style='padding:1px 3px;text-align:right;"
+                              f"font-weight:700;color:{c}'>{v}</td></tr>")
+                    return h + "</table>"
+                with pa1:
+                    st.markdown(_ph_tbl(p["tech"],   "⚙️ TEKNİK",   "#58a6ff"), unsafe_allow_html=True)
+                with pa2:
+                    st.markdown(_ph_tbl(p["mental"], "🧠 ZİHİNSEL", "#bc8cff"), unsafe_allow_html=True)
+                with pa3:
+                    st.markdown(_ph_tbl(p["phys"],   "💪 FİZİKSEL", "#2ecc71"), unsafe_allow_html=True)
+                with pa4:
+                    st.markdown(_ph_tbl(p["hidden"], "🔒 GİZLİ",    "#f1c40f"), unsafe_allow_html=True)
+
+        st.divider()
+        hav_c1, hav_c2 = st.columns([1, 4])
+        with hav_c1:
+            if st.button("🗑️ Havuzu Temizle", key="ph_clear"):
+                st.session_state.player_pool = []
+                st.rerun()
+
 st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026 Enes Özkan")
 
 # =========================================================
 # TAB 9 — TRANSFER & SÖZLEŞME
 # =========================================================
+
+# =========================================================
+# TAB 11 — FM OYUNCU ANALİZİ
+# =========================================================
+with tab11:
+    st.subheader("🔍 FM Oyuncu Analizi")
+    st.caption(
+        "FM'deki oyuncunun değerlerini gir → CA doğrulama, radar, "
+        "tüm mevki fit analizi, kişilik, kariyer projeksiyonu."
+    )
+    st.info(
+        "**Nasıl kullanılır:** FM'de oyuncunun profiline gir, "
+        "attribute değerlerini buraya gir, **Analiz Et**'e bas.",
+        icon="ℹ️"
+    )
+
+    # ── Temel Bilgiler ─────────────────────────────────────
+    st.markdown("#### 👤 Temel Bilgiler")
+    bi1, bi2, bi3, bi4, bi5 = st.columns(5)
+    with bi1: fm_name  = st.text_input("Oyuncu Adı", "Oyuncu", key="fm_name")
+    with bi2: fm_pos   = st.selectbox("Mevki", ALL_POSITIONS, key="fm_pos")
+    with bi3: fm_age   = st.number_input("Yaş", 15, 45, 24, key="fm_age")
+    with bi4: fm_cty   = st.selectbox("Ülke", list(COUNTRY_PROFILES.keys()), key="fm_cty")
+    with bi5: fm_ca_fm = st.number_input("FM'deki CA", 1, 200, 130, key="fm_ca_fm",
+                                          help="FM'in gösterdiği CA değeri")
+
+    bi6, bi7, bi8, bi9, bi10 = st.columns(5)
+    with bi6:  fm_pa     = st.number_input("FM'deki PA", 1, 200, 160, key="fm_pa")
+    with bi7:  fm_foot   = st.selectbox("Baskın Ayak",
+                               ["Sağ","Sol","Her İkisi"], key="fm_foot")
+    with bi8:  fm_wf     = st.number_input("Zayıf Ayak (1-20)", 1, 20, 8, key="fm_wf")
+    with bi9:  fm_height = st.number_input("Boy (cm)", 155, 210, 180, key="fm_height")
+    with bi10: fm_weight = st.number_input("Kilo (kg)", 55, 110, 75, key="fm_weight")
+
+    st.divider()
+
+    # ── Attribute Girişi ───────────────────────────────────
+    st.markdown("#### 📋 Attribute Değerleri")
+    st.caption("FM'de gördüğün değerleri gir — renk otomatik güncellenir")
+
+    fm_is_gk = POSITION_BASE[fm_pos] == "KL"
+
+    # Her satırda 3 attribute (tab sırası için)
+    def _fm_attr_section(attrs_list, prefix, title, color):
+        st.markdown(
+            f"<div style='font-size:11px;font-weight:700;color:{color};"
+            f"margin:8px 0 4px'>{title}</div>",
+            unsafe_allow_html=True
+        )
+        result = {}
+        for i in range(0, len(attrs_list), 3):
+            row_attrs = attrs_list[i:i+3]
+            cols = st.columns(3)
+            for j, attr in enumerate(row_attrs):
+                with cols[j]:
+                    val = st.number_input(
+                        attr, 1, 20, 10, step=1,
+                        key=f"fm_{prefix}_{attr}"
+                    )
+                    result[attr] = val
+        return result
+
+    col_left, col_right = st.columns([1.6, 1])
+    with col_left:
+        t1, t2, t3 = st.tabs(["⚙️ Teknik", "🧠 Zihinsel", "💪 Fiziksel"])
+        with t1:
+            fm_tech = _fm_attr_section(TECHNICAL, "tech", "⚙️ Teknik", "#58a6ff")
+        with t2:
+            fm_mental = _fm_attr_section(MENTAL, "ment", "🧠 Zihinsel", "#bc8cff")
+        with t3:
+            fm_phys = _fm_attr_section(PHYSICAL, "phys", "💪 Fiziksel", "#2ecc71")
+
+    with col_right:
+        if fm_is_gk:
+            st.markdown(
+                "<div style='font-size:11px;font-weight:700;color:#e67e22;"
+                "margin:8px 0 4px'>🧤 Kaleci</div>",
+                unsafe_allow_html=True
+            )
+            fm_gk = {}
+            for attr in GOALKEEPER:
+                fm_gk[attr] = st.number_input(
+                    attr, 1, 20,
+                    GK_ATTR_MEANS.get(attr, 10),
+                    key=f"fm_gk_{attr}"
+                )
+        else:
+            fm_gk = {attr: 1 for attr in GOALKEEPER}
+
+        st.markdown("---")
+        st.markdown(
+            "<div style='font-size:11px;font-weight:700;color:#f1c40f;"
+            "margin:8px 0 4px'>🔒 Gizli Özellikler</div>",
+            unsafe_allow_html=True
+        )
+        fm_hidden = {}
+        for attr in HIDDEN:
+            fm_hidden[attr] = st.number_input(
+                attr, 1, 20, 10, key=f"fm_hid_{attr}"
+            )
+
+    st.divider()
+
+    # ── Analiz Butonu ──────────────────────────────────────
+    if st.button("🔍 Analiz Et", type="primary", key="fm_analyze"):
+
+        fm_all_a = ({**fm_tech, **fm_mental, **fm_phys, **fm_gk}
+                    if fm_is_gk else {**fm_tech, **fm_mental, **fm_phys})
+
+        calc_ca   = calculate_ca(fm_all_a, fm_pos, fm_wf)
+        ca_delta  = calc_ca - fm_ca_fm
+        pers      = detect_personality(fm_hidden)
+        value_str = calculate_transfer_value(fm_ca_fm, fm_pa, fm_age)
+        weekly    = calculate_wage(fm_ca_fm, fm_pa, fm_age,
+                                   pers["name"], fm_cty)
+        yrs       = calculate_contract_years(fm_age, fm_ca_fm, fm_pa)
+        sign_bon  = calculate_signing_bonus(fm_ca_fm, fm_pa, fm_age)
+        grade     = scout_grade(fm_pa)
+        flag      = COUNTRY_FLAG.get(fm_cty, "🏳️")
+
+        st.session_state["fm_result"] = {
+            "name": fm_name, "pos": fm_pos, "age": fm_age,
+            "cty": fm_cty, "ca_fm": fm_ca_fm, "pa": fm_pa,
+            "calc_ca": calc_ca, "ca_delta": ca_delta,
+            "foot": fm_foot, "wf": fm_wf,
+            "height": fm_height, "weight": fm_weight,
+            "pers": pers, "value_str": value_str,
+            "weekly": weekly, "yrs": yrs, "sign_bon": sign_bon,
+            "grade": grade, "flag": flag,
+            "tech": fm_tech, "mental": fm_mental,
+            "phys": fm_phys, "gk": fm_gk,
+            "hidden": fm_hidden, "all_a": fm_all_a,
+        }
+
+    # ── Sonuç ─────────────────────────────────────────────
+    if "fm_result" in st.session_state:
+        R = st.session_state["fm_result"]
+        gc = {"A":"#2ecc71","B":"#27ae60","C":"#f1c40f",
+              "D":"#e67e22","E":"#e74c3c"}.get(R["grade"],"#aaa")
+        delta_c = "#2ecc71" if R["ca_delta"] >= 0 else "#e74c3c"
+        delta_s = f"+{R['ca_delta']}" if R["ca_delta"] >= 0 else str(R["ca_delta"])
+
+        st.markdown("---")
+        st.markdown("## 📊 Analiz Sonucu")
+
+        # Oyuncu başlık kartı
+        st.markdown(
+            f"<div style='background:linear-gradient(135deg,#0d1117,#161b22);"
+            f"border:1px solid #30363d;border-radius:12px;padding:16px 22px;"
+            f"margin-bottom:16px'>"
+            f"<div style='font-size:22px;font-weight:900;color:#f0f0f0'>"
+            f"{R['flag']} {R['name']}</div>"
+            f"<div style='color:#8b949e;font-size:13px'>"
+            f"{R['pos']} · {R['cty']} · {R['age']} yaş · "
+            f"{R['foot']} · {R['height']} cm / {R['weight']} kg</div>"
+            f"<div style='margin-top:10px;display:flex;gap:24px;align-items:center'>"
+            f"<div><div style='font-size:10px;color:#8b949e'>FM CA</div>"
+            f"<div style='font-size:24px;font-weight:900;color:#2ecc71'>{R['ca_fm']}</div></div>"
+            f"<div><div style='font-size:10px;color:#8b949e'>Hesaplanan CA</div>"
+            f"<div style='font-size:24px;font-weight:900;color:#3498db'>{R['calc_ca']}</div></div>"
+            f"<div><div style='font-size:10px;color:#8b949e'>Fark</div>"
+            f"<div style='font-size:20px;font-weight:900;color:{delta_c}'>{delta_s}</div></div>"
+            f"<div><div style='font-size:10px;color:#8b949e'>PA</div>"
+            f"<div style='font-size:20px;font-weight:700;color:#e67e22'>{R['pa']}</div></div>"
+            f"<div><div style='font-size:10px;color:#8b949e'>Scout</div>"
+            f"<div style='font-size:20px;font-weight:900;color:{gc}'>{R['grade']}</div></div>"
+            f"</div></div>",
+            unsafe_allow_html=True
+        )
+
+        # CA fark uyarısı
+        if abs(R["ca_delta"]) > 10:
+            st.warning(
+                f"⚠️ FM CA ({R['ca_fm']}) ile hesaplanan CA ({R['calc_ca']}) arasında "
+                f"**{abs(R['ca_delta'])} puanlık** fark var. "
+                f"{'Girilen attribute değerlerini kontrol et.' if R['ca_delta'] < 0 else 'FM bu oyuncuyu daha yüksek değerlendiriyor olabilir.'}"
+            )
+
+        # ── Ana Layout ────────────────────────────────────
+        res_l, res_m, res_r = st.columns([1.1, 1, 1.2])
+
+        with res_l:
+            # Radar
+            st.markdown("**📡 Radar**")
+            fig_fm = radar_chart(R["all_a"], R["pos"])
+            st.pyplot(fig_fm, use_container_width=True)
+            plt.close(fig_fm)
+
+            # Kişilik
+            st.markdown("**🧬 Kişilik**")
+            pers = R["pers"]
+            st.markdown(
+                f"<div style='background:#161b22;border-left:3px solid "
+                f"{pers['color']};border-radius:8px;padding:10px 14px'>"
+                f"<div style='font-weight:800;color:{pers['color']}'>"
+                f"{pers['name']}</div>"
+                f"<div style='font-size:11px;color:#8b949e;margin-top:3px'>"
+                f"{pers['desc']}</div></div>",
+                unsafe_allow_html=True
+            )
+
+            # Öne çıkan gizli değerler
+            highlights = sorted(
+                [(k,v) for k,v in R["hidden"].items() if v >= 14],
+                key=lambda x: -x[1]
+            )
+            if highlights:
+                st.markdown("**🔒 Öne Çıkan Gizli**")
+                bdg = ""
+                for attr, val in highlights[:8]:
+                    c = "#3498db" if val>=17 else "#2ecc71"
+                    bdg += (f"<span style='background:#21262d;border-radius:8px;"
+                            f"padding:2px 8px;font-size:11px;color:{c};"
+                            f"margin:2px;display:inline-block'>{attr} {val}</span>")
+                st.markdown(bdg, unsafe_allow_html=True)
+
+        with res_m:
+            # Finansal Özet
+            st.markdown("**💰 Finansal**")
+            for label, val, color in [
+                ("Transfer Değeri", R["value_str"], "#f1c40f"),
+                ("Haftalık Maaş",  format_wage(R["weekly"]), "#e67e22"),
+                (f"Sözleşme",       f"{R['yrs']} yıl", "#3498db"),
+                ("İmzalama Bonusu",f"{R['sign_bon']/1e6:.1f}M €", "#9b59b6"),
+            ]:
+                st.markdown(
+                    f"<div style='background:#161b22;border-radius:6px;"
+                    f"padding:8px 12px;margin-bottom:4px'>"
+                    f"<div style='font-size:10px;color:#8b949e'>{label}</div>"
+                    f"<div style='font-weight:700;color:{color}'>{val}</div></div>",
+                    unsafe_allow_html=True
+                )
+
+            # Kariyer projeksiyonu
+            st.markdown("**📈 Kariyer Projeksiyonu**")
+            prof = R["hidden"].get("Profesyonellik", 12)
+            eff_pa = calculate_effective_pa(R["pa"], prof, "Star")
+            growth = simulate_growth(R["age"], R["ca_fm"], eff_pa, prof, R["pos"])
+            if growth:
+                ages_g = [R["age"]] + [y for y,_ in growth]
+                vals_g = [R["ca_fm"]] + [v for _,v in growth]
+                fig_g, ax_g = plt.subplots(figsize=(4, 2.5))
+                fig_g.patch.set_facecolor("#0d1117")
+                ax_g.set_facecolor("#0d1117")
+                ax_g.plot(ages_g, vals_g, color="#2ecc71", lw=2, marker="o", ms=4)
+                ax_g.fill_between(ages_g, vals_g, alpha=0.1, color="#2ecc71")
+                ax_g.axhline(R["pa"], color="#e67e22", ls="--", lw=1,
+                             label=f"PA {R['pa']}")
+                ax_g.axhline(eff_pa, color="#555", ls=":", lw=1,
+                             label=f"Eff {eff_pa}")
+                ax_g.set_ylim(max(0, min(vals_g)-10), min(200, R["pa"]+15))
+                ax_g.tick_params(colors="#aaa", labelsize=6)
+                ax_g.spines[:].set_color("#1e2235")
+                ax_g.legend(fontsize=6, labelcolor="#aaa", facecolor="#0d1117")
+                ax_g.grid(color="#1e2235", lw=0.5)
+                plt.tight_layout(pad=0.3)
+                st.pyplot(fig_g, use_container_width=True)
+                plt.close(fig_g)
+
+            # Zirve CA ve kaç yıl
+            peak = max(vals_g) if growth else R["ca_fm"]
+            st.caption(f"Zirve CA: **{peak}** · PA kullanım: **%{int(peak/R['pa']*100)}**")
+
+        with res_r:
+            # Tüm mevkilerde CA
+            st.markdown("**📍 Mevki Fit Analizi**")
+            pos_cas = sorted(
+                [(pos, calculate_ca(R["all_a"], pos, R["wf"])) for pos in ALL_POSITIONS],
+                key=lambda x: -x[1]
+            )
+            max_pc = pos_cas[0][1]
+            pos_c_map = {
+                "ST":"#e74c3c","KF (Sol)":"#e74c3c","KF (Sağ)":"#e74c3c",
+                "OOS":"#e67e22","KANAT (Sol)":"#e67e22","KANAT (Sağ)":"#e67e22",
+                "OS":"#f1c40f","DM":"#f1c40f",
+                "KB (Sol)":"#2ecc71","KB (Sağ)":"#2ecc71",
+                "D (Sol)":"#3498db","D (Sağ)":"#3498db","DOS":"#3498db",
+                "KL":"#9b59b6",
+            }
+            fit_html = "<div style='display:flex;flex-direction:column;gap:3px'>"
+            for i,(pos,ca_v) in enumerate(pos_cas):
+                pct  = ca_v / max(max_pc,1) * 100
+                pc   = pos_c_map.get(pos,"#aaa")
+                bold = pos == R["pos"]
+                medal = ["🥇","🥈","🥉"][i] if i<3 else ""
+                is_main = "★ " if pos == R["pos"] else ""
+                gr = scout_grade(ca_v)
+                fit_html += (
+                    f"<div style='display:flex;align-items:center;gap:6px;"
+                    f"padding:2px 4px;border-radius:4px;"
+                    f"background:{'#161b22' if bold else 'transparent'}'>"
+                    f"<span style='width:20px;font-size:10px'>{medal}</span>"
+                    f"<span style='width:80px;font-size:{'12px' if bold else '10px'};"
+                    f"color:{pc};font-weight:{'800' if bold else '400'}'>"
+                    f"{is_main}{pos}</span>"
+                    f"<div style='flex:1;background:#1e1e2e;border-radius:3px;height:6px'>"
+                    f"<div style='width:{pct:.0f}%;height:100%;background:{pc};"
+                    f"opacity:{'1' if i<3 else '0.5'};border-radius:3px'></div></div>"
+                    f"<span style='width:28px;font-size:10px;color:#f0f0f0;"
+                    f"font-weight:{'700' if bold else '400'}'>{ca_v}</span>"
+                    f"<span style='width:14px;font-size:9px;color:{gc}'>{gr}</span>"
+                    f"</div>"
+                )
+            fit_html += "</div>"
+            st.markdown(fit_html, unsafe_allow_html=True)
+
+        # ── Havuza Kaydet ──────────────────────────────────
+        st.divider()
+        sv1, sv2 = st.columns([1, 4])
+        with sv1:
+            _fm_id = f"FM_{R['name']}_{R['age']}_{R['ca_fm']}"
+            _in_pool = any(p.get("_id") == _fm_id
+                          for p in st.session_state.get("player_pool", []))
+            if _in_pool:
+                st.success("✅ Havuzda", icon="📦")
+            else:
+                if st.button("📦 Havuza Ekle", key="fm_to_pool", type="primary"):
+                    entry = {
+                        "_id"       : _fm_id,
+                        "_idx"      : len(st.session_state.get("player_pool",[])),
+                        "name"      : R["name"],
+                        "flag"      : R["flag"],
+                        "position"  : R["pos"],
+                        "age"       : R["age"],
+                        "country"   : R["cty"],
+                        "preset"    : "Star",
+                        "ca"        : R["ca_fm"],
+                        "pa"        : R["pa"],
+                        "personality": R["pers"],
+                        "height"    : R["height"],
+                        "weight"    : R["weight"],
+                        "foot"      : R["foot"],
+                        "weak_foot" : R["wf"],
+                        "favori"    : False,
+                        "tech"      : R["tech"],
+                        "mental"    : R["mental"],
+                        "phys"      : R["phys"],
+                        "gk"        : R["gk"],
+                        "hidden"    : R["hidden"],
+                    }
+                    if "player_pool" not in st.session_state:
+                        st.session_state.player_pool = []
+                    st.session_state.player_pool.append(entry)
+                    st.rerun()
+        with sv2:
+            st.caption("📦 Oyuncu Havuzu'na eklenirse Excel'e aktarabilirsin.")
