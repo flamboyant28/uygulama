@@ -1614,7 +1614,46 @@ with tab_rapor:
             [fmt_tas(ev_tas), f"{ev_aylik_tas:+,.0f} ₺", f"{ev_yillik_tas:+,.0f} ₺", f"{ev_oran:.2f}×"],
         ], [4.5*cm, 4*cm, 4*cm, 4*cm]))
 
-        # ── 6. Yakıt Dolum Noktaları ──────────────────────────────────────────
+        # ── 6. EV Toplam Yolculuk Süresi ─────────────────────────────────────
+        if _ev_sarj_sayisi > 0:
+            story.append(Paragraph("EV ile Toplam Yolculuk Süresi", bolum_stili))
+            story.append(tablo([
+                ["Sürüş + Mola", "Şarj Sayısı", "DC Şarj Süresi", "DC ile Toplam", "AC Şarj Süresi", "AC ile Toplam"],
+                [sure_str, f"{_ev_sarj_sayisi} şarj",
+                 f"{_ev_dc_toplam} dk ({_ev_dc_def} kW)", fmt_sure(_ev_sure_dc),
+                 f"{_ev_ac_toplam} dk ({_ev_ac_def} kW)", fmt_sure(_ev_sure_ac)],
+            ], [2.8*cm, 2.2*cm, 3.2*cm, 2.8*cm, 3.2*cm, 2.8*cm]))
+            story.append(Paragraph(
+                f"% {_ev_min_def} → %{_ev_hedef_def} şarj varsayımı. "
+                f"DC: {_ev_sure_dc - molali_sure:.1f}s şarj bekleme · "
+                f"AC: {_ev_sure_ac - molali_sure:.1f}s şarj bekleme", alt_stili))
+
+        # ── 7. Hıza Göre Menzil & Süre Analizi ───────────────────────────────
+        story.append(Paragraph("Hıza Göre Menzil & Süre Analizi", bolum_stili))
+        hiz_tablosu = [["Hız (km/h)", "Tüketim (L/100km)", "Hız Etkisi", "Depo Menzili", "Sürüş Süresi", "Toplam Süre", "Varış"]]
+        for _v in [70, 80, 90, 100, 110, 120, 130, 150]:
+            if _v >= 90:
+                _hk = 0.77 + 0.23 * (_v / 90) ** 2
+            elif _v <= 50:
+                _hk = 1.30
+            elif _v <= 70:
+                _hk = 1.30 + (1.08 - 1.30) * (_v - 50) / 20
+            else:
+                _hk = 1.08 + (1.00 - 1.08) * (_v - 70) / 20
+            _tuk_v   = tuketim * _hk * hava_kat + yuk_ek
+            _menzil  = (depo / _tuk_v) * 100 if _tuk_v > 0 else 0
+            _sure_h  = yol / _v
+            _mol_s   = int(_sure_h / mola_araligi)
+            _toplam  = _sure_h + _mol_s * mola_suresi / 60
+            _varis_v = (datetime.combine(datetime.today(), cikis) + timedelta(hours=_toplam)).strftime("%H:%M")
+            _flag    = " ◀" if _v == hiz else ""
+            hiz_tablosu.append([
+                f"{_v}{_flag}", f"{_tuk_v:.1f}", f"{(_hk-1)*100:+.0f}%",
+                f"{_menzil:.0f} km", fmt_sure(_sure_h), fmt_sure(_toplam), _varis_v
+            ])
+        story.append(tablo(hiz_tablosu, [2.2*cm, 3*cm, 2.2*cm, 2.8*cm, 2.8*cm, 2.8*cm, 2.2*cm]))
+
+        # ── 8. Yakıt Dolum Noktaları ──────────────────────────────────────────
         yakit_idx_r = yakit_durak_indeksleri()
         if yakit_idx_r:
             story.append(Paragraph("Yakıt Dolum Noktaları", bolum_stili))
@@ -1626,34 +1665,28 @@ with tab_rapor:
                     tv2.append([f"{len(tv2)}", f"{il} / {ilce}", f"{kum_km} km", f"{tam_depo_menzil:.0f} km"])
             story.append(tablo(tv2, [2*cm, 6*cm, 4*cm, 4*cm]))
 
-        # ── 7. EV Şarj Planı ──────────────────────────────────────────────────
-        if _ev_sarj_sayisi > 1:
+        # ── 9. EV Şarj Planı (tam tablo) ─────────────────────────────────────
+        if _ev_sarj_sayisi > 1 and plan_rows:
             story.append(Paragraph("EV Şarj Planı", bolum_stili))
-            ev_min_r = st.session_state.get("ev_min", 20)
-            ev_dc_r  = st.session_state.get("ev_dc",  50)
-            ev_ac_r  = st.session_state.get("ev_ac",   7)
-            ev_dc_f  = st.session_state.get("ev_dc_fiyat", ev_fiyat)
-            ev_ac_f  = st.session_state.get("ev_ac_fiyat", ev_fiyat)
-            hedef_r  = 90
-            ek_kwh_r = ev_batarya * (hedef_r - ev_min_r) / 100
+            ev_tv = [["#", "Konum", "~km", "Gelinen", "Hedef", "DC Süre", "DC Mal.", "AC Süre", "AC Mal."]]
+            for pr in plan_rows:
+                ev_tv.append([
+                    str(pr["Şarj #"]), pr["Konum"], pr["~km"],
+                    pr["Gelinen şarj"], pr["Hedef şarj"],
+                    pr["DC süresi"], pr["DC maliyeti"],
+                    pr["AC süresi"], pr["AC maliyeti"],
+                ])
+            story.append(tablo(ev_tv, [1*cm, 4.5*cm, 1.8*cm, 1.6*cm, 1.6*cm, 2.8*cm, 1.8*cm, 2.8*cm, 1.8*cm]))
 
-            def sarj_dk_r(bas, hed, kwh, kw):
-                if bas >= hed: return 0
-                if hed <= 80:
-                    return round((kwh*(hed-bas)/100/kw)*60)
-                else:
-                    dk = (kwh*(80-bas)/100/kw)*60 if bas<80 else 0
-                    dk += (kwh*(hed-max(bas,80))/100/(kw*0.25))*60
-                    return round(dk)
-
-            dc_dk_r = sarj_dk_r(ev_min_r, hedef_r, ev_batarya, ev_dc_r)
-            ac_dk_r = sarj_dk_r(ev_min_r, hedef_r, ev_batarya, ev_ac_r)
+            # Özet
+            t_dc_m = sum(float(r["DC maliyeti"].replace(" ₺","")) for r in plan_rows)
+            t_ac_m = sum(float(r["AC maliyeti"].replace(" ₺","")) for r in plan_rows)
+            story.append(Spacer(1, 0.2*cm))
             story.append(tablo([
-                ["Şarj Sayısı", "Eklenen Enerji", "DC Süresi/Şarj", "DC Toplam Mal.", "AC Süresi/Şarj", "AC Toplam Mal."],
-                [f"{_ev_sarj_sayisi} şarj", f"{ek_kwh_r:.1f} kWh",
-                 f"{dc_dk_r} dk ({ev_dc_r}kW)", f"{ek_kwh_r*ev_dc_f*_ev_sarj_sayisi:,.0f} ₺",
-                 f"{ac_dk_r} dk ({ev_ac_r}kW)", f"{ek_kwh_r*ev_ac_f*_ev_sarj_sayisi:,.0f} ₺"],
-            ], [2.5*cm, 3*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm]))
+                ["DC Toplam Maliyet", "AC Toplam Maliyet", "DC Toplam Bekleme", "AC Toplam Bekleme"],
+                [f"{t_dc_m:.0f} ₺", f"{t_ac_m:.0f} ₺",
+                 f"{_ev_dc_toplam} dk", f"{_ev_ac_toplam} dk"],
+            ], [4.5*cm, 4*cm, 4*cm, 4*cm]))
 
         # ── 8. Hız & Tüketim Notu ────────────────────────────────────────────
         story.append(Spacer(1, 0.3*cm))
@@ -1788,7 +1821,46 @@ with tab_rapor:
         ws2.row_dimensions[r2].height=18; r2+=1
         for j, v in enumerate([fmt_tas(ev_tas), f"{ev_aylik_tas:+,.0f}₺", f"{ev_yillik_tas:+,.0f}₺", f"{ev_oran:.2f}×"],1):
             vl(ws2.cell(r2,j), v, bg=GRN if ev_tas>0 else "FFD7CC")
-        ws2.row_dimensions[r2].height=18
+        ws2.row_dimensions[r2].height=18; r2+=2
+
+        # EV Toplam Yolculuk Süresi
+        if _ev_sarj_sayisi > 0:
+            r2 = ayrac(ws2, r2, "F", "EV İLE TOPLAM YOLCULUK SÜRESİ", bg=PURP)
+            for j, h in enumerate(["Sürüş+Mola","Şarj Sayısı","DC Şarj Süresi","DC ile Toplam","AC Şarj Süresi","AC ile Toplam"],1):
+                hd(ws2.cell(r2,j),h,bg=PURP)
+            ws2.row_dimensions[r2].height=18; r2+=1
+            for j, v in enumerate([sure_str, f"{_ev_sarj_sayisi} şarj",
+                f"{_ev_dc_toplam}dk ({_ev_dc_def}kW)", fmt_sure(_ev_sure_dc),
+                f"{_ev_ac_toplam}dk ({_ev_ac_def}kW)", fmt_sure(_ev_sure_ac)],1):
+                vl(ws2.cell(r2,j), v, bg="F0E6FF")
+            ws2.row_dimensions[r2].height=18; r2+=2
+
+        # Hıza Göre Menzil & Süre Analizi
+        r2 = ayrac(ws2, r2, "G", "HIZA GÖRE MENZİL & SÜRE ANALİZİ")
+        for j, h in enumerate(["Hız","Tüketim","Hız Etkisi","Depo Menzili","Sürüş","Toplam Süre","Varış"],1):
+            hd(ws2.cell(r2,j),h)
+        ws2.row_dimensions[r2].height=18; r2+=1
+        for _v in [70, 80, 90, 100, 110, 120, 130, 150]:
+            if _v >= 90:
+                _hk2 = 0.77 + 0.23 * (_v / 90) ** 2
+            elif _v <= 50:
+                _hk2 = 1.30
+            elif _v <= 70:
+                _hk2 = 1.30 + (1.08 - 1.30) * (_v - 50) / 20
+            else:
+                _hk2 = 1.08 + (1.00 - 1.08) * (_v - 70) / 20
+            _tuk2   = tuketim * _hk2 * hava_kat + yuk_ek
+            _men2   = (depo / _tuk2) * 100 if _tuk2 > 0 else 0
+            _sh2    = yol / _v
+            _ms2    = int(_sh2 / mola_araligi)
+            _top2   = _sh2 + _ms2 * mola_suresi / 60
+            _var2   = (datetime.combine(datetime.today(), cikis) + timedelta(hours=_top2)).strftime("%H:%M")
+            _aktif  = "F0F4F8" if _v != hiz else "D6E4F0"
+            _flag   = f"{_v} ◀" if _v == hiz else str(_v)
+            for j, v in enumerate([_flag, f"{_tuk2:.1f} L/100km", f"{(_hk2-1)*100:+.0f}%",
+                f"{_men2:.0f} km", fmt_sure(_sh2), fmt_sure(_top2), _var2],1):
+                vl(ws2.cell(r2,j), v, bg=_aktif)
+            ws2.row_dimensions[r2].height=16; r2+=1
 
         # ── Sheet 3: EV Şarj Planı ────────────────────────────────────────────
         if ws3 and _ev_sarj_sayisi > 1 and plan_rows:
