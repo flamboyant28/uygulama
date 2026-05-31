@@ -1110,16 +1110,26 @@ with tab_ozet:
             dc_top += s[1]; ac_top += s[2]
             cum_dc.append(dc_top); cum_ac.append(ac_top)
 
-        # Varış saatleri (kümülatif şarj + mola dahil)
-        _base_dt = datetime.combine(datetime.today(), cikis)
-        _cur     = _base_dt
-        varis_benzin = []; varis_ev_dc = []; varis_ev_ac = []
+        # Varış saatleri — 3 ayrı senaryo
+        _base_dt    = datetime.combine(datetime.today(), cikis)
+        _cur_drive  = _base_dt   # sadece sürüş (molasız)
+        _cur_bnz    = _base_dt   # sürüş + mola
+        varis_drive = []; varis_benzin = []; varis_ev_dc = []; varis_ev_ac = []
+
         for i, row in seg_df.iterrows():
-            seg_h = parse_sure(row["Toplam"])      # bu segmentin sürüş+mola süresi
-            _cur  = _cur + timedelta(hours=seg_h)
-            varis_benzin.append(_cur.strftime("%H:%M"))
-            varis_ev_dc.append( (_cur + timedelta(minutes=cum_dc[i])).strftime("%H:%M"))
-            varis_ev_ac.append( (_cur + timedelta(minutes=cum_ac[i])).strftime("%H:%M"))
+            surus_h  = parse_sure(row["Sürüş"])   # sadece sürüş süresi
+            toplam_h = parse_sure(row["Toplam"])   # sürüş + mola
+
+            _cur_drive = _cur_drive + timedelta(hours=surus_h)
+            _cur_bnz   = _cur_bnz   + timedelta(hours=toplam_h)
+
+            varis_drive.append(_cur_drive.strftime("%H:%M"))
+            varis_benzin.append(_cur_bnz.strftime("%H:%M"))
+            varis_ev_dc.append((_cur_bnz + timedelta(minutes=cum_dc[i])).strftime("%H:%M"))
+            varis_ev_ac.append((_cur_bnz + timedelta(minutes=cum_ac[i])).strftime("%H:%M"))
+
+        # "Varış" sütununu sadece sürüş varışıyla güncelle
+        seg_df["Varış"]        = varis_drive
 
         # Sütun sırası: ... Yakıt Mal. | Varış(Bnz) | EV Şarj | EV DC Süre | EV DC Mal. | EV DC Varış | EV AC Süre | EV AC Mal. | EV AC Varış
         seg_df["Varış (Bnz)"]  = varis_benzin
