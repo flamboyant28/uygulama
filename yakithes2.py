@@ -1114,8 +1114,8 @@ with tab_ozet:
     else:
         evc1, evc2, evc3, evc4 = st.columns(4)
         ev_baslangic_pct = evc1.number_input("Başlangıç şarjı (%)", 10, 100, 100, 5, key="ev_bas")
-        ev_min_pct       = evc2.number_input("Min şarj eşiği (%)",   5,  50,  10, 5, key="ev_min")
-        ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  70, 10, key="ev_dc")
+        ev_min_pct       = evc2.number_input("Min şarj eşiği (%)",   5,  50,  20, 5, key="ev_min")
+        ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  50, 10, key="ev_dc")
         ev_ac_kw         = evc4.number_input("AC normal şarj (kW)",  3,  22,   7,  1, key="ev_ac")
 
         evc5, evc6, _ = st.columns([1, 1, 2])
@@ -1143,7 +1143,7 @@ with tab_ozet:
             return round(dk)
 
         # Şarj planı — segment içi ara şarjlar dahil
-        hedef_pct    = 80
+        hedef_pct    = 90
         sarj_menzil  = ev_menzil * (hedef_pct - ev_min_pct) / 100  # şarj sonrası gidilebilecek
         kalan_menzil = ev_menzil * (ev_baslangic_pct - ev_min_pct) / 100  # ilk şarja kadar
         kum          = 0
@@ -1193,9 +1193,9 @@ with tab_ozet:
             sc1, sc2, sc3, sc4 = st.columns(4)
             il0, ilce0 = plan_rows[0]["Konum"].split(" / ")
             lat0, lon0 = koordinat(il0.strip(), ilce0.strip())
-            sc1.link_button("🟢 ZES",      "https://zes.net/tr/sarj-istasyonlari",    use_container_width=True)
-            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/network",      use_container_width=True)
-            sc3.link_button("🟠 Eşarj",   "https://esarj.com/esarj-noktalari",  use_container_width=True)
+            sc1.link_button("🟢 ZES",      "https://www.zes.net/sarj-istasyonlari",    use_container_width=True)
+            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/sarj-noktalari",      use_container_width=True)
+            sc3.link_button("🟠 Eşarj",   "https://www.esarj.com/sarj-istasyonlari",  use_container_width=True)
             sc4.link_button("⚡ PlugShare",
                 f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
                 use_container_width=True)
@@ -1487,141 +1487,294 @@ with tab_rapor:
         doc = SimpleDocTemplate(buf, pagesize=A4,
             leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
         stiller = getSampleStyleSheet()
-        baslik_stili  = ParagraphStyle("B", parent=stiller["Heading1"],
-            fontName=PDF_FONT_BOLD, fontSize=16, textColor=colors.HexColor("#1F4E78"), spaceAfter=4)
-        alt_stili     = ParagraphStyle("A", parent=stiller["Normal"],
-            fontName=PDF_FONT, fontSize=9, textColor=colors.grey, spaceAfter=12)
-        bolum_stili   = ParagraphStyle("S", parent=stiller["Heading2"],
-            fontName=PDF_FONT_BOLD, fontSize=11, textColor=colors.HexColor("#1F4E78"), spaceBefore=14, spaceAfter=6)
+        baslik_stili = ParagraphStyle("B", parent=stiller["Heading1"],
+            fontName=PDF_FONT_BOLD, fontSize=15, textColor=colors.HexColor("#1F4E78"), spaceAfter=4)
+        alt_stili    = ParagraphStyle("A", parent=stiller["Normal"],
+            fontName=PDF_FONT, fontSize=8.5, textColor=colors.grey, spaceAfter=8)
+        bolum_stili  = ParagraphStyle("S", parent=stiller["Heading2"],
+            fontName=PDF_FONT_BOLD, fontSize=10.5, textColor=colors.HexColor("#1F4E78"), spaceBefore=12, spaceAfter=5)
+        uyari_stili  = ParagraphStyle("U", parent=stiller["Normal"],
+            fontName=PDF_FONT, fontSize=8, textColor=colors.HexColor("#C62828"), spaceAfter=4)
 
         def tablo(veriler, col_w=None):
             t = Table(veriler, colWidths=col_w)
             t.setStyle(TableStyle([
-                ("BACKGROUND",   (0,0), (-1,0), colors.HexColor("#1F4E78")),
-                ("TEXTCOLOR",    (0,0), (-1,0), colors.white),
-                ("FONTNAME",     (0,0), (-1,0), PDF_FONT_BOLD),
-                ("FONTNAME",     (0,1), (-1,-1), PDF_FONT),
-                ("FONTSIZE",     (0,0), (-1,-1), 8),
-                ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white, colors.HexColor("#F0F4F8")]),
-                ("GRID",         (0,0), (-1,-1), 0.3, colors.HexColor("#CCCCCC")),
-                ("VALIGN",       (0,0), (-1,-1), "MIDDLE"),
-                ("TOPPADDING",   (0,0), (-1,-1), 4),
-                ("BOTTOMPADDING",(0,0), (-1,-1), 4),
+                ("BACKGROUND",    (0,0), (-1,0), colors.HexColor("#1F4E78")),
+                ("TEXTCOLOR",     (0,0), (-1,0), colors.white),
+                ("FONTNAME",      (0,0), (-1,0), PDF_FONT_BOLD),
+                ("FONTNAME",      (0,1), (-1,-1), PDF_FONT),
+                ("FONTSIZE",      (0,0), (-1,-1), 7.5),
+                ("ROWBACKGROUNDS",(0,1), (-1,-1), [colors.white, colors.HexColor("#F0F4F8")]),
+                ("GRID",          (0,0), (-1,-1), 0.3, colors.HexColor("#CCCCCC")),
+                ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
+                ("TOPPADDING",    (0,0), (-1,-1), 3),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 3),
             ])); return t
 
+        def bolum_tablo(baslik, renk="#1F4E78"):
+            return ParagraphStyle("BT", parent=stiller["Heading2"],
+                fontName=PDF_FONT_BOLD, fontSize=10.5,
+                textColor=colors.HexColor(renk), spaceBefore=12, spaceAfter=5)
+
         story = [
-            Paragraph("🚗 Araç Yol Bilgisayarı — Seyahat Raporu", baslik_stili),
+            Paragraph("Araç Yol Bilgisayarı — Seyahat Raporu", baslik_stili),
             Paragraph(f"{rota}  ·  {total_yol} km  ·  {tarih}", alt_stili),
-            Paragraph("Özet Bilgiler", bolum_stili),
-            tablo([
-                ["Yol","Gidiş-Dönüş","Kişi Başı","Toplam Süre","Varış"],
-                [f"{yol} km", f"{gidis_donus:,.0f} ₺", f"{kisi_basi:,.0f} ₺", sure_str, varis_str],
-            ], [3*cm,3.5*cm,3.5*cm,3.5*cm,3*cm]),
-            Spacer(1,0.3*cm),
-            tablo([
-                ["Menzil","Tüketim (düz.)","Yakıt Fiyatı","Aylık Gider","Yıllık Gider"],
-                [f"{tam_depo_menzil:.0f} km", f"{tuk:.1f} L/100km",
-                 f"{fiyat:.2f} ₺/L", f"{aylik_gider:,.0f} ₺", f"{yillik_gider:,.0f} ₺"],
-            ], [3.5*cm,3.5*cm,3.5*cm,3.5*cm,3*cm]),
         ]
 
+        # ── 1. Özet ──────────────────────────────────────────────────────────
+        story.append(Paragraph("Özet Bilgiler", bolum_stili))
+        story.append(tablo([
+            ["Yol", "Gidiş-Dönüş", "Kişi Başı", "Sürüş Süresi", "Toplam Süre", "Varış"],
+            [f"{yol} km", f"{gidis_donus:,.0f} ₺", f"{kisi_basi:,.0f} ₺",
+             surus_str, sure_str, varis_str],
+        ], [3*cm, 3.5*cm, 3*cm, 3*cm, 3*cm, 2.5*cm]))
+        story.append(Spacer(1, 0.2*cm))
+        story.append(tablo([
+            ["Benzin Menzili", "Tüketim (düz.)", "Yakıt Fiyatı", "Aylık Gider", "Yıllık Gider", "Mola"],
+            [f"{tam_depo_menzil:.0f} km", f"{tuk:.1f} L/100km",
+             f"{fiyat:.2f} ₺/L", f"{aylik_gider:,.0f} ₺", f"{yillik_gider:,.0f} ₺", mola_str],
+        ], [3*cm, 3.5*cm, 3*cm, 3*cm, 3*cm, 2.5*cm]))
+
+        # ── 2. Güzergah Detayı ───────────────────────────────────────────────
         if len(segments) > 1:
             story.append(Paragraph("Güzergah Detayı", bolum_stili))
             rows = build_seg_rows()
-            tablo_v = [["Segment","Mesafe","Çıkış","Varış","Süre","Yakıt"]]
+            tv = [["Segment", "Mesafe", "Çıkış", "Varış", "Süre", "Yakıt Mal."]]
             for r in rows:
-                tablo_v.append([r["Segment"], r["Mesafe"], r["Çıkış"], r["Varış"],
-                                r["Toplam"], r["Yakıt Mal."]])
-            story.append(tablo([tablo_v[0]] + tablo_v[1:],
-                [6.5*cm,2.5*cm,1.8*cm,1.8*cm,2*cm,2.4*cm]))
+                tv.append([r["Segment"], r["Mesafe"], r["Çıkış"], r["Varış"],
+                            r["Toplam"], r["Yakıt Mal."]])
+            story.append(tablo(tv, [6*cm, 2.5*cm, 1.8*cm, 1.8*cm, 2*cm, 2.4*cm]))
 
-        story.append(Paragraph("Yakıt Karşılaştırması", bolum_stili))
+        # ── 3. Yakıt Karşılaştırması ─────────────────────────────────────────
+        story.append(Paragraph("Yakıt Tipi Karşılaştırması", bolum_stili))
+        dizel_tuk_d_r = dizel_tuketim * hava_kat + yuk_ek
+        lpg_tuk_d_r   = lpg_tuketim   * hava_kat + yuk_ek
         story.append(tablo([
-            ["Yakıt","Fiyat","Yol Maliyeti","G/D Toplam","Tasarruf"],
-            ["Benzin",  f"{fiyat:.2f} ₺/L",      f"{bnz_m:,.0f} ₺", f"{bnz_m*2:,.0f} ₺", "—"],
-            ["Dizel",   f"{dizel_fiyat:.2f} ₺/L", f"{diz_m:,.0f} ₺", f"{diz_m*2:,.0f} ₺", fmt_tas(bnz_m-diz_m)],
-            ["LPG",     f"{lpg_fiyat:.2f} ₺/L",   f"{lpg_m:,.0f} ₺", f"{lpg_m*2:,.0f} ₺", fmt_tas(bnz_m-lpg_m)],
-            ["EV",      f"{ev_fiyat:.2f} ₺/kWh",  f"{ev_m:,.0f} ₺",  f"{ev_m*2:,.0f} ₺",  fmt_tas(bnz_m-ev_m)],
-        ], [3.5*cm,3.5*cm,3.5*cm,3.5*cm,3*cm]))
+            ["Yakıt", "Fiyat", "L(kWh)/km", "₺/km", "Yol Mal.", "G/D", "Tasarruf"],
+            ["Benzin", f"{fiyat:.2f} ₺/L",      f"{tuk/100:.3f}",            f"{tuk/100*fiyat:.3f}",            f"{bnz_m:,.0f} ₺", f"{bnz_m*2:,.0f} ₺", "—"],
+            ["Dizel",  f"{dizel_fiyat:.2f} ₺/L", f"{dizel_tuk_d_r/100:.3f}", f"{dizel_tuk_d_r/100*dizel_fiyat:.3f}", f"{diz_m:,.0f} ₺", f"{diz_m*2:,.0f} ₺", fmt_tas(bnz_m-diz_m)],
+            ["LPG",    f"{lpg_fiyat:.2f} ₺/L",   f"{lpg_tuk_d_r/100:.3f}",  f"{lpg_tuk_d_r/100*lpg_fiyat:.3f}",    f"{lpg_m:,.0f} ₺", f"{lpg_m*2:,.0f} ₺", fmt_tas(bnz_m-lpg_m)],
+            ["EV",     f"{ev_fiyat:.2f} ₺/kWh",  f"{ev_tuketim/100:.3f}",   f"{ev_tuketim/100*ev_fiyat:.3f}",      f"{ev_m:,.0f} ₺",  f"{ev_m*2:,.0f} ₺",  fmt_tas(bnz_m-ev_m)],
+        ], [2.5*cm, 3*cm, 2.2*cm, 2.2*cm, 2.5*cm, 2.5*cm, 2.6*cm]))
 
+        # ── 4. Menzil Karşılaştırması ─────────────────────────────────────────
+        story.append(Paragraph("Menzil & Tam Depo / Şarj Karşılaştırması", bolum_stili))
+        diz_menzil_r = (depo / dizel_tuk_d_r) * 100 if dizel_tuk_d_r > 0 else 0
+        lpg_menzil_r = (depo / lpg_tuk_d_r)   * 100 if lpg_tuk_d_r   > 0 else 0
+        ev_menzil_r  = (ev_batarya / ev_tuketim) * 100 if ev_tuketim > 0 else 0
+        story.append(tablo([
+            ["Yakıt", "Tam Depo Menzili", "Tam Depo / Şarj Maliyeti", "Bu Yol İçin"],
+            ["Benzin", f"{tam_depo_menzil:.0f} km",  f"{depo*fiyat:,.0f} ₺",        f"{gerekli_depo} depo"],
+            ["Dizel",  f"{diz_menzil_r:.0f} km",    f"{depo*dizel_fiyat:,.0f} ₺",  f"{math.ceil(yol/diz_menzil_r) if diz_menzil_r>0 else '—'} depo"],
+            ["LPG",    f"{lpg_menzil_r:.0f} km",    f"{depo*lpg_fiyat:,.0f} ₺",    f"{math.ceil(yol/lpg_menzil_r) if lpg_menzil_r>0 else '—'} depo"],
+            ["EV",     f"{ev_menzil_r:.0f} km",     f"{ev_batarya*ev_fiyat:,.0f} ₺", f"{_ev_sarj_sayisi} şarj"],
+        ], [3*cm, 4*cm, 5*cm, 4*cm]))
+
+        # ── 5. EV Tasarruf ────────────────────────────────────────────────────
+        story.append(Paragraph("Elektrikli Araç (EV) Tasarruf Analizi", bolum_stili))
+        story.append(tablo([
+            ["Bu Seyahat Tasarrufu", "Aylık Tasarruf", "Yıllık Tasarruf", "Benzin/EV Oranı"],
+            [fmt_tas(ev_tas), f"{ev_aylik_tas:+,.0f} ₺", f"{ev_yillik_tas:+,.0f} ₺", f"{ev_oran:.2f}×"],
+        ], [4.5*cm, 4*cm, 4*cm, 4*cm]))
+
+        # ── 6. Yakıt Dolum Noktaları ──────────────────────────────────────────
+        yakit_idx_r = yakit_durak_indeksleri()
+        if yakit_idx_r:
+            story.append(Paragraph("Yakıt Dolum Noktaları", bolum_stili))
+            tv2 = [["Sıra", "Konum", "Yaklaşık km", "Menzil"]]
+            for idx in yakit_idx_r:
+                if idx < len(st.session_state.duraks):
+                    il, ilce = st.session_state.duraks[idx]
+                    kum_km = sum(s[2] for s in segments[:idx])
+                    tv2.append([f"{len(tv2)}", f"{il} / {ilce}", f"{kum_km} km", f"{tam_depo_menzil:.0f} km"])
+            story.append(tablo(tv2, [2*cm, 6*cm, 4*cm, 4*cm]))
+
+        # ── 7. EV Şarj Planı ──────────────────────────────────────────────────
+        if _ev_sarj_sayisi > 1:
+            story.append(Paragraph("EV Şarj Planı", bolum_stili))
+            ev_min_r = st.session_state.get("ev_min", 20)
+            ev_dc_r  = st.session_state.get("ev_dc",  50)
+            ev_ac_r  = st.session_state.get("ev_ac",   7)
+            ev_dc_f  = st.session_state.get("ev_dc_fiyat", ev_fiyat)
+            ev_ac_f  = st.session_state.get("ev_ac_fiyat", ev_fiyat)
+            hedef_r  = 90
+            ek_kwh_r = ev_batarya * (hedef_r - ev_min_r) / 100
+
+            def sarj_dk_r(bas, hed, kwh, kw):
+                if bas >= hed: return 0
+                if hed <= 80:
+                    return round((kwh*(hed-bas)/100/kw)*60)
+                else:
+                    dk = (kwh*(80-bas)/100/kw)*60 if bas<80 else 0
+                    dk += (kwh*(hed-max(bas,80))/100/(kw*0.25))*60
+                    return round(dk)
+
+            dc_dk_r = sarj_dk_r(ev_min_r, hedef_r, ev_batarya, ev_dc_r)
+            ac_dk_r = sarj_dk_r(ev_min_r, hedef_r, ev_batarya, ev_ac_r)
+            story.append(tablo([
+                ["Şarj Sayısı", "Eklenen Enerji", "DC Süresi/Şarj", "DC Toplam Mal.", "AC Süresi/Şarj", "AC Toplam Mal."],
+                [f"{_ev_sarj_sayisi} şarj", f"{ek_kwh_r:.1f} kWh",
+                 f"{dc_dk_r} dk ({ev_dc_r}kW)", f"{ek_kwh_r*ev_dc_f*_ev_sarj_sayisi:,.0f} ₺",
+                 f"{ac_dk_r} dk ({ev_ac_r}kW)", f"{ek_kwh_r*ev_ac_f*_ev_sarj_sayisi:,.0f} ₺"],
+            ], [2.5*cm, 3*cm, 3.5*cm, 3.5*cm, 3.5*cm, 3.5*cm]))
+
+        # ── 8. Hız & Tüketim Notu ────────────────────────────────────────────
+        story.append(Spacer(1, 0.3*cm))
+        notlar = []
         if duzeltme_pct != 0:
-            story.append(Spacer(1,0.3*cm))
-            story.append(Paragraph(
-                f"ℹ Tüketim {sicaklik}°C hava ve {yuk_kg}kg yük için düzeltilmiştir "
-                f"({tuketim:.1f} → {tuk:.1f} L/100km, {duzeltme_pct:+.0f}%).", alt_stili))
+            notlar.append(f"Tüketim {sicaklik}°C hava ve {yuk_kg}kg yük için düzeltildi "
+                          f"({tuketim:.1f} → {tuk:.1f} L/100km, {duzeltme_pct:+.0f}%).")
+        notlar.append(f"Girilen tüketim 90 km/h referanslıdır. {hiz} km/h hız etkisi: "
+                      f"{(hiz_katsayi_hesapla(hiz)-1)*100:+.0f}%.")
+        for n in notlar:
+            story.append(Paragraph(n, alt_stili))
 
         doc.build(story)
         buf.seek(0); return buf
 
     # ── Excel ─────────────────────────────────────────────────────────────────
     def olustur_excel():
-        wb = openpyxl.Workbook()
-        ws = wb.active; ws.title = "Seyahat Raporu"
-        DARK  = "1F4E78"; WHT = "FFFFFF"; LBLU = "DEEAF1"; YELL = "FFF2CC"
-        def hd(cell, val, bg=DARK, fc=WHT, bold=True, sz=11):
+        wb   = openpyxl.Workbook()
+        ws   = wb.active; ws.title = "Özet & Güzergah"
+        ws2  = wb.create_sheet("Yakıt & EV")
+        ws3  = wb.create_sheet("EV Şarj Planı") if _ev_sarj_sayisi > 1 else None
+
+        DARK = "1F4E78"; WHT = "FFFFFF"; LBLU = "DEEAF1"; PURP = "7030A0"
+        GRN  = "E2F0D9"; ORG = "FFF2CC"
+
+        def hd(cell, val, bg=DARK, fc=WHT, bold=True, sz=10):
             cell.value = val
-            cell.font  = Font(bold=bold, color=fc, size=sz, name="Calibri")
+            cell.font  = Font(bold=bold, color=fc, size=sz, name="Arial")
             cell.fill  = PatternFill("solid", start_color=bg, end_color=bg)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            s = Side(style="thin", color="CCCCCC")
-            cell.border = Border(left=s,right=s,top=s,bottom=s)
-        def vl(cell, val, bg=LBLU, bold=False):
-            cell.value = val
-            cell.font  = Font(bold=bold, color="000000", size=10, name="Calibri")
-            cell.fill  = PatternFill("solid", start_color=bg, end_color=bg)
-            cell.alignment = Alignment(horizontal="center", vertical="center")
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
             s = Side(style="thin", color="CCCCCC")
             cell.border = Border(left=s,right=s,top=s,bottom=s)
 
+        def vl(cell, val, bg=LBLU, bold=False, h="center"):
+            cell.value = val
+            cell.font  = Font(bold=bold, color="000000", size=9, name="Arial")
+            cell.fill  = PatternFill("solid", start_color=bg, end_color=bg)
+            cell.alignment = Alignment(horizontal=h, vertical="center")
+            s = Side(style="thin", color="CCCCCC")
+            cell.border = Border(left=s,right=s,top=s,bottom=s)
+
+        def ayrac(sheet, r, genislik, baslik, bg=DARK):
+            sheet.merge_cells(f"A{r}:{genislik}{r}")
+            hd(sheet[f"A{r}"], baslik, bg=bg, sz=11)
+            sheet.row_dimensions[r].height = 20
+            return r + 1
+
+        # ── Sheet 1: Özet & Güzergah ─────────────────────────────────────────
         r = 1
-        ws.merge_cells(f"A{r}:G{r}")
+        ws.merge_cells(f"A{r}:H{r}")
         hd(ws[f"A{r}"], f"ARAÇ YOL BİLGİSAYARI — {tarih}", sz=13)
         ws.row_dimensions[r].height = 24; r += 1
-        ws.merge_cells(f"A{r}:G{r}")
+        ws.merge_cells(f"A{r}:H{r}")
         hd(ws[f"A{r}"], rota, bg="2E4057", sz=10)
-        ws.row_dimensions[r].height = 18; r += 2
+        ws.row_dimensions[r].height = 16; r += 2
 
-        hdrs = ["Yol","Gidiş-Dönüş","Kişi Başı","Toplam Süre","Menzil","Tüketim","Varış"]
-        vals = [f"{yol} km", f"{gidis_donus:,.0f} ₺", f"{kisi_basi:,.0f} ₺",
-                sure_str, f"{tam_depo_menzil:.0f} km", f"{tuk:.1f} L/100km", varis_str]
-        for j,(h,v) in enumerate(zip(hdrs,vals),1):
-            hd(ws.cell(r,j), h); vl(ws.cell(r+1,j), v)
-        ws.row_dimensions[r].height=18; ws.row_dimensions[r+1].height=18; r+=3
+        # Özet satırı
+        r = ayrac(ws, r, "H", "ÖZET BİLGİLER")
+        for j, (h, v) in enumerate(zip(
+            ["Yol", "Gidiş-Dönüş", "Kişi Başı", "Sürüş", "Toplam Süre", "Mola", "Menzil", "Varış"],
+            [f"{yol} km", f"{gidis_donus:,.0f} ₺", f"{kisi_basi:,.0f} ₺",
+             surus_str, sure_str, mola_str, f"{tam_depo_menzil:.0f} km", varis_str]
+        ), 1):
+            hd(ws.cell(r, j), h); vl(ws.cell(r+1, j), v)
+        ws.row_dimensions[r].height=18; ws.row_dimensions[r+1].height=18; r += 3
 
-        if len(segments)>1:
-            seg_hdrs=["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt"]
-            for j,h in enumerate(seg_hdrs,1): hd(ws.cell(r,j),h)
-            ws.row_dimensions[r].height=18; r+=1
+        # Güzergah detay
+        if len(segments) > 1:
+            r = ayrac(ws, r, "H", "GÜZERGAH DETAYI")
+            for j, h in enumerate(["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal."], 1):
+                hd(ws.cell(r, j), h)
+            ws.row_dimensions[r].height = 18; r += 1
             for row in build_seg_rows():
-                for j,k in enumerate(["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal."],1):
-                    bg="FFFFFF" if r%2==0 else "F5F8FC"
-                    vl(ws.cell(r,j), row.get(k,""), bg=bg)
-                ws.row_dimensions[r].height=16; r+=1
-            r+=1
+                for j, k in enumerate(["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal."], 1):
+                    bg = "FFFFFF" if r%2==0 else "F5F8FC"
+                    vl(ws.cell(r, j), row.get(k,""), bg=bg, h="left" if j==1 else "center")
+                ws.row_dimensions[r].height = 16; r += 1
+            r += 1
 
-        yakit_hdrs=["Yakıt","Fiyat","Yol Maliyeti","G/D Toplam","Tasarruf"]
-        for j,h in enumerate(yakit_hdrs,1): hd(ws.cell(r,j),h)
-        ws.row_dimensions[r].height=18; r+=1
-        for yakdata in [
-            ("Benzin",  f"{fiyat:.2f}₺/L",      f"{bnz_m:,.0f}₺", f"{bnz_m*2:,.0f}₺","—"),
-            ("Dizel",   f"{dizel_fiyat:.2f}₺/L", f"{diz_m:,.0f}₺", f"{diz_m*2:,.0f}₺",fmt_tas(bnz_m-diz_m)),
-            ("LPG",     f"{lpg_fiyat:.2f}₺/L",   f"{lpg_m:,.0f}₺", f"{lpg_m*2:,.0f}₺",fmt_tas(bnz_m-lpg_m)),
-            ("⚡ EV",   f"{ev_fiyat:.2f}₺/kWh",  f"{ev_m:,.0f}₺",  f"{ev_m*2:,.0f}₺", fmt_tas(bnz_m-ev_m)),
+        # Yakıt dolum noktaları
+        yakit_idx_r2 = yakit_durak_indeksleri()
+        if yakit_idx_r2:
+            r = ayrac(ws, r, "D", "YAKIT DOLUM NOKTALARI", bg="E65100")
+            for j, h in enumerate(["Sıra","Konum","~km","Menzil"], 1): hd(ws.cell(r,j),h)
+            ws.row_dimensions[r].height=18; r+=1
+            for no, idx in enumerate(yakit_idx_r2, 1):
+                if idx < len(st.session_state.duraks):
+                    il, ilce = st.session_state.duraks[idx]
+                    kum = sum(s[2] for s in segments[:idx])
+                    for j, v in enumerate([str(no), f"{il}/{ilce}", f"{kum} km", f"{tam_depo_menzil:.0f} km"], 1):
+                        vl(ws.cell(r,j), v, bg=ORG)
+                    ws.row_dimensions[r].height=16; r+=1
+
+        # ── Sheet 2: Yakıt & EV ───────────────────────────────────────────────
+        r2 = 1
+        r2 = ayrac(ws2, r2, "G", "YAKIT TİPİ KARŞILAŞTIRMASI")
+        dizel_tuk_d_r2 = dizel_tuketim * hava_kat + yuk_ek
+        lpg_tuk_d_r2   = lpg_tuketim   * hava_kat + yuk_ek
+        for j, h in enumerate(["Yakıt","Fiyat","L(kWh)/km","₺/km","Yol Mal.","G/D","Tasarruf"],1):
+            hd(ws2.cell(r2,j), h)
+        ws2.row_dimensions[r2].height=18; r2+=1
+        for row in [
+            ("Benzin", f"{fiyat:.2f}₺/L",       f"{tuk/100:.3f}",              f"{tuk/100*fiyat:.3f}",                f"{bnz_m:,.0f}₺", f"{bnz_m*2:,.0f}₺", "—"),
+            ("Dizel",  f"{dizel_fiyat:.2f}₺/L",  f"{dizel_tuk_d_r2/100:.3f}",  f"{dizel_tuk_d_r2/100*dizel_fiyat:.3f}", f"{diz_m:,.0f}₺", f"{diz_m*2:,.0f}₺", fmt_tas(bnz_m-diz_m)),
+            ("LPG",    f"{lpg_fiyat:.2f}₺/L",    f"{lpg_tuk_d_r2/100:.3f}",    f"{lpg_tuk_d_r2/100*lpg_fiyat:.3f}",  f"{lpg_m:,.0f}₺", f"{lpg_m*2:,.0f}₺", fmt_tas(bnz_m-lpg_m)),
+            ("⚡ EV",  f"{ev_fiyat:.2f}₺/kWh",   f"{ev_tuketim/100:.3f}",       f"{ev_tuketim/100*ev_fiyat:.3f}",     f"{ev_m:,.0f}₺",  f"{ev_m*2:,.0f}₺",  fmt_tas(bnz_m-ev_m)),
         ]:
-            bg = "FFFFFF" if r%2==0 else "F5F8FC"
-            for j,v in enumerate(yakdata,1): vl(ws.cell(r,j),v,bg=bg)
-            ws.row_dimensions[r].height=16; r+=1
+            for j, v in enumerate(row, 1):
+                vl(ws2.cell(r2,j), v, bg="FFFFFF" if r2%2==0 else "F5F8FC")
+            ws2.row_dimensions[r2].height=16; r2+=1
+        r2 += 1
 
-        for col in ws.columns:
-            col_letter = None
-            for cell in col:
-                if hasattr(cell, "column_letter"):
-                    col_letter = cell.column_letter
-                    break
-            if not col_letter:
-                continue
-            mx = max((len(str(c.value or "")) for c in col if hasattr(c, "value")), default=10)
-            ws.column_dimensions[col_letter].width = min(mx + 3, 30)
+        r2 = ayrac(ws2, r2, "D", "MENZİL KARŞILAŞTIRMASI")
+        for j, h in enumerate(["Yakıt","Menzil","Tam Depo/Şarj","Bu Yol İçin"],1): hd(ws2.cell(r2,j),h)
+        ws2.row_dimensions[r2].height=18; r2+=1
+        diz_menzil_r2 = (depo/dizel_tuk_d_r2)*100 if dizel_tuk_d_r2>0 else 0
+        lpg_menzil_r2 = (depo/lpg_tuk_d_r2)*100   if lpg_tuk_d_r2>0   else 0
+        ev_menzil_r2  = (ev_batarya/ev_tuketim)*100 if ev_tuketim>0    else 0
+        for row in [
+            ("Benzin", f"{tam_depo_menzil:.0f}km", f"{depo*fiyat:,.0f}₺",       f"{gerekli_depo} depo"),
+            ("Dizel",  f"{diz_menzil_r2:.0f}km",   f"{depo*dizel_fiyat:,.0f}₺", f"{math.ceil(yol/diz_menzil_r2) if diz_menzil_r2>0 else '—'} depo"),
+            ("LPG",    f"{lpg_menzil_r2:.0f}km",   f"{depo*lpg_fiyat:,.0f}₺",   f"{math.ceil(yol/lpg_menzil_r2) if lpg_menzil_r2>0 else '—'} depo"),
+            ("⚡ EV",  f"{ev_menzil_r2:.0f}km",    f"{ev_batarya*ev_fiyat:,.0f}₺", f"{_ev_sarj_sayisi} şarj"),
+        ]:
+            for j, v in enumerate(row, 1):
+                vl(ws2.cell(r2,j), v, bg="FFFFFF" if r2%2==0 else "F5F8FC")
+            ws2.row_dimensions[r2].height=16; r2+=1
+        r2 += 1
+
+        r2 = ayrac(ws2, r2, "D", "EV TASARRUF ANALİZİ", bg=PURP)
+        for j, h in enumerate(["Bu Seyahat","Aylık Tasarruf","Yıllık Tasarruf","Benzin/EV Oran"],1):
+            hd(ws2.cell(r2,j),h,bg=PURP)
+        ws2.row_dimensions[r2].height=18; r2+=1
+        for j, v in enumerate([fmt_tas(ev_tas), f"{ev_aylik_tas:+,.0f}₺", f"{ev_yillik_tas:+,.0f}₺", f"{ev_oran:.2f}×"],1):
+            vl(ws2.cell(r2,j), v, bg=GRN if ev_tas>0 else "FFD7CC")
+        ws2.row_dimensions[r2].height=18
+
+        # ── Sheet 3: EV Şarj Planı ────────────────────────────────────────────
+        if ws3 and _ev_sarj_sayisi > 1 and plan_rows:
+            r3 = 1
+            r3 = ayrac(ws3, r3, "I", "EV ŞARJ SÜRESI PLANLAYICISI", bg=PURP)
+            sarj_hdrs = ["Şarj #","Konum","~km","Gelinen","Hedef","DC Süresi","DC Mal.","AC Süresi","AC Mal."]
+            for j, h in enumerate(sarj_hdrs, 1): hd(ws3.cell(r3,j),h,bg=PURP)
+            ws3.row_dimensions[r3].height=18; r3+=1
+            for row in plan_rows:
+                for j, k in enumerate(["Şarj #","Konum","~km","Gelinen şarj","Hedef şarj",
+                                        "DC süresi","DC maliyeti","AC süresi","AC maliyeti"], 1):
+                    bg = "FFFFFF" if r3%2==0 else "F0E6FF"
+                    vl(ws3.cell(r3,j), row.get(k,""), bg=bg)
+                ws3.row_dimensions[r3].height=16; r3+=1
+
+        # Sütun genişlikleri
+        for sheet in [ws, ws2] + ([ws3] if ws3 else []):
+            for col in sheet.columns:
+                col_letter = next((c.column_letter for c in col if hasattr(c,"column_letter")), None)
+                if not col_letter: continue
+                mx = max((len(str(c.value or "")) for c in col if hasattr(c,"value")), default=8)
+                sheet.column_dimensions[col_letter].width = min(mx+3, 32)
 
         buf = io.BytesIO(); wb.save(buf); buf.seek(0); return buf
 
