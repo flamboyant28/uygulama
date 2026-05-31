@@ -1117,6 +1117,14 @@ with tab_ozet:
         ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  50, 10, key="ev_dc")
         ev_ac_kw         = evc4.number_input("AC normal şarj (kW)",  3,  22,   7,  1, key="ev_ac")
 
+        evc5, evc6, _ = st.columns([1, 1, 2])
+        ev_dc_fiyat = evc5.number_input("DC şarj fiyatı (TL/kWh)", 0.01, 50.0,
+                                         float(ev_fiyat), 0.5, format="%.2f", key="ev_dc_fiyat",
+                                         help="DC hızlı şarj birim fiyatı (genellikle AC'den pahalı)")
+        ev_ac_fiyat = evc6.number_input("AC şarj fiyatı (TL/kWh)", 0.01, 50.0,
+                                         float(ev_fiyat), 0.5, format="%.2f", key="ev_ac_fiyat",
+                                         help="AC normal şarj birim fiyatı")
+
         def sarj_suresi_dk(baslangic_pct, hedef_pct, batarya_kwh, guc_kw):
             """0-80% tam güç, 80-100% çeyrek güç (şarj eğrisi)"""
             dk = 0.0
@@ -1155,9 +1163,10 @@ with tab_ozet:
                     "Gelinen şarj":    f"%{ev_min_pct}",
                     "Hedef şarj":      f"%{hedef_pct}",
                     "DC süresi":       f"{dc_dk} dk ({ev_dc_kw} kW)",
+                    "DC maliyeti":     f"{ek_kwh * ev_dc_fiyat:.0f} ₺",
                     "AC süresi":       f"{ac_dk} dk ({ev_ac_kw} kW)",
+                    "AC maliyeti":     f"{ek_kwh * ev_ac_fiyat:.0f} ₺",
                     "Eklenen enerji":  f"{ek_kwh:.1f} kWh",
-                    "Şarj maliyeti":   f"{ek_kwh * ev_fiyat:.0f} ₺",
                 })
                 sarj_no    += 1
                 ilk_mesafe  = kum + sarj_menzil
@@ -1179,15 +1188,18 @@ with tab_ozet:
                 use_container_width=True)
 
             # Özet metrikler
-            t_mal  = sum(float(r["Şarj maliyeti"].replace(" ₺","")) for r in plan_rows)
-            t_dc   = sum(int(r["DC süresi"].split(" dk")[0]) for r in plan_rows)
-            t_ac   = sum(int(r["AC süresi"].split(" dk")[0]) for r in plan_rows)
-            ms1, ms2, ms3 = st.columns(3)
-            ms1.metric("Toplam Şarj Maliyeti", f"{t_mal:.0f} ₺",
-                       f"{len(plan_rows)} şarj durağı", delta_color="off")
-            ms2.metric("DC Toplam Bekleme", f"{t_dc} dk",
+            t_dc_mal = sum(float(r["DC maliyeti"].replace(" ₺","")) for r in plan_rows)
+            t_ac_mal = sum(float(r["AC maliyeti"].replace(" ₺","")) for r in plan_rows)
+            t_dc     = sum(int(r["DC süresi"].split(" dk")[0]) for r in plan_rows)
+            t_ac     = sum(int(r["AC süresi"].split(" dk")[0]) for r in plan_rows)
+            ms1, ms2, ms3, ms4 = st.columns(4)
+            ms1.metric("DC Toplam Maliyet",  f"{t_dc_mal:.0f} ₺",
+                       f"{ev_dc_fiyat:.2f} ₺/kWh", delta_color="off")
+            ms2.metric("AC Toplam Maliyet",  f"{t_ac_mal:.0f} ₺",
+                       f"{ev_ac_fiyat:.2f} ₺/kWh", delta_color="off")
+            ms3.metric("DC Toplam Bekleme",  f"{t_dc} dk",
                        f"{t_dc//60}s {t_dc%60}dk", delta_color="off")
-            ms3.metric("AC Toplam Bekleme", f"{t_ac} dk",
+            ms4.metric("AC Toplam Bekleme",  f"{t_ac} dk",
                        f"{t_ac//60}s {t_ac%60}dk", delta_color="off")
 
             st.caption("⚡ Şarj süresi tahminidir: 0–80% tam güç, 80–100% çeyrek güç. "
