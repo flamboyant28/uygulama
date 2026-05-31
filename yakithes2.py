@@ -901,7 +901,7 @@ with tab_ozet:
 
                 sc1.link_button("🟢 ZES",       f"https://www.zes.net/sarj-istasyonlari",  use_container_width=True)
                 sc2.link_button("🔵 Trugo",     f"https://trugo.com.tr/sarj-noktalari",     use_container_width=True)
-                sc3.link_button("🟠 Eşarj",     f"https://www.esarj.com/sarj-istasyonlari", use_container_width=True)
+                sc3.link_button("🟠 Eşarj",     f"https://esarj.com/esarj-noktalari", use_container_width=True)
                 sc4.link_button("⚡ PlugShare",
                     f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
                     use_container_width=True)
