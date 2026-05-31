@@ -1104,11 +1104,32 @@ with tab_ozet:
         _ev_dc_f_seg = float(st.session_state.get("ev_dc_fiyat", ev_fiyat))
         _ev_ac_f_seg = float(st.session_state.get("ev_ac_fiyat", ev_fiyat))
 
-        seg_df["EV Şarj"]    = [f"{s[0]} şarj" if s[0] > 0 else "—"                          for s in ev_seg]
-        seg_df["EV DC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)        for i,s in enumerate(ev_seg)]
-        seg_df["EV DC Mal."] = [f"{s[0]*_ek_kwh_seg*_ev_dc_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
-        seg_df["EV AC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[2]/60)        for i,s in enumerate(ev_seg)]
-        seg_df["EV AC Mal."] = [f"{s[0]*_ek_kwh_seg*_ev_ac_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
+        # Kümülatif şarj süreleri (segment i'ye kadar toplam şarj dk)
+        cum_dc = []; cum_ac = []; dc_top = 0; ac_top = 0
+        for s in ev_seg:
+            dc_top += s[1]; ac_top += s[2]
+            cum_dc.append(dc_top); cum_ac.append(ac_top)
+
+        # Varış saatleri (kümülatif şarj + mola dahil)
+        _base_dt = datetime.combine(datetime.today(), cikis)
+        _cur     = _base_dt
+        varis_benzin = []; varis_ev_dc = []; varis_ev_ac = []
+        for i, row in seg_df.iterrows():
+            seg_h = parse_sure(row["Toplam"])      # bu segmentin sürüş+mola süresi
+            _cur  = _cur + timedelta(hours=seg_h)
+            varis_benzin.append(_cur.strftime("%H:%M"))
+            varis_ev_dc.append( (_cur + timedelta(minutes=cum_dc[i])).strftime("%H:%M"))
+            varis_ev_ac.append( (_cur + timedelta(minutes=cum_ac[i])).strftime("%H:%M"))
+
+        # Sütun sırası: ... Yakıt Mal. | Varış(Bnz) | EV Şarj | EV DC Süre | EV DC Mal. | EV DC Varış | EV AC Süre | EV AC Mal. | EV AC Varış
+        seg_df["Varış (Bnz)"]  = varis_benzin
+        seg_df["EV Şarj"]      = [f"{s[0]} şarj" if s[0] > 0 else "—"                          for s in ev_seg]
+        seg_df["EV DC Süre"]   = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)        for i,s in enumerate(ev_seg)]
+        seg_df["EV DC Mal."]   = [f"{s[0]*_ek_kwh_seg*_ev_dc_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
+        seg_df["EV DC Varış"]  = varis_ev_dc
+        seg_df["EV AC Süre"]   = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[2]/60)        for i,s in enumerate(ev_seg)]
+        seg_df["EV AC Mal."]   = [f"{s[0]*_ek_kwh_seg*_ev_ac_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
+        seg_df["EV AC Varış"]  = varis_ev_ac
         st.dataframe(seg_df, hide_index=True, use_container_width=True)
 
     st.markdown('<div class="section-header">⛽ Yakıt Tipi Karşılaştırması</div>', unsafe_allow_html=True)
