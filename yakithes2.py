@@ -1100,11 +1100,15 @@ with tab_ozet:
             return (int(h.group(1)) if h else 0) + (int(m.group(1)) if m else 0) / 60
 
         ev_seg = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
-        seg_df["EV Şarj"]   = [f"{s[0]} şarj" if s[0] > 0 else "—"        for s in ev_seg]
-        seg_df["EV DC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)
-                                 for i, s in enumerate(ev_seg)]
-        seg_df["EV AC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[2]/60)
-                                 for i, s in enumerate(ev_seg)]
+        _ek_kwh_seg  = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
+        _ev_dc_f_seg = float(st.session_state.get("ev_dc_fiyat", ev_fiyat))
+        _ev_ac_f_seg = float(st.session_state.get("ev_ac_fiyat", ev_fiyat))
+
+        seg_df["EV Şarj"]    = [f"{s[0]} şarj" if s[0] > 0 else "—"                          for s in ev_seg]
+        seg_df["EV DC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)        for i,s in enumerate(ev_seg)]
+        seg_df["EV DC Mal."] = [f"{s[0]*_ek_kwh_seg*_ev_dc_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
+        seg_df["EV AC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[2]/60)        for i,s in enumerate(ev_seg)]
+        seg_df["EV AC Mal."] = [f"{s[0]*_ek_kwh_seg*_ev_ac_f_seg:,.0f} ₺" if s[0]>0 else "—" for s in ev_seg]
         st.dataframe(seg_df, hide_index=True, use_container_width=True)
 
     st.markdown('<div class="section-header">⛽ Yakıt Tipi Karşılaştırması</div>', unsafe_allow_html=True)
@@ -1613,19 +1617,24 @@ with tab_rapor:
             story.append(Paragraph("Güzergah Detayı", bolum_stili))
             rows   = build_seg_rows()
             ev_seg_pdf = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
-            tv = [["Segment","Mesafe","Çıkış","Varış","Süre","EV Şarj","EV DC","EV AC"]]
+            _ek_kwh_pdf  = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
+            _ev_dc_f_pdf = float(st.session_state.get("ev_dc_fiyat", ev_fiyat))
+            _ev_ac_f_pdf = float(st.session_state.get("ev_ac_fiyat", ev_fiyat))
+            tv = [["Segment","Mes.","Çıkış","Varış","Toplam","EV Şarj","EV DC Süre","EV DC Mal.","EV AC Süre","EV AC Mal."]]
             for i, r in enumerate(rows):
                 sc, dc_dk, ac_dk = ev_seg_pdf[i]
                 import re
                 def _p(s):
                     h = re.search(r'(\d+)s', s); m = re.search(r'(\d+)dk', s)
                     return (int(h.group(1)) if h else 0) + (int(m.group(1)) if m else 0)/60
-                ev_dc = fmt_sure(_p(r["Toplam"]) + dc_dk/60)
-                ev_ac = fmt_sure(_p(r["Toplam"]) + ac_dk/60)
+                ev_dc_s = fmt_sure(_p(r["Toplam"]) + dc_dk/60)
+                ev_ac_s = fmt_sure(_p(r["Toplam"]) + ac_dk/60)
+                ev_dc_m = f"{sc*_ek_kwh_pdf*_ev_dc_f_pdf:,.0f}₺" if sc>0 else "—"
+                ev_ac_m = f"{sc*_ek_kwh_pdf*_ev_ac_f_pdf:,.0f}₺" if sc>0 else "—"
                 tv.append([r["Segment"], r["Mesafe"], r["Çıkış"], r["Varış"],
-                           r["Toplam"],
-                           f"{sc}x" if sc > 0 else "—", ev_dc, ev_ac])
-            story.append(tablo(tv, [5*cm, 2*cm, 1.6*cm, 1.6*cm, 1.8*cm, 1.5*cm, 2*cm, 2*cm]))
+                           r["Toplam"], f"{sc}x" if sc>0 else "—",
+                           ev_dc_s, ev_dc_m, ev_ac_s, ev_ac_m])
+            story.append(tablo(tv, [4*cm,1.8*cm,1.4*cm,1.4*cm,1.7*cm,1.4*cm,2*cm,1.8*cm,2*cm,1.8*cm]))
 
         # ── 3. Yakıt Karşılaştırması ─────────────────────────────────────────
         story.append(Paragraph("Yakıt Tipi Karşılaştırması", bolum_stili))
@@ -1799,14 +1808,32 @@ with tab_rapor:
 
         # Güzergah detay
         if len(segments) > 1:
-            r = ayrac(ws, r, "H", "GÜZERGAH DETAYI")
-            for j, h in enumerate(["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal."], 1):
-                hd(ws.cell(r, j), h)
+            r = ayrac(ws, r, "M", "GÜZERGAH DETAYI")
+            _ek_kwh_xl  = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
+            _ev_dc_f_xl = float(st.session_state.get("ev_dc_fiyat", ev_fiyat))
+            _ev_ac_f_xl = float(st.session_state.get("ev_ac_fiyat", ev_fiyat))
+            ev_seg_xl   = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
+            import re
+            def _px(s):
+                h2=re.search(r'(\d+)s',s); m2=re.search(r'(\d+)dk',s)
+                return (int(h2.group(1)) if h2 else 0)+(int(m2.group(1)) if m2 else 0)/60
+            hdrs_xl = ["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal.",
+                       "EV Şarj","EV DC Süre","EV DC Mal.","EV AC Süre","EV AC Mal."]
+            for j, h in enumerate(hdrs_xl, 1): hd(ws.cell(r, j), h)
             ws.row_dimensions[r].height = 18; r += 1
-            for row in build_seg_rows():
-                for j, k in enumerate(["Segment","Mesafe","Çıkış","Varış","Sürüş","Mola","Toplam","Yakıt Mal."], 1):
+            for idx, row in enumerate(build_seg_rows()):
+                sc, dc_dk2, ac_dk2 = ev_seg_xl[idx]
+                ev_dc_s2 = fmt_sure(_px(row["Toplam"]) + dc_dk2/60)
+                ev_ac_s2 = fmt_sure(_px(row["Toplam"]) + ac_dk2/60)
+                ev_dc_m2 = f"{sc*_ek_kwh_xl*_ev_dc_f_xl:,.0f}₺" if sc>0 else "—"
+                ev_ac_m2 = f"{sc*_ek_kwh_xl*_ev_ac_f_xl:,.0f}₺" if sc>0 else "—"
+                vals_xl = [row.get("Segment",""), row.get("Mesafe",""), row.get("Çıkış",""),
+                           row.get("Varış",""), row.get("Sürüş",""), row.get("Mola",""),
+                           row.get("Toplam",""), row.get("Yakıt Mal.",""),
+                           f"{sc} şarj" if sc>0 else "—", ev_dc_s2, ev_dc_m2, ev_ac_s2, ev_ac_m2]
+                for j, v in enumerate(vals_xl, 1):
                     bg = "FFFFFF" if r%2==0 else "F5F8FC"
-                    vl(ws.cell(r, j), row.get(k,""), bg=bg, h="left" if j==1 else "center")
+                    vl(ws.cell(r, j), v, bg=bg, h="left" if j==1 else "center")
                 ws.row_dimensions[r].height = 16; r += 1
             r += 1
 
