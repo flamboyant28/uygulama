@@ -1182,7 +1182,7 @@ with tab_ozet:
             lat0, lon0 = koordinat(il0.strip(), ilce0.strip())
             sc1.link_button("🟢 ZES",      "https://www.zes.net/sarj-istasyonlari",    use_container_width=True)
             sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/sarj-noktalari",      use_container_width=True)
-            sc3.link_button("🟠 Eşarj",   "https://www.esarj.com/sarj-istasyonlari",  use_container_width=True)
+            sc3.link_button("🟠 Eşarj",   "https://esarj.com/esarj-noktalari",  use_container_width=True)
             sc4.link_button("⚡ PlugShare",
                 f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
                 use_container_width=True)
