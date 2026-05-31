@@ -967,6 +967,30 @@ else:
 _ev_sarj_sayisi = math.ceil(yol / ev_menzil) if ev_menzil > 0 else 0
 _ev_sarj_kalan  = (_ev_sarj_sayisi * ev_menzil) - yol if ev_menzil > 0 else 0
 
+# EV toplam şarj süresi (sidebar default değerleri ile — şarj planlayıcısı açılmadan da görünsün)
+_ev_min_def    = int(st.session_state.get("ev_min", 20))
+_ev_dc_def     = int(st.session_state.get("ev_dc",  50))
+_ev_ac_def     = int(st.session_state.get("ev_ac",   7))
+_ev_hedef_def  = 90
+_ek_kwh_def    = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
+
+def _sarj_dk(bas, hed, kwh, kw):
+    if bas >= hed: return 0
+    if hed <= 80:
+        return round((kwh*(hed-bas)/100/kw)*60)
+    dk = ((kwh*(80-bas)/100/kw)*60) if bas < 80 else 0
+    dk += (kwh*(hed-max(bas,80))/100/(kw*0.25))*60
+    return round(dk)
+
+_dc_sarj_dk     = _sarj_dk(_ev_min_def, _ev_hedef_def, ev_batarya, _ev_dc_def)
+_ac_sarj_dk     = _sarj_dk(_ev_min_def, _ev_hedef_def, ev_batarya, _ev_ac_def)
+_ev_dc_toplam   = _dc_sarj_dk * _ev_sarj_sayisi   # dakika
+_ev_ac_toplam   = _ac_sarj_dk * _ev_sarj_sayisi
+
+# EV ile toplam yolculuk süresi (sürüş + mola + şarj)
+_ev_sure_dc = molali_sure + _ev_dc_toplam / 60
+_ev_sure_ac = molali_sure + _ev_ac_toplam / 60
+
 if _ev_sarj_sayisi <= 1:
     st.markdown(f"""<div class="status-ev-ok"><div class="status-icon">⚡</div>
       <div><div>ELEKTRİKLİ ARAÇ — TEK ŞARJLA GİDİLİR</div>
@@ -1028,6 +1052,19 @@ with tab_ozet:
     t3.metric("Toplam Mola",  f"{mola_dakika}dk",  f"{mola_sayisi} × {mola_suresi}dk",  delta_color="off")
     t4.metric("Toplam Süre",  sure_str,   "Sürüş + mola",                               delta_color="off")
     t5.metric("Varış",        varis_str,  f"Çıkış: {cikis.strftime('%H:%M')}",          delta_color="off")
+
+    if _ev_sarj_sayisi > 0:
+        st.markdown('<div class="section-header">⚡ EV ile Toplam Yolculuk Süresi</div>', unsafe_allow_html=True)
+        ev1, ev2, ev3, ev4 = st.columns(4)
+        ev1.metric("Sürüş + Mola",    sure_str,               "Şarj hariç",             delta_color="off")
+        ev2.metric("Toplam Şarj",     f"{_ev_sarj_sayisi} şarj",
+                   f"DC {_dc_sarj_dk}dk · AC {_ac_sarj_dk}dk / şarj",                   delta_color="off")
+        ev3.metric("DC ile Toplam",   fmt_sure(_ev_sure_dc),
+                   f"+ {_ev_dc_toplam}dk şarj ({_ev_dc_def}kW)",                         delta_color="off")
+        ev4.metric("AC ile Toplam",   fmt_sure(_ev_sure_ac),
+                   f"+ {_ev_ac_toplam}dk şarj ({_ev_ac_def}kW)",                         delta_color="off")
+        st.caption(f"⚡ %{_ev_min_def} → %{_ev_hedef_def} şarj varsayımı · "
+                   f"Şarj Planlayıcısı'nda değiştirilebilir.")
 
     if len(segments) > 1:
         st.markdown('<div class="section-header">📍 Güzergah Detayı</div>', unsafe_allow_html=True)
@@ -1193,9 +1230,9 @@ with tab_ozet:
             sc1, sc2, sc3, sc4 = st.columns(4)
             il0, ilce0 = plan_rows[0]["Konum"].split(" / ")
             lat0, lon0 = koordinat(il0.strip(), ilce0.strip())
-            sc1.link_button("🟢 ZES",      "https://www.zes.net/sarj-istasyonlari",    use_container_width=True)
-            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/sarj-noktalari",      use_container_width=True)
-            sc3.link_button("🟠 Eşarj",   "https://www.esarj.com/sarj-istasyonlari",  use_container_width=True)
+            sc1.link_button("🟢 ZES",      "https://zes.net/tr/sarj-istasyonlari",    use_container_width=True)
+            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/network",      use_container_width=True)
+            sc3.link_button("🟠 Eşarj",   "https://esarj.com/esarj-noktalari",  use_container_width=True)
             sc4.link_button("⚡ PlugShare",
                 f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
                 use_container_width=True)
