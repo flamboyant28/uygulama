@@ -1142,7 +1142,7 @@ with tab_ozet:
             return round(dk)
 
         # Şarj planı
-        hedef_pct   = 90
+        hedef_pct   = 80
         sarj_menzil = ev_menzil * ((100 - ev_min_pct) / 100)
         ilk_mesafe  = ev_menzil * (ev_baslangic_pct / 100) - ev_menzil * (ev_min_pct / 100)
         kum         = 0
