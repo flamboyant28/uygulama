@@ -1114,8 +1114,8 @@ with tab_ozet:
     else:
         evc1, evc2, evc3, evc4 = st.columns(4)
         ev_baslangic_pct = evc1.number_input("Başlangıç şarjı (%)", 10, 100, 100, 5, key="ev_bas")
-        ev_min_pct       = evc2.number_input("Min şarj eşiği (%)",   5,  50,  20, 5, key="ev_min")
-        ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  50, 10, key="ev_dc")
+        ev_min_pct       = evc2.number_input("Min şarj eşiği (%)",   5,  50,  10, 5, key="ev_min")
+        ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  70, 10, key="ev_dc")
         ev_ac_kw         = evc4.number_input("AC normal şarj (kW)",  3,  22,   7,  1, key="ev_ac")
 
         evc5, evc6, _ = st.columns([1, 1, 2])
