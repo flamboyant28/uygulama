@@ -966,6 +966,7 @@ else:
 # EV şarj durumu
 _ev_sarj_sayisi = math.ceil(yol / ev_menzil) if ev_menzil > 0 else 0
 _ev_sarj_kalan  = (_ev_sarj_sayisi * ev_menzil) - yol if ev_menzil > 0 else 0
+
 if _ev_sarj_sayisi <= 1:
     st.markdown(f"""<div class="status-ev-ok"><div class="status-icon">⚡</div>
       <div><div>ELEKTRİKLİ ARAÇ — TEK ŞARJLA GİDİLİR</div>
@@ -1141,35 +1142,47 @@ with tab_ozet:
                     dk += (batarya_kwh * (hedef_pct - baslangic_pct) / 100 / (guc_kw * 0.25)) * 60
             return round(dk)
 
-        # Şarj planı
-        hedef_pct   = 80
-        sarj_menzil = ev_menzil * ((100 - ev_min_pct) / 100)
-        ilk_mesafe  = ev_menzil * (ev_baslangic_pct / 100) - ev_menzil * (ev_min_pct / 100)
-        kum         = 0
-        sarj_no     = 1
-        plan_rows   = []
+        # Şarj planı — segment içi ara şarjlar dahil
+        hedef_pct    = 90
+        sarj_menzil  = ev_menzil * (hedef_pct - ev_min_pct) / 100  # şarj sonrası gidilebilecek
+        kalan_menzil = ev_menzil * (ev_baslangic_pct - ev_min_pct) / 100  # ilk şarja kadar
+        kum          = 0
+        sarj_no      = 1
+        plan_rows    = []
 
-        for seg_idx, (_, _, km, _) in enumerate(segments):
-            if kum + km > ilk_mesafe and sarj_no <= ev_sarj_sayisi_plan:
+        for seg_idx, (a_label, b_label, km, _) in enumerate(segments):
+            # Bu segment içinde kaç şarj gerekiyor?
+            seg_kalan = km
+            while seg_kalan > kalan_menzil:
+                # Segment içinde şarj gerekiyor
+                sarj_km = kum + (km - seg_kalan) + kalan_menzil
+
+                # En yakın durağın koordinatını bul
                 il, ilce = st.session_state.duraks[seg_idx]
                 lat, lon  = koordinat(il, ilce)
+
                 dc_dk  = sarj_suresi_dk(ev_min_pct, hedef_pct, ev_batarya, ev_dc_kw)
                 ac_dk  = sarj_suresi_dk(ev_min_pct, hedef_pct, ev_batarya, ev_ac_kw)
                 ek_kwh = ev_batarya * (hedef_pct - ev_min_pct) / 100
+
+                konum_str = f"{il} / {ilce}" if km - seg_kalan < 30 else f"~{int(sarj_km)} km (yol üzeri)"
                 plan_rows.append({
-                    "Şarj #":          sarj_no,
-                    "Konum":           f"{il} / {ilce}",
-                    "~km":             f"{int(kum)} km",
-                    "Gelinen şarj":    f"%{ev_min_pct}",
-                    "Hedef şarj":      f"%{hedef_pct}",
-                    "DC süresi":       f"{dc_dk} dk ({ev_dc_kw} kW)",
-                    "DC maliyeti":     f"{ek_kwh * ev_dc_fiyat:.0f} ₺",
-                    "AC süresi":       f"{ac_dk} dk ({ev_ac_kw} kW)",
-                    "AC maliyeti":     f"{ek_kwh * ev_ac_fiyat:.0f} ₺",
-                    "Eklenen enerji":  f"{ek_kwh:.1f} kWh",
+                    "Şarj #":         sarj_no,
+                    "Konum":          konum_str,
+                    "~km":            f"{int(sarj_km)} km",
+                    "Gelinen şarj":   f"%{ev_min_pct}",
+                    "Hedef şarj":     f"%{hedef_pct}",
+                    "DC süresi":      f"{dc_dk} dk ({ev_dc_kw} kW)",
+                    "DC maliyeti":    f"{ek_kwh * ev_dc_fiyat:.0f} ₺",
+                    "AC süresi":      f"{ac_dk} dk ({ev_ac_kw} kW)",
+                    "AC maliyeti":    f"{ek_kwh * ev_ac_fiyat:.0f} ₺",
+                    "Eklenen enerji": f"{ek_kwh:.1f} kWh",
                 })
-                sarj_no    += 1
-                ilk_mesafe  = kum + sarj_menzil
+                sarj_no     += 1
+                seg_kalan   -= kalan_menzil
+                kalan_menzil = sarj_menzil  # sonraki şarj için mesafe sıfırlandı
+
+            kalan_menzil -= seg_kalan
             kum += km
 
         if plan_rows:
@@ -1180,9 +1193,9 @@ with tab_ozet:
             sc1, sc2, sc3, sc4 = st.columns(4)
             il0, ilce0 = plan_rows[0]["Konum"].split(" / ")
             lat0, lon0 = koordinat(il0.strip(), ilce0.strip())
-            sc1.link_button("🟢 ZES",      "https://zes.net/tr/sarj-istasyonlari",    use_container_width=True)
-            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/network",      use_container_width=True)
-            sc3.link_button("🟠 Eşarj",   "https://esarj.com/esarj-noktalari",  use_container_width=True)
+            sc1.link_button("🟢 ZES",      "https://www.zes.net/sarj-istasyonlari",    use_container_width=True)
+            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/sarj-noktalari",      use_container_width=True)
+            sc3.link_button("🟠 Eşarj",   "https://www.esarj.com/sarj-istasyonlari",  use_container_width=True)
             sc4.link_button("⚡ PlugShare",
                 f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
                 use_container_width=True)
