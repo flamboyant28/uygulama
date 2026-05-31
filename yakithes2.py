@@ -1088,7 +1088,7 @@ with tab_ozet:
         st.caption(f"⚡ %{_ev_min_def} → %{_ev_hedef_def} şarj varsayımı · "
                    f"Şarj Planlayıcısı'nda değiştirilebilir.")
 
-    if len(segments) > 1:
+    if len(segments) >= 1:
         st.markdown('<div class="section-header">📍 Güzergah Detayı</div>', unsafe_allow_html=True)
         seg_df = pd.DataFrame(build_seg_rows())
 
@@ -1131,7 +1131,19 @@ with tab_ozet:
         # "Varış" sütununu sadece sürüş varışıyla güncelle
         seg_df["Varış"]        = varis_drive
 
-        # Sütun sırası: ... Yakıt Mal. | Varış(Bnz) | EV Şarj | EV DC Süre | EV DC Mal. | EV DC Varış | EV AC Süre | EV AC Mal. | EV AC Varış
+        # Dizel ve LPG segment maliyetleri
+        dizel_tuk_d_s = dizel_tuketim * hava_kat + yuk_ek
+        lpg_tuk_d_s   = lpg_tuketim   * hava_kat + yuk_ek
+        seg_df["Dizel Mal."] = [
+            f"{float(r['Mesafe'].split()[0]) * dizel_tuk_d_s / 100 * dizel_fiyat:,.0f} ₺"
+            for _, r in seg_df.iterrows()
+        ]
+        seg_df["LPG Mal."] = [
+            f"{float(r['Mesafe'].split()[0]) * lpg_tuk_d_s / 100 * lpg_fiyat:,.0f} ₺"
+            for _, r in seg_df.iterrows()
+        ]
+
+        # Sütun sırası: ... Yakıt Mal. | Dizel Mal. | LPG Mal. | Varış(Bnz) | EV Şarj | ...
         seg_df["Varış (Bnz)"]  = varis_benzin
         seg_df["EV Şarj"]      = [f"{s[0]} şarj" if s[0] > 0 else "—"                          for s in ev_seg]
         seg_df["EV DC Süre"]   = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)        for i,s in enumerate(ev_seg)]
@@ -1644,7 +1656,7 @@ with tab_rapor:
         ], [3*cm, 3.5*cm, 3*cm, 3*cm, 3*cm, 2.5*cm]))
 
         # ── 2. Güzergah Detayı ───────────────────────────────────────────────
-        if len(segments) > 1:
+        if len(segments) >= 1:
             story.append(Paragraph("Güzergah Detayı", bolum_stili))
             rows   = build_seg_rows()
             ev_seg_pdf = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
@@ -1838,7 +1850,7 @@ with tab_rapor:
         ws.row_dimensions[r].height=18; ws.row_dimensions[r+1].height=18; r += 3
 
         # Güzergah detay
-        if len(segments) > 1:
+        if len(segments) >= 1:
             r = ayrac(ws, r, "M", "GÜZERGAH DETAYI")
             _ek_kwh_xl  = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
             _ev_dc_f_xl = float(st.session_state.get("ev_dc_fiyat", ev_fiyat))
