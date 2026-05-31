@@ -921,6 +921,28 @@ def seg_sure_h(km):
     return h + int(h / mola_araligi) * mola_suresi / 60
 
 # Segment saatleri
+
+def ev_segment_sureler(dc_dk_per_sarj, ac_dk_per_sarj):
+    """Her segment için kaç EV şarjı gerektiğini ve toplam EV süresini hesaplar"""
+    _bas    = st.session_state.get("ev_bas", 100)
+    _min    = _ev_min_def
+    _hedef  = _ev_hedef_def
+    _sarj_m = ev_menzil * (_hedef - _min) / 100   # şarj sonrası gidilebilecek km
+    _kalan  = ev_menzil * (_bas  - _min) / 100    # ilk şarja kadar kalan menzil
+
+    sonuc = []  # [(sarj_sayisi, dc_dk_toplam, ac_dk_toplam), ...]
+    for _, _, km, _ in segments:
+        count   = 0
+        seg_rem = km
+        kalan   = _kalan
+        while seg_rem > kalan:
+            count   += 1
+            seg_rem -= kalan
+            kalan    = _sarj_m
+        _kalan = kalan - seg_rem  # bir sonraki segment için kalan menzil
+        sonuc.append((count, count * dc_dk_per_sarj, count * ac_dk_per_sarj))
+    return sonuc
+
 def build_seg_rows():
     cur = datetime.combine(datetime.today(), cikis)
     rows = []
@@ -1069,6 +1091,20 @@ with tab_ozet:
     if len(segments) > 1:
         st.markdown('<div class="section-header">📍 Güzergah Detayı</div>', unsafe_allow_html=True)
         seg_df = pd.DataFrame(build_seg_rows())
+
+        def parse_sure(s):
+            """'4s 55dk' → saat float"""
+            import re
+            h = re.search(r'(\d+)s', s)
+            m = re.search(r'(\d+)dk', s)
+            return (int(h.group(1)) if h else 0) + (int(m.group(1)) if m else 0) / 60
+
+        ev_seg = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
+        seg_df["EV Şarj"]   = [f"{s[0]} şarj" if s[0] > 0 else "—"        for s in ev_seg]
+        seg_df["EV DC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[1]/60)
+                                 for i, s in enumerate(ev_seg)]
+        seg_df["EV AC Süre"] = [fmt_sure(parse_sure(seg_df.loc[i,"Toplam"]) + s[2]/60)
+                                 for i, s in enumerate(ev_seg)]
         st.dataframe(seg_df, hide_index=True, use_container_width=True)
 
     st.markdown('<div class="section-header">⛽ Yakıt Tipi Karşılaştırması</div>', unsafe_allow_html=True)
@@ -1575,12 +1611,21 @@ with tab_rapor:
         # ── 2. Güzergah Detayı ───────────────────────────────────────────────
         if len(segments) > 1:
             story.append(Paragraph("Güzergah Detayı", bolum_stili))
-            rows = build_seg_rows()
-            tv = [["Segment", "Mesafe", "Çıkış", "Varış", "Süre", "Yakıt Mal."]]
-            for r in rows:
+            rows   = build_seg_rows()
+            ev_seg_pdf = ev_segment_sureler(_dc_sarj_dk, _ac_sarj_dk)
+            tv = [["Segment","Mesafe","Çıkış","Varış","Süre","EV Şarj","EV DC","EV AC"]]
+            for i, r in enumerate(rows):
+                sc, dc_dk, ac_dk = ev_seg_pdf[i]
+                import re
+                def _p(s):
+                    h = re.search(r'(\d+)s', s); m = re.search(r'(\d+)dk', s)
+                    return (int(h.group(1)) if h else 0) + (int(m.group(1)) if m else 0)/60
+                ev_dc = fmt_sure(_p(r["Toplam"]) + dc_dk/60)
+                ev_ac = fmt_sure(_p(r["Toplam"]) + ac_dk/60)
                 tv.append([r["Segment"], r["Mesafe"], r["Çıkış"], r["Varış"],
-                            r["Toplam"], r["Yakıt Mal."]])
-            story.append(tablo(tv, [6*cm, 2.5*cm, 1.8*cm, 1.8*cm, 2*cm, 2.4*cm]))
+                           r["Toplam"],
+                           f"{sc}x" if sc > 0 else "—", ev_dc, ev_ac])
+            story.append(tablo(tv, [5*cm, 2*cm, 1.6*cm, 1.6*cm, 1.8*cm, 1.5*cm, 2*cm, 2*cm]))
 
         # ── 3. Yakıt Karşılaştırması ─────────────────────────────────────────
         story.append(Paragraph("Yakıt Tipi Karşılaştırması", bolum_stili))
