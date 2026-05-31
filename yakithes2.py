@@ -1624,8 +1624,7 @@ with tab_rapor:
         if duzeltme_pct != 0:
             notlar.append(f"Tüketim {sicaklik}°C hava ve {yuk_kg}kg yük için düzeltildi "
                           f"({tuketim:.1f} → {tuk:.1f} L/100km, {duzeltme_pct:+.0f}%).")
-        notlar.append(f"Girilen tüketim 90 km/h referanslıdır. {hiz} km/h hız etkisi: "
-                      f"{(hiz_katsayi_hesapla(hiz)-1)*100:+.0f}%.")
+        notlar.append(f"Ortalama hız: {hiz} km/h · Girilen tüketim 90 km/h referanslıdır.")
         for n in notlar:
             story.append(Paragraph(n, alt_stili))
 
