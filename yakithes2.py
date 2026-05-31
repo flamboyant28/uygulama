@@ -1102,6 +1102,97 @@ with tab_ozet:
                 fc1.link_button("🗺 Google Maps'te Bul", gm_url, use_container_width=True)
                 fc2.link_button("🗺 Yandex'te Bul",      yx_url, use_container_width=True)
 
+    # ── 🔋 EV Şarj Süresi Planlayıcısı ──────────────────────────────────────
+    st.markdown('<div class="section-header">🔋 EV Şarj Süresi Planlayıcısı</div>',
+                unsafe_allow_html=True)
+
+    ev_sarj_sayisi_plan = math.ceil(yol / ev_menzil) if ev_menzil > 0 else 0
+
+    if ev_sarj_sayisi_plan <= 1:
+        st.success("✅ Bu güzergah tek şarjla tamamlanabilir, şarj durağına gerek yok.")
+    else:
+        evc1, evc2, evc3, evc4 = st.columns(4)
+        ev_baslangic_pct = evc1.number_input("Başlangıç şarjı (%)", 10, 100, 100, 5, key="ev_bas")
+        ev_min_pct       = evc2.number_input("Min şarj eşiği (%)",   5,  50,  20, 5, key="ev_min")
+        ev_dc_kw         = evc3.number_input("DC hızlı şarj (kW)",  20, 350,  50, 10, key="ev_dc")
+        ev_ac_kw         = evc4.number_input("AC normal şarj (kW)",  3,  22,   7,  1, key="ev_ac")
+
+        def sarj_suresi_dk(baslangic_pct, hedef_pct, batarya_kwh, guc_kw):
+            """0-80% tam güç, 80-100% çeyrek güç (şarj eğrisi)"""
+            dk = 0.0
+            if baslangic_pct >= hedef_pct:
+                return 0
+            if hedef_pct <= 80:
+                enerji = batarya_kwh * (hedef_pct - baslangic_pct) / 100
+                dk = (enerji / guc_kw) * 60
+            else:
+                if baslangic_pct < 80:
+                    dk += (batarya_kwh * (80 - baslangic_pct) / 100 / guc_kw) * 60
+                    dk += (batarya_kwh * (hedef_pct - 80)     / 100 / (guc_kw * 0.25)) * 60
+                else:
+                    dk += (batarya_kwh * (hedef_pct - baslangic_pct) / 100 / (guc_kw * 0.25)) * 60
+            return round(dk)
+
+        # Şarj planı
+        hedef_pct   = 90
+        sarj_menzil = ev_menzil * ((100 - ev_min_pct) / 100)
+        ilk_mesafe  = ev_menzil * (ev_baslangic_pct / 100) - ev_menzil * (ev_min_pct / 100)
+        kum         = 0
+        sarj_no     = 1
+        plan_rows   = []
+
+        for seg_idx, (_, _, km, _) in enumerate(segments):
+            if kum + km > ilk_mesafe and sarj_no <= ev_sarj_sayisi_plan:
+                il, ilce = st.session_state.duraks[seg_idx]
+                lat, lon  = koordinat(il, ilce)
+                dc_dk  = sarj_suresi_dk(ev_min_pct, hedef_pct, ev_batarya, ev_dc_kw)
+                ac_dk  = sarj_suresi_dk(ev_min_pct, hedef_pct, ev_batarya, ev_ac_kw)
+                ek_kwh = ev_batarya * (hedef_pct - ev_min_pct) / 100
+                plan_rows.append({
+                    "Şarj #":          sarj_no,
+                    "Konum":           f"{il} / {ilce}",
+                    "~km":             f"{int(kum)} km",
+                    "Gelinen şarj":    f"%{ev_min_pct}",
+                    "Hedef şarj":      f"%{hedef_pct}",
+                    "DC süresi":       f"{dc_dk} dk ({ev_dc_kw} kW)",
+                    "AC süresi":       f"{ac_dk} dk ({ev_ac_kw} kW)",
+                    "Eklenen enerji":  f"{ek_kwh:.1f} kWh",
+                    "Şarj maliyeti":   f"{ek_kwh * ev_fiyat:.0f} ₺",
+                })
+                sarj_no    += 1
+                ilk_mesafe  = kum + sarj_menzil
+            kum += km
+
+        if plan_rows:
+            st.dataframe(pd.DataFrame(plan_rows), hide_index=True, use_container_width=True)
+
+            # Şarj ağı linkleri
+            st.markdown("**📍 Şarj İstasyonu Bul:**")
+            sc1, sc2, sc3, sc4 = st.columns(4)
+            il0, ilce0 = plan_rows[0]["Konum"].split(" / ")
+            lat0, lon0 = koordinat(il0.strip(), ilce0.strip())
+            sc1.link_button("🟢 ZES",      "https://www.zes.net/sarj-istasyonlari",    use_container_width=True)
+            sc2.link_button("🔵 Trugo",    "https://trugo.com.tr/sarj-noktalari",      use_container_width=True)
+            sc3.link_button("🟠 Eşarj",   "https://www.esarj.com/sarj-istasyonlari",  use_container_width=True)
+            sc4.link_button("⚡ PlugShare",
+                f"https://www.plugshare.com/?latitude={lat0}&longitude={lon0}&spanLat=0.5&spanLng=0.5",
+                use_container_width=True)
+
+            # Özet metrikler
+            t_mal  = sum(float(r["Şarj maliyeti"].replace(" ₺","")) for r in plan_rows)
+            t_dc   = sum(int(r["DC süresi"].split(" dk")[0]) for r in plan_rows)
+            t_ac   = sum(int(r["AC süresi"].split(" dk")[0]) for r in plan_rows)
+            ms1, ms2, ms3 = st.columns(3)
+            ms1.metric("Toplam Şarj Maliyeti", f"{t_mal:.0f} ₺",
+                       f"{len(plan_rows)} şarj durağı", delta_color="off")
+            ms2.metric("DC Toplam Bekleme", f"{t_dc} dk",
+                       f"{t_dc//60}s {t_dc%60}dk", delta_color="off")
+            ms3.metric("AC Toplam Bekleme", f"{t_ac} dk",
+                       f"{t_ac//60}s {t_ac%60}dk", delta_color="off")
+
+            st.caption("⚡ Şarj süresi tahminidir: 0–80% tam güç, 80–100% çeyrek güç. "
+                       "Gerçek süre araç ve şarj cihazına göre değişir.")
+
 
 # ═══════════════════════ HARİTA ═══════════════════════════════════════════════
 # ═══════════════════════ HAVA DURUMU ═════════════════════════════════════════
