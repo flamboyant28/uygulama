@@ -1263,7 +1263,7 @@ with tab_ozet:
             return round(dk)
 
         # Şarj planı — segment içi ara şarjlar dahil
-        hedef_pct    = 90
+        hedef_pct    = 80
         sarj_menzil  = ev_menzil * (hedef_pct - ev_min_pct) / 100  # şarj sonrası gidilebilecek
         kalan_menzil = ev_menzil * (ev_baslangic_pct - ev_min_pct) / 100  # ilk şarja kadar
         kum          = 0
