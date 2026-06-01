@@ -993,7 +993,7 @@ _ev_sarj_kalan  = (_ev_sarj_sayisi * ev_menzil) - yol if ev_menzil > 0 else 0
 _ev_min_def    = int(st.session_state.get("ev_min", 20))
 _ev_dc_def     = int(st.session_state.get("ev_dc",  50))
 _ev_ac_def     = int(st.session_state.get("ev_ac",   7))
-_ev_hedef_def  = 90
+_ev_hedef_def  = 80
 _ek_kwh_def    = ev_batarya * (_ev_hedef_def - _ev_min_def) / 100
 
 def _sarj_dk(bas, hed, kwh, kw):
