@@ -122,6 +122,8 @@ st.markdown("""
   .lig-table td.left { text-align:left; font-weight:600; }
   .lig-table tr:hover td { background:#1a2340 !important; }
   .zona-cl   { border-left:3px solid #3498db; }
+  .zona-al   { border-left:3px solid #9b59b6; }
+  .zona-kl   { border-left:3px solid #1abc9c; }
   .zona-po   { border-left:3px solid #f39c12; }
   .zona-kd   { border-left:3px solid #e74c3c; }
   .zona-norm { border-left:3px solid transparent; }
@@ -130,6 +132,8 @@ st.markdown("""
     border-radius:50%; font-size:11px; font-weight:700; text-align:center;
   }
   .sira-cl  { background:#3498db; color:#fff; }
+  .sira-al  { background:#9b59b6; color:#fff; }
+  .sira-kl  { background:#1abc9c; color:#fff; }
   .sira-po  { background:#f39c12; color:#fff; }
   .sira-kd  { background:#e74c3c; color:#fff; }
   .sira-norm{ background:#2d3748; color:#a0aec0; }
@@ -247,6 +251,18 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
+    st.markdown("---")
+
+    # ── Avrupa zonaları ───────────────────────────────────────────────────
+    st.markdown('<div class="sidebar-title">🏅 Avrupa Zonaları</div>', unsafe_allow_html=True)
+    cl_limit = st.number_input("🔵 Şampiyonlar Ligi (ilk N takım)", min_value=0, max_value=new_n, value=3, step=1, key="cl")
+    al_limit = st.number_input("🟣 Avrupa Ligi (ilk N takım)",      min_value=0, max_value=new_n, value=5, step=1, key="al")
+    kl_limit = st.number_input("🟢 Konferans Ligi (ilk N takım)",   min_value=0, max_value=new_n, value=7, step=1, key="kl")
+
+    st.markdown('<div class="sidebar-title" style="margin-top:10px">🔻 Küme Düşme</div>', unsafe_allow_html=True)
+    kd_count = st.number_input("Son kaç takım düşer?", min_value=0, max_value=new_n // 2, value=3, step=1, key="kd")
+    kd_start = new_n - kd_count + 1
+
 # Veriyi güncelle (sidebar'dan sonra)
 data = st.session_state.data
 N = data["n"]
@@ -289,16 +305,13 @@ with tab1:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Zona eşikleri — takım sayısına göre dinamik
-    cl_limit = 3
-    po_limit = 6
-    kd_start = N - 2   # son 3
-
+    # Zona eşikleri — sidebar'dan gelir
     st.markdown(f"""
-    <div style="display:flex;gap:20px;margin-bottom:12px;font-size:12px;color:#a0aec0">
-      <span><span style="color:#3498db">●</span> 1-{cl_limit} Şampiyonlar Ligi</span>
-      <span><span style="color:#f39c12">●</span> {cl_limit+1}-{po_limit} Play-off</span>
-      <span><span style="color:#e74c3c">●</span> {kd_start}-{N} Küme Düşme</span>
+    <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:#a0aec0;flex-wrap:wrap">
+      {"" if cl_limit == 0 else f'<span><span style="color:#3498db">●</span> 1-{cl_limit} Şampiyonlar Ligi</span>'}
+      {"" if al_limit <= cl_limit else f'<span><span style="color:#9b59b6">●</span> {cl_limit+1}-{al_limit} Avrupa Ligi</span>'}
+      {"" if kl_limit <= al_limit else f'<span><span style="color:#1abc9c">●</span> {al_limit+1}-{kl_limit} Konferans Ligi</span>'}
+      {"" if kd_count == 0 else f'<span><span style="color:#e74c3c">●</span> {kd_start}-{N} Küme Düşme</span>'}
     </div>
     """, unsafe_allow_html=True)
 
@@ -310,11 +323,13 @@ with tab1:
 
     for row in table:
         s = row["Sıra"]
-        if s <= cl_limit:
+        if s <= cl_limit and cl_limit > 0:
             zona_cls, sira_cls = "zona-cl", "sira-cl"
-        elif s <= po_limit:
-            zona_cls, sira_cls = "zona-po", "sira-po"
-        elif s >= kd_start:
+        elif s <= al_limit and al_limit > cl_limit:
+            zona_cls, sira_cls = "zona-al", "sira-al"
+        elif s <= kl_limit and kl_limit > al_limit:
+            zona_cls, sira_cls = "zona-kl", "sira-kl"
+        elif kd_count > 0 and s >= kd_start:
             zona_cls, sira_cls = "zona-kd", "sira-kd"
         else:
             zona_cls, sira_cls = "zona-norm", "sira-norm"
