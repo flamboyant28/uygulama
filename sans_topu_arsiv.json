@@ -20720,5 +20720,18 @@
     "sistem": "yeni",
     "sira": 1594,
     "bonus": 14
+  },
+    {
+    "tarih": "03/06/2026",
+    "sayilar": [
+      7,
+      13,
+      19,
+      21,
+      25
+    ],
+    "sistem": "yeni",
+    "sira": 1595,
+    "bonus": 14
   }
 ]
