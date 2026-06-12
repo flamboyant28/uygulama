@@ -1533,9 +1533,10 @@ ARCHETYPES = {
             # Oyun kurma, asist, pressing — gol ikincil
             "Pas": 14, "Vizyon": 14, "Takım Oyunu": 15,
             "Çalışkanlık": 15, "Topsuz Alan": 13, "İlk Kontrol": 13,
-            "Dripling": 12, "Agresiflik": 13,
+            "Dripling": 12, "Agresiflik": 13, "Markaj": 11,
             "Bitiricilik": 9, "Güç": 8, "Kafa Vuruşu": 7,
             "Hız": 12, "Hızlanma": 12,
+            "_caps": {"Markaj": 12, "Agresiflik": 14},
         },
 
         "🏰 Target Man (Giroud)": {
@@ -1565,11 +1566,12 @@ ARCHETYPES = {
 
         "🏃 Pressing Canavarı (Vardy)": {
             # Yüksek tempo, hız, çalışkanlık, topsuz alan
+            # Markaj: pressing ST rakip stoper'ı markajlar
             "Hız": 17, "Hızlanma": 17, "Dayanıklılık": 16,
             "Çalışkanlık": 16, "Topsuz Alan": 16, "Agresiflik": 14,
-            "Bitiricilik": 13, "Soğukkanlılık": 12,
+            "Markaj": 13, "Bitiricilik": 13, "Soğukkanlılık": 12,
             "Teknik": 8, "Pas": 7, "Kafa Vuruşu": 9, "Güç": 10,
-            "_caps": {"Markaj": 14, "Agresiflik": 16}
+            "_caps": {"Markaj": 14, "Agresiflik": 16},
         },
     },
 
