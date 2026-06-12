@@ -1701,14 +1701,177 @@ ARCHETYPES = {
             "Karar Alma": 13, "Cesaret": 15,
             "Pas": 10, "Vizyon": 8, "Teknik": 9,
         },
+
+        "🎯 Gol Atan OS (Lampard/Gerrard)": {
+            "Uzaktan Şut": 16, "Bitiricilik": 14, "Soğukkanlılık": 14,
+            "Pas": 14, "Karar Alma": 14, "Dayanıklılık": 15,
+            "Güç": 14, "Hız": 12, "Hızlanma": 12,
+            "Top Kapma": 11, "Vizyon": 13,
+        },
     },
+
+    # ── KANAT (KANAT Sol/Sağ) ─────────────────────────────
+    "KANAT": {
+        "🎲 Rastgele": None,
+
+        "⚡ Hız Kanadı (Adama/Leao)": {
+            "Hız": 18, "Hızlanma": 18, "Çeviklik": 15, "Denge": 13,
+            "Dripling": 15, "İlk Kontrol": 13, "Dayanıklılık": 14,
+            "Orta Yapma": 11, "Bitiricilik": 10,
+            "Güç": 9, "Pas": 8, "Teknik": 9,
+        },
+
+        "🎨 Teknik Kanat (Iniesta/Silva)": {
+            "Teknik": 16, "Dripling": 16, "İlk Kontrol": 15,
+            "Vizyon": 14, "Pas": 14, "Çeviklik": 15, "Denge": 15,
+            "Hız": 12, "Hızlanma": 12,
+            "Güç": 7, "Orta Yapma": 10,
+        },
+
+        "🔄 Geniş Kanat (Beckham/Navas)": {
+            "Orta Yapma": 17, "Korner": 15, "Serbest Vuruş Kullanma": 14,
+            "Pas": 14, "Çalışkanlık": 15, "Dayanıklılık": 15,
+            "Hız": 13, "Hızlanma": 13, "İlk Kontrol": 13,
+            "Bitiricilik": 8, "Güç": 9,
+        },
+
+        "💪 Çalışkan Kanat (Mane/Sancho)": {
+            "Dayanıklılık": 16, "Çalışkanlık": 16, "Agresiflik": 12,
+            "Hız": 15, "Hızlanma": 15, "Dripling": 14,
+            "Bitiricilik": 12, "Topsuz Alan": 13,
+            "Top Kapma": 10, "Güç": 10,
+        },
+
+        "🎯 İçe Kesen Kanat (Robben/Mkhitaryan)": {
+            "Dripling": 16, "Uzaktan Şut": 15, "Bitiricilik": 13,
+            "Teknik": 15, "İlk Kontrol": 14, "Hız": 14, "Hızlanma": 14,
+            "Çeviklik": 15, "Soğukkanlılık": 13,
+            "Orta Yapma": 6, "Güç": 8,
+        },
+    },
+
+    # ── KANAT BEK (KB Sol/Sağ) ────────────────────────────
+    "KB": {
+        "🎲 Rastgele": None,
+
+        "⚡ Hücum Bekı (Trent/Alba)": {
+            "Orta Yapma": 16, "Pas": 15, "Hız": 16, "Hızlanma": 16,
+            "İlk Kontrol": 14, "Çalışkanlık": 15, "Dayanıklılık": 15,
+            "Korner": 13, "Vizyon": 13,
+            "Markaj": 11, "Top Kapma": 11, "Güç": 10,
+        },
+
+        "🛡️ Defans Odaklı KB (Azpilicueta)": {
+            "Markaj": 15, "Top Kapma": 15, "Pozisyon Alma": 15,
+            "Güç": 14, "Dayanıklılık": 15, "Çalışkanlık": 15,
+            "Karar Alma": 14, "Konsantrasyon": 14,
+            "Orta Yapma": 9, "Pas": 10, "Hız": 12,
+        },
+
+        "🔄 Dengeli KB (Carvajal/Cancelo)": {
+            "Hız": 14, "Hızlanma": 14, "Orta Yapma": 14,
+            "Markaj": 13, "Top Kapma": 13, "Pas": 13,
+            "Çalışkanlık": 14, "Dayanıklılık": 14,
+            "Karar Alma": 13, "Pozisyon Alma": 13,
+        },
+    },
+
+    # ── BAĞLAYAN BEK / TAM BEK (D Sol/Sağ) ──────────────
+    "D": {
+        "🎲 Rastgele": None,
+
+        "🛡️ Klasik Bek (Cafu/Makelele)": {
+            "Markaj": 15, "Top Kapma": 15, "Güç": 14,
+            "Pozisyon Alma": 15, "Konsantrasyon": 14, "Karar Alma": 14,
+            "Dayanıklılık": 14, "Çalışkanlık": 14,
+            "Hız": 11, "Orta Yapma": 8, "Pas": 9,
+        },
+
+        "⚡ Modern Tam Bek (Hakimi/Davies)": {
+            "Hız": 17, "Hızlanma": 17, "Çeviklik": 14,
+            "Orta Yapma": 14, "Dripling": 13, "Dayanıklılık": 15,
+            "Markaj": 13, "Top Kapma": 12, "Çalışkanlık": 15,
+            "Güç": 11, "Pas": 12,
+        },
+
+        "🔄 Pas Yapan Bek (Alaba/Trent sol)": {
+            "Pas": 15, "Vizyon": 13, "İlk Kontrol": 13,
+            "Karar Alma": 14, "Konsantrasyon": 13,
+            "Markaj": 13, "Top Kapma": 13, "Pozisyon Alma": 14,
+            "Hız": 12, "Orta Yapma": 12,
+        },
+    },
+
+    # ── KALECI (KL) ───────────────────────────────────────
+    "KL": {
+        "🎲 Rastgele": None,
+
+        "🧤 Klasik Kaleci (Buffon/Casillas)": {
+            # Refleksler ve pozisyon alma ön planda
+            "Refleksler": 17, "Elle Kontrol": 15, "Konumlama": 16,
+            "Çıkış": 13, "Top Tutma": 15, "İletişim": 14,
+            "Hava Hakimiyeti": 13, "Uzağa Atış": 11,
+            "Güç": 13, "Zıplama": 14,
+        },
+
+        "⚡ Sweeper Kaleci (Neuer/Alisson)": {
+            # Ayak topu + çıkış + refleksler
+            "Refleksler": 16, "Çıkış": 17, "Konumlama": 15,
+            "Top Tutma": 14, "İletişim": 15, "Hava Hakimiyeti": 15,
+            "Uzağa Atış": 15, "Elle Kontrol": 14,
+            "Hız": 13, "Hızlanma": 13, "Güç": 14,
+            "İlk Kontrol": 14, "Pas": 13,
+        },
+
+        "🎯 Penaltı Uzmanı (Courtois/Oblak)": {
+            "Refleksler": 18, "Elle Kontrol": 16, "Konumlama": 17,
+            "Top Tutma": 16, "Soğukkanlılık": 16, "Konsantrasyon": 15,
+            "Çıkış": 12, "Hava Hakimiyeti": 14,
+            "Güç": 14, "Zıplama": 15,
+        },
+
+        "💪 Lider Kaleci (Casillas/De Gea)": {
+            "Refleksler": 17, "İletişim": 17, "Liderlik": 16,
+            "Elle Kontrol": 15, "Konumlama": 16, "Top Tutma": 15,
+            "Soğukkanlılık": 15, "Konsantrasyon": 15,
+            "Güç": 13, "Zıplama": 14,
+        },
+    },
+
+    # ── ST EK ARKETİPLER ──────────────────────────────────
+    # (Mevcut ST arketiplerinin yanına ekstra 2 tane)
+    # Bu blok ARCHETYPES["ST"]'e eklenecek,
+    # aşağıda ARCHETYPES_EXTRA olarak tutulup birleştirilecek
+
 }
 
+# ST'ye ek arketipler — ARCHETYPES["ST"]'e birleştir
+ARCHETYPES["ST"].update({
+    "🦁 Fiziksel Dominant (Lukaku/Ibra)": {
+        "Güç": 18, "Zıplama": 16, "Kafa Vuruşu": 16, "Dayanıklılık": 15,
+        "Çeviklik": 12, "Bitiricilik": 14, "Topsuz Alan": 13,
+        "İlk Kontrol": 12, "Güç": 18,
+        "Hız": 11, "Hızlanma": 11, "Pas": 7, "Dripling": 9,
+    },
+    "🎭 Hareket Santrafor (Aguero/Benzema 2)": {
+        "Topsuz Alan": 17, "Önsezi": 16, "Hız": 15, "Hızlanma": 15,
+        "Soğukkanlılık": 15, "Bitiricilik": 15, "Pozisyon Alma": 15,
+        "Çeviklik": 14, "Karar Alma": 14,
+        "Güç": 9, "Kafa Vuruşu": 8, "Pas": 9,
+    },
+})
+
 # Desteklenen mevkiler için arketip pool'ları
-# KF Sol/Sağ → KF arketiplerini kullan
 ARCHETYPE_BASE_MAP = {
-    "ST": "ST", "KF (Sol)": "KF", "KF (Sağ)": "KF",
-    "OOS": "OOS", "DOS": "DOS", "DM": "DM", "OS": "OS",
+    "ST"          : "ST",
+    "KF (Sol)"    : "KF",   "KF (Sağ)"    : "KF",
+    "OOS"         : "OOS",
+    "KANAT (Sol)" : "KANAT","KANAT (Sağ)" : "KANAT",
+    "OS"          : "OS",   "DM"          : "DM",
+    "DOS"         : "DOS",
+    "KB (Sol)"    : "KB",   "KB (Sağ)"    : "KB",
+    "D (Sol)"     : "D",    "D (Sağ)"     : "D",
+    "KL"          : "KL",
 }
 
 # =========================================================
@@ -2014,7 +2177,8 @@ def generate_all_attributes(position, age, preset, country, target_ca,
     base = POSITION_BASE[position]
     if base == "KL":
         for attr in GOALKEEPER:
-            gk[attr] = _roll(GK_ATTR_MEANS.get(attr, 9) * lmult, 2.0, min(max_a, a_cap))
+            _gk_m = means.get(attr, GK_ATTR_MEANS.get(attr, 9)) * lmult
+            gk[attr] = _roll(_gk_m, 2.0, min(max_a, a_cap))
     else:
         for attr in GOALKEEPER:
             gk[attr] = random.randint(1, min(5, max_a))
@@ -2859,12 +3023,16 @@ with tab1:
     if _arch_base and _arch_base in ARCHETYPES:
         _arch_options = list(ARCHETYPES[_arch_base].keys())
         _arch_labels  = {
-            "ST" : "Santrafor Tipi",
-            "KF" : "Kanat Forvet Tipi",
-            "OOS": "Forvet Arkası Tipi",
-            "DOS": "Stoper Tipi",
-            "DM" : "Defansif OS Tipi",
-            "OS" : "Orta Saha Tipi",
+            "ST"   : "Santrafor Tipi",
+            "KF"   : "Kanat Forvet Tipi",
+            "OOS"  : "Forvet Arkası Tipi",
+            "KANAT": "Kanat Tipi",
+            "OS"   : "Orta Saha Tipi",
+            "DM"   : "Defansif OS Tipi",
+            "DOS"  : "Stoper Tipi",
+            "KB"   : "Kanat Bek Tipi",
+            "D"    : "Tam Bek Tipi",
+            "KL"   : "Kaleci Tipi",
         }.get(_arch_base, "Arketip")
         _arch_col1, _arch_col2 = st.columns([1, 3])
         with _arch_col1:
