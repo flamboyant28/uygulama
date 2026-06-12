@@ -1565,7 +1565,7 @@ ARCHETYPES = {
 
         "🏃 Pressing Canavarı (Vardy)": {
             # Yüksek tempo, hız, çalışkanlık, topsuz alan
-            "Hız": 17, "Hızlanma": 17, "Dayanıklılık": 16,
+            "Hız": 17, "Hızlanma": 17, "Dayanıklılık": 16, "Markaj": 13,
             "Çalışkanlık": 16, "Topsuz Alan": 16, "Agresiflik": 14,
             "Bitiricilik": 13, "Soğukkanlılık": 12,
             "Teknik": 8, "Pas": 7, "Kafa Vuruşu": 9, "Güç": 10,
