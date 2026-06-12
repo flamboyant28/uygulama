@@ -2879,7 +2879,7 @@ with tab1:
                 _arch_means = ARCHETYPES[_arch_base][_selected_archetype]
                 # Öne çıkan özellikler
                 _top_attrs = sorted(
-                    [(k,v) for k,v in _arch_means.items() if v >= 14],
+                    [(k,v) for k,v in _arch_means.items() if isinstance(v, (int,float)) and v >= 14],
                     key=lambda x: -x[1]
                 )[:6]
                 _badges = ""
