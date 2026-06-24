@@ -1859,6 +1859,32 @@ ARCHETYPES["ST"].update({
         "Çeviklik": 14, "Karar Alma": 14,
         "Güç": 9, "Kafa Vuruşu": 8, "Pas": 9,
     },
+
+    "🔄 Pivot Santrafor (Drogba/Cavani)": {
+        # Sırt dönük oyun — top tutundurma, asist, ikinci dalga hazırlama
+        # Target Man'dan farkı: havada değil yerde dominant, teknik daha önemli
+        "Güç": 17, "Denge": 16, "İlk Kontrol": 16,
+        "Pas": 14, "Karar Alma": 15, "Teknik": 13,
+        "Çeviklik": 13, "Topsuz Alan": 14,
+        "Bitiricilik": 12, "Soğukkanlılık": 13,
+        "Hız": 9, "Hızlanma": 9, "Kafa Vuruşu": 11,
+    },
+
+    "⭐ Kilitleyen Santrafor (Hakan Şükür)": {
+        # FM2006 verisinden türetildi:
+        # Pas 20, Çalışkanlık 20, Dayanıklılık 20, Zıplama 20,
+        # Kafa Vuruşu 20, Soğukkanlılık 20, Topsuz Alan 19, Takım Oyunu 19
+        # Havada + yerde dominant, tireless pressing, buzdan sinirler
+        "Bitiricilik": 17, "İlk Kontrol": 16, "Kafa Vuruşu": 19,
+        "Pas": 18, "Teknik": 14, "Orta Yapma": 13,
+        "Topsuz Alan": 18, "Soğukkanlılık": 19, "Çalışkanlık": 19,
+        "Vizyon": 16, "Karar Alma": 15, "Takım Oyunu": 18,
+        "Liderlik": 16, "Önsezi": 14,
+        "Güç": 16, "Zıplama": 19, "Dayanıklılık": 19,
+        "Hız": 15, "Hızlanma": 13, "Çeviklik": 15, "Denge": 12,
+        "Vücut Zindeliği": 16,
+        "Dripling": 12, "Uzaktan Şut": 13,
+    },
 })
 
 # Desteklenen mevkiler için arketip pool'ları
