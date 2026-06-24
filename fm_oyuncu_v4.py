@@ -1871,19 +1871,19 @@ ARCHETYPES["ST"].update({
     },
 
     "⭐ Kilitleyen Santrafor (Hakan Şükür)": {
-        # FM2006 verisinden türetildi:
-        # Pas 20, Çalışkanlık 20, Dayanıklılık 20, Zıplama 20,
-        # Kafa Vuruşu 20, Soğukkanlılık 20, Topsuz Alan 19, Takım Oyunu 19
-        # Havada + yerde dominant, tireless pressing, buzdan sinirler
-        "Bitiricilik": 17, "İlk Kontrol": 16, "Kafa Vuruşu": 19,
-        "Pas": 18, "Teknik": 14, "Orta Yapma": 13,
-        "Topsuz Alan": 18, "Soğukkanlılık": 19, "Çalışkanlık": 19,
-        "Vizyon": 16, "Karar Alma": 15, "Takım Oyunu": 18,
-        "Liderlik": 16, "Önsezi": 14,
-        "Güç": 16, "Zıplama": 19, "Dayanıklılık": 19,
-        "Hız": 15, "Hızlanma": 13, "Çeviklik": 15, "Denge": 12,
-        "Vücut Zindeliği": 16,
-        "Dripling": 12, "Uzaktan Şut": 13,
+        # FM2006 orijinal verisi — Galatasaray, 33 yaş
+        # İMZA: Zıplama 19, Çalışkanlık 17, Takım Oyunu 16,
+        #        İlk Kontrol 16, Dayanıklılık 17 — Finishing sadece 14!
+        # Gol makinesi değil, takım için koşan havada dominant santrafor
+        # Pozisyon Alma 6 — klasik "doğru yerde olmayan ama işe yarayan" tip
+        "Bitiricilik": 14, "İlk Kontrol": 15, "Kafa Vuruşu": 16,
+        "Pas": 15, "Teknik": 11, "Uzaktan Şut": 10,
+        "Soğukkanlılık": 15, "Vizyon": 13, "Karar Alma": 12,
+        "Takım Oyunu": 15, "Çalışkanlık": 16, "Önsezi": 11,
+        "Liderlik": 14, "Topsuz Alan": 14, "Pozisyon Alma": 6,
+        "Hız": 13, "Hızlanma": 11, "Çeviklik": 13, "Denge": 10,
+        "Zıplama": 18, "Dayanıklılık": 16, "Vücut Zindeliği": 16,
+        "Güç": 14, "Dripling": 9,
     },
 })
 
