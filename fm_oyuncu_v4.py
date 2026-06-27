@@ -1564,7 +1564,32 @@ ARCHETYPES = {
             "Hız": 11, "Hızlanma": 11, "Güç": 8, "Kafa Vuruşu": 8,
         },
 
-            "👑 Kaptan Santrafor (Totti/Shearer)": {
+            
+    "🎪 Trequartista (Cantona/Ibra)": {
+        # Serbest ruh — sahaya iner, yaratır, pozisyon tutmaz
+        "Vizyon": 16, "Teknik": 15, "İlk Kontrol": 15, "Dripling": 14,
+        "Soğukkanlılık": 16, "Karar Alma": 14, "Özel Yetenek": 15,
+        "Güç": 15, "Bitiricilik": 13,
+        "Çalışkanlık": 7, "Pozisyon Alma": 6, "Hız": 10,
+    },
+
+    "🔫 Penaltı Alıcısı (Suarez/Neymar)": {
+        # Küçük, çevik, faul kazanan — faul çıkarımı yüksek
+        "Çeviklik": 17, "Denge": 16, "Dripling": 16, "Hızlanma": 16,
+        "Hız": 15, "Bitiricilik": 14, "Soğukkanlılık": 14,
+        "Agresiflik": 13, "İlk Kontrol": 14,
+        "Güç": 7, "Kafa Vuruşu": 6, "Zıplama": 8,
+    },
+
+    "🌙 Gece Yarısı Golcüsü": {
+        # 90 dakika ortalıkta yoktur, son anda çıkar gol atar
+        "Soğukkanlılık": 19, "Bitiricilik": 17, "Önsezi": 16,
+        "Topsuz Alan": 15, "Karar Alma": 15, "Pozisyon Alma": 14,
+        "Hız": 11, "Hızlanma": 11, "Güç": 11,
+        "Çalışkanlık": 7, "Dayanıklılık": 8, "Teknik": 9,
+    },
+
+    "👑 Kaptan Santrafor (Totti/Shearer)": {
             # Her takımda bir tane — sahada lider, soyunma odasında otorite
             "Bitiricilik": 15, "İlk Kontrol": 14, "Kafa Vuruşu": 14,
             "Pas": 13, "Soğukkanlılık": 16, "Topsuz Alan": 15,
@@ -1602,7 +1627,24 @@ ARCHETYPES = {
             "Orta Yapma": 6, "Kafa Vuruşu": 6,
         },
 
-            "👑 Kaptan Kanat (Giggs/Figo)": {
+            
+    "🎩 Playmaker Kanat (Silva/Iniesta)": {
+        # Kanat mevkiinde oynayan oyun kurucu — dar + pas odaklı
+        "Pas": 15, "Vizyon": 15, "İlk Kontrol": 15, "Teknik": 15,
+        "Dripling": 14, "Çeviklik": 15, "Denge": 15, "Soğukkanlılık": 14,
+        "Karar Alma": 14, "Takım Oyunu": 14,
+        "Hız": 11, "Güç": 8, "Orta Yapma": 9,
+    },
+
+    "🔋 Yorulmaz Kanat (Milner/Valencia)": {
+        # Teknik zayıf ama 90 dakika aynı tempoda koşar
+        "Dayanıklılık": 18, "Çalışkanlık": 17, "Vücut Zindeliği": 17,
+        "Hız": 15, "Hızlanma": 15, "Orta Yapma": 13,
+        "Takım Oyunu": 15, "Kararlılık": 15,
+        "Teknik": 9, "Dripling": 10, "Bitiricilik": 9,
+    },
+
+    "👑 Kaptan Kanat (Giggs/Figo)": {
             "Dripling": 14, "Hız": 14, "Hızlanma": 14,
             "Pas": 14, "Vizyon": 14, "İlk Kontrol": 14,
             "Liderlik": 17, "Karar Alma": 15, "Cesaret": 14,
@@ -1643,7 +1685,18 @@ ARCHETYPES = {
             "Güç": 7, "Kafa Vuruşu": 6, "Dayanıklılık": 9,
         },
 
-            "👑 Kaptan Forvet Arkası (Totti/Zidane)": {
+            
+    "🦎 Kameleon (Müller)": {
+        # Mevki belirsiz — ne ST ne OOS, ikisi de değil ikisi de
+        # Topsuz alan + önsezi ile her yerde gol tehlikesi
+        "Topsuz Alan": 18, "Önsezi": 17, "Karar Alma": 16,
+        "Pas": 13, "Takım Oyunu": 16, "Bitiricilik": 14,
+        "Soğukkanlılık": 15, "Pozisyon Alma": 14,
+        "Hız": 13, "Güç": 12, "Teknik": 10,
+        "Dripling": 9, "Kafa Vuruşu": 12,
+    },
+
+    "👑 Kaptan Forvet Arkası (Totti/Zidane)": {
             "Pas": 16, "Vizyon": 16, "İlk Kontrol": 15,
             "Teknik": 14, "Dripling": 13, "Soğukkanlılık": 16,
             "Liderlik": 17, "Karar Alma": 16, "Kararlılık": 15,
@@ -1676,7 +1729,25 @@ ARCHETYPES = {
             "Hız": 10,
         },
 
-            "👑 Kaptan Stoper (Maldini/Cannavaro)": {
+            
+    "🦅 Libero (Beckenbauer/Baresi)": {
+        # Topla çıkan, sweeper — neredeyse orta saha gibi pas yapar
+        "Pas": 15, "Vizyon": 13, "Karar Alma": 15, "İlk Kontrol": 13,
+        "Teknik": 12, "Pozisyon Alma": 16, "Konsantrasyon": 15,
+        "Markaj": 14, "Top Kapma": 13, "Güç": 13,
+        "Hız": 12, "Hızlanma": 12,
+    },
+
+    "👊 Kirli İşçi Stoper (Vidic/Terry)": {
+        # Markaj + agresiflik + cesaret maksimum — topla değil savaşla önler
+        "Markaj": 17, "Agresiflik": 16, "Cesaret": 17,
+        "Güç": 16, "Kafa Vuruşu": 16, "Zıplama": 15,
+        "Top Kapma": 15, "Kararlılık": 16, "Konsantrasyon": 14,
+        "Pas": 7, "Teknik": 6, "Hız": 10,
+        "_caps": {"Markaj": 18, "Agresiflik": 17},
+    },
+
+    "👑 Kaptan Stoper (Maldini/Cannavaro)": {
             "Markaj": 16, "Top Kapma": 15, "Pozisyon Alma": 16,
             "Güç": 14, "Kafa Vuruşu": 15, "Zıplama": 15,
             "Liderlik": 17, "Cesaret": 17, "Kararlılık": 16,
@@ -1696,7 +1767,17 @@ ARCHETYPES = {
     "DM": {
         "🎲 Rastgele": None,
 
-            "👑 Kaptan DM (Mascherano/Busquets)": {
+            
+    "⚙️ Motor Oyuncu (Kanté)": {
+        # Sadece koşar, top çalar, dağıtır — teknik bekleme
+        "Hız": 16, "Hızlanma": 16, "Dayanıklılık": 18,
+        "Top Kapma": 17, "Çalışkanlık": 17, "Pozisyon Alma": 15,
+        "Agresiflik": 14, "Güç": 13, "Kararlılık": 15,
+        "Pas": 11, "Vizyon": 8, "Teknik": 9,
+        "_caps": {"Agresiflik": 16},
+    },
+
+    "👑 Kaptan DM (Mascherano/Busquets)": {
             "Top Kapma": 15, "Pozisyon Alma": 15, "Karar Alma": 16,
             "Pas": 14, "Çalışkanlık": 15, "Dayanıklılık": 15,
             "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
@@ -1736,7 +1817,32 @@ ARCHETYPES = {
             "Güç": 8, "Kafa Vuruşu": 7,
         },
 
-            "👑 Kaptan OS (Gerrard/Lampard)": {
+            
+    "🎯 Set Piece Uzmanı (Pirlo/Beckham)": {
+        # Durağan topun efendisi — serbest vuruş + korner + pas
+        "Serbest Vuruş Kullanma": 17, "Korner": 16, "Pas": 16,
+        "Uzaktan Şut": 15, "Teknik": 15, "Vizyon": 15,
+        "İlk Kontrol": 14, "Soğukkanlılık": 15, "Karar Alma": 14,
+        "Hız": 8, "Hızlanma": 8, "Dayanıklılık": 11, "Güç": 9,
+    },
+
+    "🧠 Derin Playmaker (Xavi/Kroos)": {
+        # Her şeyi ilk temasta çözer, asla koşmaz ama top hep onda
+        "Pas": 18, "Vizyon": 17, "İlk Kontrol": 16, "Teknik": 16,
+        "Soğukkanlılık": 17, "Karar Alma": 17, "Konsantrasyon": 15,
+        "Takım Oyunu": 15, "Pozisyon Alma": 14,
+        "Hız": 8, "Hızlanma": 8, "Güç": 8, "Dayanıklılık": 12,
+    },
+
+    "⚡ Geç Hücumcu OS (Lampard 2/Scholes)": {
+        # Savunma + orta + hücum — ceza sahasına girer, gol atar
+        "Uzaktan Şut": 16, "Bitiricilik": 14, "Pas": 14,
+        "Dayanıklılık": 15, "Çalışkanlık": 14, "Top Kapma": 13,
+        "Güç": 13, "Hız": 12, "Hızlanma": 12,
+        "Soğukkanlılık": 14, "Karar Alma": 14,
+    },
+
+    "👑 Kaptan OS (Gerrard/Lampard)": {
             "Pas": 15, "Uzaktan Şut": 14, "Dayanıklılık": 16,
             "Çalışkanlık": 15, "Top Kapma": 13, "Bitiricilik": 13,
             "Liderlik": 17, "Cesaret": 16, "Kararlılık": 17,
@@ -1817,7 +1923,16 @@ ARCHETYPES = {
             "Orta Yapma": 9, "Pas": 10, "Hız": 12,
         },
 
-            "👑 Kaptan Kanat Bek (Alba/Lahm)": {
+            
+    "🚂 Hücum Treni KB (Alaba/Blind)": {
+        # Kanat bek ama orta sahada gibi oynuyor — pas + vizyon
+        "Pas": 15, "Vizyon": 14, "İlk Kontrol": 14,
+        "Orta Yapma": 14, "Hız": 14, "Hızlanma": 14,
+        "Markaj": 12, "Top Kapma": 12, "Dayanıklılık": 15,
+        "Karar Alma": 14, "Pozisyon Alma": 13,
+    },
+
+    "👑 Kaptan Kanat Bek (Alba/Lahm)": {
             "Hız": 13, "Orta Yapma": 13, "Markaj": 13, "Pas": 13,
             "Çalışkanlık": 15, "Dayanıklılık": 15, "Pozisyon Alma": 14,
             "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
@@ -1850,7 +1965,16 @@ ARCHETYPES = {
             "Güç": 11, "Pas": 12,
         },
 
-            "👑 Kaptan Tam Bek (Cafu/Roberto Carlos)": {
+            
+    "🚀 Overlapping Bek (Roberto Carlos)": {
+        # Hücuma katılan bek — sol/sağ fark etmez, sürekli üste çıkar
+        "Hız": 17, "Hızlanma": 17, "Dayanıklılık": 16,
+        "Orta Yapma": 14, "Uzaktan Şut": 13, "Çalışkanlık": 15,
+        "Markaj": 12, "Top Kapma": 12, "Güç": 13,
+        "Pas": 12, "Çeviklik": 14,
+    },
+
+    "👑 Kaptan Tam Bek (Cafu/Roberto Carlos)": {
             "Hız": 13, "Markaj": 13, "Top Kapma": 13,
             "Çalışkanlık": 16, "Dayanıklılık": 16, "Pozisyon Alma": 14,
             "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
@@ -1894,7 +2018,25 @@ ARCHETYPES = {
             "Güç": 14, "Zıplama": 15,
         },
 
-        "💪 Lider Kaleci (Casillas/De Gea)": {
+        
+    "👣 Ayak Topu Kalecisi (Ederson/Alisson)": {
+        # Kaleci ama 11. adam — pas + ilk kontrol çok yüksek
+        "Refleksler": 15, "Konumlama": 15, "Top Tutma": 14,
+        "Çıkış": 14, "Hava Hakimiyeti": 13, "İletişim": 14,
+        "Uzağa Atış": 16,
+        "Pas": 16, "İlk Kontrol": 14, "Teknik": 13,
+        "Hız": 13, "Hızlanma": 13,
+    },
+
+    "📐 Pozisyon Kalecisi (Buffon/Schmeichel)": {
+        # Refleks değil pozisyonla kurtarır — büyük, dominant
+        "Konumlama": 18, "Konsantrasyon": 17, "Refleksler": 16,
+        "Top Tutma": 16, "Hava Hakimiyeti": 17, "İletişim": 15,
+        "Güç": 16, "Zıplama": 17,
+        "Çıkış": 9, "Uzağa Atış": 11,
+    },
+
+    "💪 Lider Kaleci (Casillas/De Gea)": {
             "Refleksler": 17, "İletişim": 17, "Liderlik": 16,
             "Elle Kontrol": 15, "Konumlama": 16, "Top Tutma": 15,
             "Soğukkanlılık": 15, "Konsantrasyon": 15,
