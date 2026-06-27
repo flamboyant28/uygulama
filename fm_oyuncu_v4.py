@@ -7479,3 +7479,5 @@ with tab11:
                     st.rerun()
         with sv2:
             st.caption("📦 Oyuncu Havuzu'na eklenirse Excel'e aktarabilirsin.")
+
+st.caption("© Football Manager Oyuncu Oluşturma | Streamlit + Python | 2026 Enes Özkan")
