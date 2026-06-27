@@ -1564,7 +1564,16 @@ ARCHETYPES = {
             "Hız": 11, "Hızlanma": 11, "Güç": 8, "Kafa Vuruşu": 8,
         },
 
-        "🏃 Pressing Canavarı (Vardy)": {
+            "👑 Kaptan Santrafor (Totti/Shearer)": {
+            # Her takımda bir tane — sahada lider, soyunma odasında otorite
+            "Bitiricilik": 15, "İlk Kontrol": 14, "Kafa Vuruşu": 14,
+            "Pas": 13, "Soğukkanlılık": 16, "Topsuz Alan": 15,
+            "Liderlik": 17, "Karar Alma": 15, "Önsezi": 14,
+            "Cesaret": 15, "Takım Oyunu": 15, "Kararlılık": 16,
+            "Hız": 11, "Güç": 14, "Dayanıklılık": 15,
+        },
+
+    "🏃 Pressing Canavarı (Vardy)": {
             # Yüksek tempo, hız, çalışkanlık, topsuz alan
             # Markaj: pressing ST rakip stoper'ı markajlar
             "Hız": 17, "Hızlanma": 17, "Dayanıklılık": 16,
@@ -1593,7 +1602,15 @@ ARCHETYPES = {
             "Orta Yapma": 6, "Kafa Vuruşu": 6,
         },
 
-        "🎯 Orta Açan Kanat (Trippier/Trent)": {
+            "👑 Kaptan Kanat (Giggs/Figo)": {
+            "Dripling": 14, "Hız": 14, "Hızlanma": 14,
+            "Pas": 14, "Vizyon": 14, "İlk Kontrol": 14,
+            "Liderlik": 17, "Karar Alma": 15, "Cesaret": 14,
+            "Kararlılık": 16, "Takım Oyunu": 15,
+            "Dayanıklılık": 15, "Vücut Zindeliği": 15,
+        },
+
+    "🎯 Orta Açan Kanat (Trippier/Trent)": {
             "Orta Yapma": 16, "Pas": 15, "Serbest Vuruş Kullanma": 14,
             "Korner": 15, "Vizyon": 13, "İlk Kontrol": 13,
             "Hız": 12, "Hızlanma": 12, "Dripling": 11,
@@ -1626,7 +1643,15 @@ ARCHETYPES = {
             "Güç": 7, "Kafa Vuruşu": 6, "Dayanıklılık": 9,
         },
 
-        "🤝 İkinci Forvet (Griezmann)": {
+            "👑 Kaptan Forvet Arkası (Totti/Zidane)": {
+            "Pas": 16, "Vizyon": 16, "İlk Kontrol": 15,
+            "Teknik": 14, "Dripling": 13, "Soğukkanlılık": 16,
+            "Liderlik": 17, "Karar Alma": 16, "Kararlılık": 15,
+            "Cesaret": 14, "Takım Oyunu": 15,
+            "Hız": 11, "Güç": 11,
+        },
+
+    "🤝 İkinci Forvet (Griezmann)": {
             "Topsuz Alan": 16, "Bitiricilik": 14, "Soğukkanlılık": 14,
             "Dripling": 13, "Hız": 14, "Hızlanma": 14,
             "Çalışkanlık": 14, "Takım Oyunu": 13,
@@ -1651,7 +1676,15 @@ ARCHETYPES = {
             "Hız": 10,
         },
 
-        "⚡ Hızlı Stoper (Koulibaly)": {
+            "👑 Kaptan Stoper (Maldini/Cannavaro)": {
+            "Markaj": 16, "Top Kapma": 15, "Pozisyon Alma": 16,
+            "Güç": 14, "Kafa Vuruşu": 15, "Zıplama": 15,
+            "Liderlik": 17, "Cesaret": 17, "Kararlılık": 16,
+            "Karar Alma": 16, "Soğukkanlılık": 16, "Konsantrasyon": 15,
+            "Hız": 12, "Dayanıklılık": 15,
+        },
+
+    "⚡ Hızlı Stoper (Koulibaly)": {
             "Hız": 15, "Hızlanma": 15, "Çeviklik": 13,
             "Markaj": 15, "Top Kapma": 15, "Güç": 15,
             "Pozisyon Alma": 14, "Kafa Vuruşu": 14,
@@ -1663,7 +1696,15 @@ ARCHETYPES = {
     "DM": {
         "🎲 Rastgele": None,
 
-        "💥 Destroyer (Kanté/Casemiro)": {
+            "👑 Kaptan DM (Mascherano/Busquets)": {
+            "Top Kapma": 15, "Pozisyon Alma": 15, "Karar Alma": 16,
+            "Pas": 14, "Çalışkanlık": 15, "Dayanıklılık": 15,
+            "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
+            "Soğukkanlılık": 15, "Takım Oyunu": 16,
+            "Hız": 10, "Güç": 13,
+        },
+
+    "💥 Destroyer (Kanté/Casemiro)": {
             "Top Kapma": 17, "Agresiflik": 16, "Çalışkanlık": 16,
             "Pozisyon Alma": 16, "Dayanıklılık": 15, "Karar Alma": 14,
             "Güç": 14, "Markaj": 13,
@@ -1695,7 +1736,15 @@ ARCHETYPES = {
             "Güç": 8, "Kafa Vuruşu": 7,
         },
 
-        "💪 Savaşçı OS (Gattuso)": {
+            "👑 Kaptan OS (Gerrard/Lampard)": {
+            "Pas": 15, "Uzaktan Şut": 14, "Dayanıklılık": 16,
+            "Çalışkanlık": 15, "Top Kapma": 13, "Bitiricilik": 13,
+            "Liderlik": 17, "Cesaret": 16, "Kararlılık": 17,
+            "Karar Alma": 15, "Soğukkanlılık": 15, "Takım Oyunu": 14,
+            "Güç": 14, "Hız": 12,
+        },
+
+    "💪 Savaşçı OS (Gattuso)": {
             "Agresiflik": 16, "Çalışkanlık": 16, "Dayanıklılık": 16,
             "Top Kapma": 15, "Güç": 15, "Markaj": 13,
             "Karar Alma": 13, "Cesaret": 15,
@@ -1768,7 +1817,14 @@ ARCHETYPES = {
             "Orta Yapma": 9, "Pas": 10, "Hız": 12,
         },
 
-        "🔄 Dengeli KB (Carvajal/Cancelo)": {
+            "👑 Kaptan Kanat Bek (Alba/Lahm)": {
+            "Hız": 13, "Orta Yapma": 13, "Markaj": 13, "Pas": 13,
+            "Çalışkanlık": 15, "Dayanıklılık": 15, "Pozisyon Alma": 14,
+            "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
+            "Karar Alma": 15, "Soğukkanlılık": 15, "Takım Oyunu": 16,
+        },
+
+    "🔄 Dengeli KB (Carvajal/Cancelo)": {
             "Hız": 14, "Hızlanma": 14, "Orta Yapma": 14,
             "Markaj": 13, "Top Kapma": 13, "Pas": 13,
             "Çalışkanlık": 14, "Dayanıklılık": 14,
@@ -1794,7 +1850,15 @@ ARCHETYPES = {
             "Güç": 11, "Pas": 12,
         },
 
-        "🔄 Pas Yapan Bek (Alaba/Trent sol)": {
+            "👑 Kaptan Tam Bek (Cafu/Roberto Carlos)": {
+            "Hız": 13, "Markaj": 13, "Top Kapma": 13,
+            "Çalışkanlık": 16, "Dayanıklılık": 16, "Pozisyon Alma": 14,
+            "Liderlik": 17, "Cesaret": 15, "Kararlılık": 16,
+            "Karar Alma": 15, "Soğukkanlılık": 15, "Takım Oyunu": 16,
+            "Güç": 13, "Hızlanma": 13,
+        },
+
+    "🔄 Pas Yapan Bek (Alaba/Trent sol)": {
             "Pas": 15, "Vizyon": 13, "İlk Kontrol": 13,
             "Karar Alma": 14, "Konsantrasyon": 13,
             "Markaj": 13, "Top Kapma": 13, "Pozisyon Alma": 14,
@@ -1911,7 +1975,7 @@ POSITION_ATTR_MEANS = {
         "Korner"          : 3, "Penaltı Kullanma" : 9, "Serbest Vuruş Kullanma" : 6, "Uzun Taç"     : 3, "Topsuz Alan"  : 13,
         "Soğukkanlılık"   : 12, "Pozisyon Alma"   : 11, "Karar Alma"            : 11, "Önsezi"      : 11, "Çalışkanlık" :  9,
         "Vizyon"          : 7, "Konsantrasyon"    : 9, "Takım Oyunu"            : 8, "Agresiflik"   : 7, "Cesaret"      :  9,
-        "Liderlik"        : 6, "Kararlılık"       : 9, "Özel Yetenek"           : 8, "Hız"          : 12, "Hızlanma"    : 12,
+        "Liderlik"        : 9, "Kararlılık"       : 9, "Özel Yetenek"           : 8, "Hız"          : 12, "Hızlanma"    : 12,
         "Çeviklik"        : 10, "Denge"           : 9, "Dayanıklılık"           : 10, "Güç"         : 10, "Zıplama"     : 11,
         "Vücut Zindeliği" : 10,
 
@@ -1922,7 +1986,7 @@ POSITION_ATTR_MEANS = {
         "Korner"          : 4, "Penaltı Kullanma" : 7, "Serbest Vuruş Kullanma" : 6, "Uzun Taç"     : 3, "Topsuz Alan"  : 12,
         "Soğukkanlılık"   : 11, "Pozisyon Alma"   : 10, "Karar Alma"            : 10, "Önsezi"      : 11, "Çalışkanlık" : 10,
         "Vizyon"          : 9, "Konsantrasyon"    : 9, "Takım Oyunu"            : 9,"Agresiflik"    : 7, "Cesaret"      : 8,
-        "Liderlik"        : 6, "Kararlılık"       : 9, "Özel Yetenek"           : 10, "Hız"         : 13, "Hızlanma"    : 13,
+        "Liderlik"        : 9, "Kararlılık"       : 9, "Özel Yetenek"           : 10, "Hız"         : 13, "Hızlanma"    : 13,
         "Çeviklik"        : 12, "Denge"           : 11, "Dayanıklılık"          : 10, "Güç"         : 8, "Zıplama"      : 8,
         "Vücut Zindeliği" : 10,
 
@@ -1944,7 +2008,7 @@ POSITION_ATTR_MEANS = {
         "Korner"          : 9, "Penaltı Kullanma" : 5, "Serbest Vuruş Kullanma" : 6, "Uzun Taç"     : 3, "Topsuz Alan"  : 11,
         "Soğukkanlılık"   : 9, "Pozisyon Alma"    : 9, "Karar Alma"             : 10, "Önsezi"      : 10, "Çalışkanlık" : 11,
         "Vizyon"          : 10, "Konsantrasyon"   : 9, "Takım Oyunu"            : 10, "Agresiflik"  : 7, "Cesaret"      : 7,
-        "Liderlik"        : 6, "Kararlılık"       : 8, "Özel Yetenek"           : 8, "Hız"          : 13, "Hızlanma"    : 13,
+        "Liderlik"        : 9, "Kararlılık"       : 8, "Özel Yetenek"           : 8, "Hız"          : 13, "Hızlanma"    : 13,
         "Çeviklik"        : 11, "Denge"           : 10, "Dayanıklılık"          : 11, "Güç"         : 7, "Zıplama"      : 7,
         "Vücut Zindeliği" : 10,
 
@@ -1988,7 +2052,7 @@ POSITION_ATTR_MEANS = {
         "Korner"          : 4, "Penaltı Kullanma" : 4, "Serbest Vuruş Kullanma" : 4, "Uzun Taç"    : 5, "Topsuz Alan"  : 5,
         "Soğukkanlılık"   : 11, "Pozisyon Alma"   : 12, "Karar Alma"            : 11, "Önsezi"     : 9, "Çalışkanlık"  : 10,
         "Vizyon"          : 6, "Konsantrasyon"    : 11, "Takım Oyunu"           : 10, "Agresiflik" : 10, "Cesaret"     : 11,
-        "Liderlik"        : 7, "Kararlılık"       : 11, "Özel Yetenek"          : 5, "Hız"         : 9, "Hızlanma"     : 9,
+        "Liderlik"        : 9, "Kararlılık"       : 11, "Özel Yetenek"          : 5, "Hız"         : 9, "Hızlanma"     : 9,
         "Çeviklik"        : 9, "Denge"            : 10, "Dayanıklılık"          : 11, "Güç"        : 12, "Zıplama"     : 9,
         "Vücut Zindeliği" : 11,
 
@@ -1999,7 +2063,7 @@ POSITION_ATTR_MEANS = {
         "Korner"          : 7, "Penaltı Kullanma" : 4, "Serbest Vuruş Kullanma" : 4, "Uzun Taç"     : 5, "Topsuz Alan" : 7,
         "Soğukkanlılık"   : 10, "Pozisyon Alma"   : 10, "Karar Alma"            : 10, "Önsezi"      : 9, "Çalışkanlık" : 11,
         "Vizyon"          : 8, "Konsantrasyon"    : 9, "Takım Oyunu"            : 11, "Agresiflik"  : 9, "Cesaret"     : 9,
-        "Liderlik"        : 7, "Kararlılık"       : 10, "Özel Yetenek"          : 6, "Hız"          : 12, "Hızlanma"   : 12,
+        "Liderlik"        : 9, "Kararlılık"       : 10, "Özel Yetenek"          : 6, "Hız"          : 12, "Hızlanma"   : 12,
         "Çeviklik"        : 11, "Denge"           : 10, "Dayanıklılık"          : 12, "Güç"         : 9, "Zıplama"     : 8,
         "Vücut Zindeliği" : 11,
 
