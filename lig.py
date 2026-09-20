@@ -531,22 +531,63 @@ with tab4:
         # ── MOD 2: Hafta Oluştur ──────────────────────────────────────────
         elif mod == "Hafta Oluştur":
             st.markdown("#### Hafta Oluştur")
-            st.caption("Bir haftanın tüm maçlarını seç, toplu ekle.")
 
             hafta_mevcut = sorted(set(m["week"] for m in data["fixtures"]))
             max_hafta = max(hafta_mevcut, default=0)
 
             hc1, hc2 = st.columns(2)
-            hafta_mod2 = hc1.radio("Hafta", ["Var olan", "Yeni"], horizontal=True, key="hafta_mod2")
-            if hafta_mod2 == "Var olan" and hafta_mevcut:
-                hafta_no = hc2.selectbox("Hafta seç", hafta_mevcut, key="hw_sel")
+            hafta_mod2 = hc1.radio("Hafta", ["Mevcut hafta", "Yeni hafta"],
+                                    horizontal=True, key="hafta_mod2")
+
+            if hafta_mod2 == "Mevcut hafta":
+                if not hafta_mevcut:
+                    st.info("Henüz hiç hafta yok. 'Yeni hafta' seç.")
+                    hafta_no = 1
+                else:
+                    hafta_no = hc2.selectbox(
+                        "Hafta seç", hafta_mevcut,
+                        format_func=lambda w: f"Hafta {w}",
+                        key="hw_sel"
+                    )
+
+                    # Seçili haftanın mevcut maçlarını göster
+                    hafta_maclar = [m for m in data["fixtures"] if m["week"] == hafta_no]
+                    if hafta_maclar:
+                        st.markdown(f"**Hafta {hafta_no} — Mevcut {len(hafta_maclar)} maç:**")
+                        tbl = '<table class="lig-table"><thead><tr>'
+                        for h in ["No", "Ev Sahibi", "Skor", "Deplasman", "Durum"]:
+                            cls = "left" if h in ["Ev Sahibi","Deplasman"] else ""
+                            tbl += f'<th class="{cls}">{h}</th>'
+                        tbl += "</tr></thead><tbody>"
+                        for m in hafta_maclar:
+                            if m["played"]:
+                                skor = f"<b>{m['hg']} - {m['ag']}</b>"
+                                if m["hg"] > m["ag"]:   dc, dr = "#27ae60", "EV"
+                                elif m["hg"] < m["ag"]: dc, dr = "#e74c3c", "DEP"
+                                else:                   dc, dr = "#f39c12", "BER"
+                                durum = f'<span style="color:{dc};font-weight:700;font-size:11px">{dr}</span>'
+                            else:
+                                skor  = '<span style="color:#4a5568">vs</span>'
+                                durum = '<span style="color:#4a5568;font-size:11px">—</span>'
+                            tbl += (f"<tr><td>{m['id']}</td>"
+                                    f'<td class="left">{m["home"]}</td>'
+                                    f"<td>{skor}</td>"
+                                    f'<td class="left">{m["away"]}</td>'
+                                    f"<td>{durum}</td></tr>")
+                        tbl += "</tbody></table>"
+                        st.markdown(tbl, unsafe_allow_html=True)
+                        st.markdown("<br>", unsafe_allow_html=True)
+                    st.caption(f"Hafta {hafta_no}'e yeni maç eklemek için aşağıyı kullan.")
             else:
                 hafta_no = hc2.number_input("Hafta no", min_value=1,
-                                              value=max_hafta + 1, step=1, key="hw_new")
+                                             value=max_hafta + 1, step=1, key="hw_new")
 
-            # Kaç maç eklenecek
+            st.markdown("---")
+
+            # Yeni maç ekleme formu
             n_mac = st.number_input("Kaç maç ekleyeceksin?", min_value=1,
-                                     max_value=len(teams)//2, value=min(4, len(teams)//2),
+                                     max_value=max(len(teams)//2, 1),
+                                     value=min(4, max(len(teams)//2, 1)),
                                      step=1, key="n_mac_hafta")
 
             mac_listesi = []
@@ -554,10 +595,8 @@ with tab4:
             for i in range(int(n_mac)):
                 st.markdown(f"**Maç {i+1}**")
                 mc1, mc2, mc3 = st.columns([2, 1, 2])
-                h_opts = teams
-                a_opts = teams
-                ev  = mc1.selectbox("Ev", h_opts, key=f"hw_h_{i}")
-                dep = mc3.selectbox("Dep", a_opts, key=f"hw_a_{i}")
+                ev  = mc1.selectbox("Ev",  teams, key=f"hw_h_{i}")
+                dep = mc3.selectbox("Dep", teams, key=f"hw_a_{i}")
                 if ev == dep:
                     mc2.markdown("<br>", unsafe_allow_html=True)
                     st.warning(f"Maç {i+1}: Ev ve deplasman aynı olamaz.", icon="⚠️")
@@ -565,24 +604,21 @@ with tab4:
                 mac_listesi.append((ev, dep))
 
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("➕ Haftayı Ekle", type="primary", use_container_width=True, key="ekle_hafta"):
+            if st.button("➕ Haftaya Ekle", type="primary",
+                          use_container_width=True, key="ekle_hafta"):
                 if not valid:
                     st.error("Lütfen hataları düzelt.")
                 else:
-                    eklenen = 0
                     for ev, dep in mac_listesi:
-                        yeni = {
+                        data["fixtures"].append({
                             "id": next_id(data["fixtures"]),
                             "week": int(hafta_no),
                             "devre": 1,
-                            "home": ev,
-                            "away": dep,
+                            "home": ev, "away": dep,
                             "hg": None, "ag": None, "played": False
-                        }
-                        data["fixtures"].append(yeni)
-                        eklenen += 1
+                        })
                     save_data(data)
-                    st.success(f"✅ {eklenen} maç — Hafta {hafta_no} olarak eklendi!")
+                    st.success(f"✅ {len(mac_listesi)} maç — Hafta {hafta_no}'e eklendi!")
                     st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════
