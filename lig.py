@@ -121,13 +121,13 @@ st.markdown("""
   .sira-kl  { background:#1abc9c; color:#fff; }
   .sira-kd  { background:#e74c3c; color:#fff; }
   .sira-norm{ background:#2d3748; color:#a0aec0; }
-  .puan { font-weight:700; font-size:14px; color:#000; }
+  .puan { font-weight:700; font-size:14px; color:#172033; }
   .mac-kart {
     background:#1a2340; border-radius:10px; padding:14px 18px;
     margin-bottom:8px; border:1px solid #2d3748;
   }
   .mac-baslik { color:#718096; font-size:11px; font-weight:600; margin-bottom:6px; }
-  .takim-adi { font-size:14px; font-weight:700; color:#000; text-align:center; }
+  .takim-adi { font-size:14px; font-weight:700; color:#172033; text-align:center; }
   .vs { color:#4a5568; font-size:18px; font-weight:700; text-align:center; }
   .metric-card {
     background:#1a2340; border-radius:10px; padding:16px;
