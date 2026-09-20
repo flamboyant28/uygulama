@@ -26,7 +26,7 @@
       "week": 1,
       "devre": 1,
       "home": "GALATASARAY A.Ş.",
-      "away": "GÖZTEPE A.Ş.",
+      "away": "ARCA ÇORUM FK",
       "hg": 0,
       "ag": 0,
       "played": false
@@ -35,8 +35,8 @@
       "id": 2,
       "week": 1,
       "devre": 1,
-      "home": "BEŞİKTAŞ A.Ş.",
-      "away": "EYÜPSPOR",
+      "home": "KASIMPAŞA A.Ş.	",
+      "away": "TRABZONSPOR A.Ş.",
       "hg": 0,
       "ag": 0,
       "played": false
@@ -45,8 +45,8 @@
       "id": 3,
       "week": 1,
       "devre": 1,
-      "home": "KOCAELİSPOR",
-      "away": "ERZURUMSPOR FK",
+      "home": "TÜMOSAN KONYASPOR",
+      "away": "ÇAYKUR RİZESPOR A.Ş.",
       "hg": 0,
       "ag": 0,
       "played": false
