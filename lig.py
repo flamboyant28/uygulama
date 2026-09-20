@@ -47,8 +47,13 @@ def default_data(n=16):
 # ── Veri yükle / kaydet ──────────────────────────────────────────────────────
 def load_data():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            if "teams" in d and "fixtures" in d and "n" in d:
+                return d
+        except Exception:
+            pass
     return default_data()
 
 def save_data(data):
