@@ -562,6 +562,32 @@ with tab4:
             # Yoksa boş form göster
             if hafta_maclar:
                 st.markdown(f"**Hafta {hafta_no} — {len(hafta_maclar)} maç** (düzenle veya yeni ekle)")
+
+                # Önce tablo göster
+                tbl = '<table class="lig-table"><thead><tr>'
+                for h in ["No", "Ev Sahibi", "Skor", "Deplasman", "Durum"]:
+                    cls = "left" if h in ["Ev Sahibi", "Deplasman"] else ""
+                    tbl += f'<th class="{cls}">{h}</th>'
+                tbl += "</tr></thead><tbody>"
+                for m in hafta_maclar:
+                    if m["played"]:
+                        skor = f"<b>{m['hg']} - {m['ag']}</b>"
+                        if m["hg"] > m["ag"]:   dc, dr = "#27ae60", "EV"
+                        elif m["hg"] < m["ag"]: dc, dr = "#e74c3c", "DEP"
+                        else:                   dc, dr = "#f39c12", "BER"
+                        durum = f'<span style="color:{dc};font-weight:700;font-size:11px">{dr}</span>'
+                    else:
+                        skor  = '<span style="color:#4a5568">vs</span>'
+                        durum = '<span style="color:#4a5568;font-size:11px">—</span>'
+                    tbl += (f"<tr><td>{m['id']}</td>"
+                            f'<td class="left">{m["home"]}</td>'
+                            f"<td>{skor}</td>"
+                            f'<td class="left">{m["away"]}</td>'
+                            f"<td>{durum}</td></tr>")
+                tbl += "</tbody></table>"
+                st.markdown(tbl, unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
+
                 n_mac = len(hafta_maclar)
             else:
                 n_mac = st.number_input("Kaç maç ekleyeceksin?", min_value=1,
