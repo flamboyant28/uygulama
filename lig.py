@@ -426,14 +426,59 @@ with tab4:
     if not data["teams"]:
         st.warning("Önce **Ayarlar** sekmesinden takımları ekle.")
     else:
-        mod = st.radio("Mod seç", ["Tek Maç Ekle", "Hafta Oluştur"], horizontal=True)
+        mod = st.radio("Mod seç", ["Otomatik Round-Robin", "Tek Maç Ekle", "Hafta Oluştur"], horizontal=True)
 
         st.markdown("---")
 
         teams = data["teams"]
 
+        # ── MOD 0: Otomatik Round-Robin ───────────────────────────────────
+        if mod == "Otomatik Round-Robin":
+
+            n = len(teams)
+            if n % 2 != 0:
+                st.warning("Round-robin için çift sayıda takım gerekiyor. Ayarlar'dan bir takım daha ekle.", icon="⚠️")
+            else:
+                total_mac = n * (n - 1)
+                total_hafta = (n - 1) * 2
+                st.info(f"**{n} takım** → {total_mac} maç · {total_hafta} hafta (çift devreli)", icon="📋")
+
+                mevcut = len(data["fixtures"])
+                if mevcut > 0:
+                    st.warning(f"Mevcut {mevcut} maç silinecek ve yeni fikstür oluşturulacak!", icon="⚠️")
+
+                if st.button("🔄 Fikstürü Oluştur", type="primary", use_container_width=True, key="rr_btn"):
+                    def round_robin(teams):
+                        n = len(teams)
+                        lst = list(range(n))
+                        rounds = []
+                        for _ in range(n - 1):
+                            pairs = [(lst[i], lst[n - 1 - i]) for i in range(n // 2)]
+                            rounds.append(pairs)
+                            lst = [lst[0]] + [lst[-1]] + lst[1:-1]
+                        return rounds
+
+                    r1 = round_robin(teams)
+                    r2 = [[(b, a) for a, b in rnd] for rnd in r1]
+                    fixtures = []
+                    mid = 1
+                    for devre, rounds in enumerate([r1, r2], 1):
+                        for w_idx, pairs in enumerate(rounds):
+                            week = w_idx + 1 + (n - 1) * (devre - 1)
+                            for hi, ai in pairs:
+                                fixtures.append({
+                                    "id": mid, "week": week, "devre": devre,
+                                    "home": teams[hi], "away": teams[ai],
+                                    "hg": None, "ag": None, "played": False
+                                })
+                                mid += 1
+                    data["fixtures"] = fixtures
+                    save_data(data)
+                    st.success(f"✅ {len(fixtures)} maçlık fikstür oluşturuldu!")
+                    st.rerun()
+
         # ── MOD 1: Tek Maç Ekle ───────────────────────────────────────────
-        if mod == "Tek Maç Ekle":
+        elif mod == "Tek Maç Ekle":
             st.markdown("#### Maç Bilgileri")
             with st.container():
                 c1, c2, c3 = st.columns([2, 1, 2])
@@ -484,7 +529,7 @@ with tab4:
                         st.rerun()
 
         # ── MOD 2: Hafta Oluştur ──────────────────────────────────────────
-        else:
+        elif mod == "Hafta Oluştur":
             st.markdown("#### Hafta Oluştur")
             st.caption("Bir haftanın tüm maçlarını seç, toplu ekle.")
 
