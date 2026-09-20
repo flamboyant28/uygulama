@@ -543,82 +543,94 @@ with tab4:
                 if not hafta_mevcut:
                     st.info("Henüz hiç hafta yok. 'Yeni hafta' seç.")
                     hafta_no = 1
+                    hafta_maclar = []
                 else:
                     hafta_no = hc2.selectbox(
                         "Hafta seç", hafta_mevcut,
                         format_func=lambda w: f"Hafta {w}",
                         key="hw_sel"
                     )
-
-                    # Seçili haftanın mevcut maçlarını göster
                     hafta_maclar = [m for m in data["fixtures"] if m["week"] == hafta_no]
-                    if hafta_maclar:
-                        st.markdown(f"**Hafta {hafta_no} — Mevcut {len(hafta_maclar)} maç:**")
-                        tbl = '<table class="lig-table"><thead><tr>'
-                        for h in ["No", "Ev Sahibi", "Skor", "Deplasman", "Durum"]:
-                            cls = "left" if h in ["Ev Sahibi","Deplasman"] else ""
-                            tbl += f'<th class="{cls}">{h}</th>'
-                        tbl += "</tr></thead><tbody>"
-                        for m in hafta_maclar:
-                            if m["played"]:
-                                skor = f"<b>{m['hg']} - {m['ag']}</b>"
-                                if m["hg"] > m["ag"]:   dc, dr = "#27ae60", "EV"
-                                elif m["hg"] < m["ag"]: dc, dr = "#e74c3c", "DEP"
-                                else:                   dc, dr = "#f39c12", "BER"
-                                durum = f'<span style="color:{dc};font-weight:700;font-size:11px">{dr}</span>'
-                            else:
-                                skor  = '<span style="color:#4a5568">vs</span>'
-                                durum = '<span style="color:#4a5568;font-size:11px">—</span>'
-                            tbl += (f"<tr><td>{m['id']}</td>"
-                                    f'<td class="left">{m["home"]}</td>'
-                                    f"<td>{skor}</td>"
-                                    f'<td class="left">{m["away"]}</td>'
-                                    f"<td>{durum}</td></tr>")
-                        tbl += "</tbody></table>"
-                        st.markdown(tbl, unsafe_allow_html=True)
-                        st.markdown("<br>", unsafe_allow_html=True)
-                    st.caption(f"Hafta {hafta_no}'e yeni maç eklemek için aşağıyı kullan.")
             else:
                 hafta_no = hc2.number_input("Hafta no", min_value=1,
                                              value=max_hafta + 1, step=1, key="hw_new")
+                hafta_maclar = []
 
             st.markdown("---")
 
-            # Yeni maç ekleme formu
-            n_mac = st.number_input("Kaç maç ekleyeceksin?", min_value=1,
-                                     max_value=max(len(teams)//2, 1),
-                                     value=min(4, max(len(teams)//2, 1)),
-                                     step=1, key="n_mac_hafta")
+            # Mevcut maçlar varsa → selectbox'lar onlarla dolu gelsin
+            # Yoksa boş form göster
+            if hafta_maclar:
+                st.markdown(f"**Hafta {hafta_no} — {len(hafta_maclar)} maç** (düzenle veya yeni ekle)")
+                n_mac = len(hafta_maclar)
+            else:
+                n_mac = st.number_input("Kaç maç ekleyeceksin?", min_value=1,
+                                         max_value=max(len(teams)//2, 1),
+                                         value=min(9, max(len(teams)//2, 1)),
+                                         step=1, key="n_mac_hafta")
+                n_mac = int(n_mac)
 
             mac_listesi = []
             valid = True
-            for i in range(int(n_mac)):
-                st.markdown(f"**Maç {i+1}**")
+
+            for i in range(n_mac):
+                # Mevcut maçtan varsayılan değerleri al
+                if i < len(hafta_maclar):
+                    default_ev  = hafta_maclar[i]["home"]
+                    default_dep = hafta_maclar[i]["away"]
+                    mac_id      = hafta_maclar[i]["id"]
+                    mac_label   = f"**Maç {i+1}** (#{mac_id})"
+                else:
+                    default_ev  = teams[0]
+                    default_dep = teams[1] if len(teams) > 1 else teams[0]
+                    mac_label   = f"**Maç {i+1}** (yeni)"
+
+                # teams listesinde index bul
+                ev_idx  = teams.index(default_ev)  if default_ev  in teams else 0
+                dep_idx = teams.index(default_dep) if default_dep in teams else 0
+
+                st.markdown(mac_label)
                 mc1, mc2, mc3 = st.columns([2, 1, 2])
-                ev  = mc1.selectbox("Ev",  teams, key=f"hw_h_{i}")
-                dep = mc3.selectbox("Dep", teams, key=f"hw_a_{i}")
+                ev  = mc1.selectbox("Ev",  teams, index=ev_idx,  key=f"hw_h_{i}")
+                dep = mc3.selectbox("Dep", teams, index=dep_idx, key=f"hw_a_{i}")
+
                 if ev == dep:
                     mc2.markdown("<br>", unsafe_allow_html=True)
                     st.warning(f"Maç {i+1}: Ev ve deplasman aynı olamaz.", icon="⚠️")
                     valid = False
-                mac_listesi.append((ev, dep))
+
+                mac_listesi.append((i, ev, dep))
 
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("➕ Haftaya Ekle", type="primary",
+
+            btn_label = "💾 Haftayı Güncelle" if hafta_maclar else "➕ Haftayı Ekle"
+            if st.button(btn_label, type="primary",
                           use_container_width=True, key="ekle_hafta"):
                 if not valid:
                     st.error("Lütfen hataları düzelt.")
                 else:
-                    for ev, dep in mac_listesi:
-                        data["fixtures"].append({
-                            "id": next_id(data["fixtures"]),
-                            "week": int(hafta_no),
-                            "devre": 1,
-                            "home": ev, "away": dep,
-                            "hg": None, "ag": None, "played": False
-                        })
-                    save_data(data)
-                    st.success(f"✅ {len(mac_listesi)} maç — Hafta {hafta_no}'e eklendi!")
+                    if hafta_maclar:
+                        # Mevcut maçları güncelle
+                        for i, ev, dep in mac_listesi:
+                            if i < len(hafta_maclar):
+                                fiks_id = hafta_maclar[i]["id"]
+                                for m in data["fixtures"]:
+                                    if m["id"] == fiks_id:
+                                        m["home"] = ev
+                                        m["away"] = dep
+                        save_data(data)
+                        st.success(f"✅ Hafta {hafta_no} güncellendi!")
+                    else:
+                        for _, ev, dep in mac_listesi:
+                            data["fixtures"].append({
+                                "id": next_id(data["fixtures"]),
+                                "week": int(hafta_no),
+                                "devre": 1,
+                                "home": ev, "away": dep,
+                                "hg": None, "ag": None, "played": False
+                            })
+                        save_data(data)
+                        st.success(f"✅ {len(mac_listesi)} maç — Hafta {hafta_no}'e eklendi!")
                     st.rerun()
 
 # ════════════════════════════════════════════════════════════════════════════
