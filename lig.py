@@ -106,7 +106,7 @@ st.markdown("""
   .lig-table th.left { text-align:left; }
   .lig-table td { padding:7px 10px; text-align:center; border-bottom:1px solid #1e2535; }
   .lig-table td.left { text-align:left; font-weight:600; }
-  .lig-table tr:hover td { background:#3498db !important; }
+  .lig-table tr:hover td { background:#9dabb5 !important; }
   .zona-cl   { border-left:3px solid #3498db; }
   .zona-al   { border-left:3px solid #9b59b6; }
   .zona-kl   { border-left:3px solid #1abc9c; }
@@ -121,7 +121,7 @@ st.markdown("""
   .sira-kl  { background:#1abc9c; color:#fff; }
   .sira-kd  { background:#e74c3c; color:#fff; }
   .sira-norm{ background:#2d3748; color:#a0aec0; }
-  .puan { font-weight:700; font-size:14px; color:#9dabb5; }
+  .puan { font-weight:700; font-size:14px; color:#3498db; }
   .mac-kart {
     background:#1a2340; border-radius:10px; padding:14px 18px;
     margin-bottom:8px; border:1px solid #2d3748;
