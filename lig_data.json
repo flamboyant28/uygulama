@@ -1,4 +1,4 @@
-﻿{
+{
   "n": 18,
   "teams": [
     "GALATASARAY A.Ş.",
@@ -547,8 +547,8 @@
       "devre": 1,
       "home": "AMED SPORTİF FAALİYETLER",
       "away": "BEŞİKTAŞ A.Ş.",
-      "hg": 2,
-      "ag": 0,
+      "hg": 3,
+      "ag": 1,
       "played": true
     },
     {
