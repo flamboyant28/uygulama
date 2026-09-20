@@ -43,7 +43,9 @@ def compute_table(data):
     if not teams:
         return []
     stats = {t: {"O":0,"G":0,"B":0,"M":0,"AG":0,"YG":0,
-                 "IC_O":0,"IC_G":0,"IC_B":0,"IC_M":0,"form":[]} for t in teams}
+                 "IC_O":0,"IC_G":0,"IC_B":0,"IC_M":0,"IC_AG":0,"IC_YG":0,
+                 "DIS_O":0,"DIS_G":0,"DIS_B":0,"DIS_M":0,"DIS_AG":0,"DIS_YG":0,
+                 "form":[]} for t in teams}
     for m in data["fixtures"]:
         if not m["played"]:
             continue
@@ -54,18 +56,28 @@ def compute_table(data):
         stats[h]["O"] += 1; stats[a]["O"] += 1
         stats[h]["AG"] += hg; stats[h]["YG"] += ag
         stats[a]["AG"] += ag; stats[a]["YG"] += hg
-        stats[h]["IC_O"] += 1
+        # İç saha
+        stats[h]["IC_O"]  += 1
+        stats[h]["IC_AG"] += hg
+        stats[h]["IC_YG"] += ag
+        # Dış saha
+        stats[a]["DIS_O"]  += 1
+        stats[a]["DIS_AG"] += ag
+        stats[a]["DIS_YG"] += hg
         if hg > ag:
             stats[h]["G"] += 1; stats[a]["M"] += 1
-            stats[h]["IC_G"] += 1
+            stats[h]["IC_G"]  += 1
+            stats[a]["DIS_M"] += 1
             stats[h]["form"].append("G"); stats[a]["form"].append("M")
         elif hg < ag:
             stats[a]["G"] += 1; stats[h]["M"] += 1
-            stats[h]["IC_M"] += 1
+            stats[h]["IC_M"]  += 1
+            stats[a]["DIS_G"] += 1
             stats[h]["form"].append("M"); stats[a]["form"].append("G")
         else:
             stats[h]["B"] += 1; stats[a]["B"] += 1
-            stats[h]["IC_B"] += 1
+            stats[h]["IC_B"]  += 1
+            stats[a]["DIS_B"] += 1
             stats[h]["form"].append("B"); stats[a]["form"].append("B")
     rows = []
     for t in teams:
@@ -76,6 +88,9 @@ def compute_table(data):
             "Takım": t, "O": s["O"], "G": s["G"], "B": s["B"], "M": s["M"],
             "AG": s["AG"], "YG": s["YG"], "AV": av, "Puan": puan,
             "İç O": s["IC_O"], "İç G": s["IC_G"], "İç B": s["IC_B"], "İç M": s["IC_M"],
+            "İç AG": s["IC_AG"], "İç YG": s["IC_YG"],
+            "Dış O": s["DIS_O"], "Dış G": s["DIS_G"], "Dış B": s["DIS_B"], "Dış M": s["DIS_M"],
+            "Dış AG": s["DIS_AG"], "Dış YG": s["DIS_YG"],
             "form": s["form"][-5:]
         })
     rows.sort(key=lambda x: (-x["Puan"], -x["AV"], -x["AG"]))
@@ -249,7 +264,9 @@ with tab1:
             )
 
         html = '<table class="lig-table"><thead><tr>'
-        for h in ["Sıra","Takım","O","G","B","M","AG","YG","AV","Puan","İç O","İç G","İç B","İç M","Son 5"]:
+        for h in ["Sıra","Takım","O","G","B","M","AG","YG","AV","Puan",
+                  "İç O","İç G","İç B","İç M","İç AG","İç YG",
+                  "Dış O","Dış G","Dış B","Dış M","Dış AG","Dış YG","Son 5"]:
             cls = "left" if h == "Takım" else ""
             html += f'<th class="{cls}">{h}</th>'
         html += "</tr></thead><tbody>"
@@ -279,6 +296,9 @@ with tab1:
                 f'<td style="color:{av_color};font-weight:600">{av:+d}</td>'
                 f'<td class="puan">{row["Puan"]}</td>'
                 f'<td>{row["İç O"]}</td><td>{row["İç G"]}</td><td>{row["İç B"]}</td><td>{row["İç M"]}</td>'
+                f'<td>{row["İç AG"]}</td><td>{row["İç YG"]}</td>'
+                f'<td>{row["Dış O"]}</td><td>{row["Dış G"]}</td><td>{row["Dış B"]}</td><td>{row["Dış M"]}</td>'
+                f'<td>{row["Dış AG"]}</td><td>{row["Dış YG"]}</td>'
                 f'<td>{form_html(row["form"])}</td>'
                 f'</tr>'
             )
@@ -376,10 +396,15 @@ with tab3:
                     unsafe_allow_html=True)
 
         html2 = '<table class="lig-table"><thead><tr>'
-        for h in ["No", "Hafta", "Ev Sahibi", "Skor", "Deplasman", "Durum", "Sil"]:
+        for h in ["No", "Hafta", "Devre", "Ev Sahibi", "Skor", "Deplasman", "Durum", "Sil"]:
             cls = "left" if h in ["Ev Sahibi", "Deplasman"] else ""
             html2 += f'<th class="{cls}">{h}</th>'
         html2 += "</tr></thead><tbody>"
+
+        # Devre hesaplama: toplam hafta sayısının yarısına göre
+        tum_haftalar = sorted(set(m["week"] for m in data["fixtures"]))
+        toplam_hafta = len(tum_haftalar)
+        yari_hafta   = toplam_hafta // 2  # 1. devrenin son haftası
 
         for m in flt:
             if m["played"]:
@@ -392,8 +417,12 @@ with tab3:
                 skor  = '<span style="color:#4a5568">vs</span>'
                 durum = '<span style="color:#4a5568;font-size:11px">—</span>'
 
+            devre = m.get("devre") or (1 if m["week"] <= yari_hafta else 2)
+            devre_color = "#3498db" if devre == 1 else "#9b59b6"
+            devre_html  = f'<span style="color:{devre_color};font-weight:700">{devre}</span>'
+
             html2 += (
-                f'<tr><td>{m["id"]}</td><td>{m["week"]}</td>'
+                f'<tr><td>{m["id"]}</td><td>{m["week"]}</td><td>{devre_html}</td>'
                 f'<td class="left">{m["home"]}</td><td>{skor}</td>'
                 f'<td class="left">{m["away"]}</td><td>{durum}</td>'
                 f'<td>—</td></tr>'
