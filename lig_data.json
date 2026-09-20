@@ -1,4 +1,4 @@
-{
+﻿{
   "n": 18,
   "teams": [
     "GALATASARAY A.Ş.",
@@ -917,6 +917,816 @@
       "devre": 1,
       "home": "GENÇLERBİRLİĞİ",
       "away": "CORENDON ALANYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 91,
+      "week": 11,
+      "devre": 1,
+      "home": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "away": "KASIMPAŞA A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 92,
+      "week": 11,
+      "devre": 1,
+      "home": "EYÜPSPOR",
+      "away": "KOCAELİSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 93,
+      "week": 11,
+      "devre": 1,
+      "home": "SAMSUNSPOR A.Ş.",
+      "away": "TÜMOSAN KONYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 94,
+      "week": 11,
+      "devre": 1,
+      "home": "GÖZTEPE A.Ş.",
+      "away": "İSTANBUL BAŞAKŞEHİR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 95,
+      "week": 11,
+      "devre": 1,
+      "home": "GALATASARAY A.Ş.",
+      "away": "AMED SPORTİF FAALİYETLER",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 96,
+      "week": 11,
+      "devre": 1,
+      "home": "ÇAYKUR RİZESPOR A.Ş.",
+      "away": "ERZURUMSPOR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 97,
+      "week": 11,
+      "devre": 1,
+      "home": "ARCA ÇORUM FK",
+      "away": "FENERBAHÇE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 98,
+      "week": 11,
+      "devre": 1,
+      "home": "CORENDON ALANYASPOR",
+      "away": "TRABZONSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 99,
+      "week": 11,
+      "devre": 1,
+      "home": "BEŞİKTAŞ A.Ş.",
+      "away": "GENÇLERBİRLİĞİ",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 100,
+      "week": 12,
+      "devre": 1,
+      "home": "GENÇLERBİRLİĞİ",
+      "away": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 101,
+      "week": 12,
+      "devre": 1,
+      "home": "AMED SPORTİF FAALİYETLER",
+      "away": "ÇAYKUR RİZESPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 102,
+      "week": 12,
+      "devre": 1,
+      "home": "GALATASARAY A.Ş.",
+      "away": "SAMSUNSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 103,
+      "week": 12,
+      "devre": 1,
+      "home": "KOCAELİSPOR",
+      "away": "FENERBAHÇE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 104,
+      "week": 12,
+      "devre": 1,
+      "home": "ERZURUMSPOR FK",
+      "away": "GÖZTEPE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 105,
+      "week": 12,
+      "devre": 1,
+      "home": "KASIMPAŞA A.Ş.",
+      "away": "CORENDON ALANYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 106,
+      "week": 12,
+      "devre": 1,
+      "home": "TÜMOSAN KONYASPOR",
+      "away": "BEŞİKTAŞ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 107,
+      "week": 12,
+      "devre": 1,
+      "home": "TRABZONSPOR A.Ş.",
+      "away": "EYÜPSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 108,
+      "week": 12,
+      "devre": 1,
+      "home": "İSTANBUL BAŞAKŞEHİR FK",
+      "away": "ARCA ÇORUM FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 109,
+      "week": 13,
+      "devre": 1,
+      "home": "CORENDON ALANYASPOR",
+      "away": "TÜMOSAN KONYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 110,
+      "week": 13,
+      "devre": 1,
+      "home": "ÇAYKUR RİZESPOR A.Ş.",
+      "away": "KASIMPAŞA A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 111,
+      "week": 13,
+      "devre": 1,
+      "home": "SAMSUNSPOR A.Ş.",
+      "away": "GENÇLERBİRLİĞİ",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 112,
+      "week": 13,
+      "devre": 1,
+      "home": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "away": "AMED SPORTİF FAALİYETLER",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 113,
+      "week": 13,
+      "devre": 1,
+      "home": "ARCA ÇORUM FK",
+      "away": "KOCAELİSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 114,
+      "week": 13,
+      "devre": 1,
+      "home": "EYÜPSPOR",
+      "away": "İSTANBUL BAŞAKŞEHİR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 115,
+      "week": 13,
+      "devre": 1,
+      "home": "FENERBAHÇE A.Ş.",
+      "away": "ERZURUMSPOR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 116,
+      "week": 13,
+      "devre": 1,
+      "home": "GÖZTEPE A.Ş.",
+      "away": "TRABZONSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 117,
+      "week": 13,
+      "devre": 1,
+      "home": "BEŞİKTAŞ A.Ş.",
+      "away": "GALATASARAY A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 118,
+      "week": 14,
+      "devre": 1,
+      "home": "GALATASARAY A.Ş.",
+      "away": "ÇAYKUR RİZESPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 119,
+      "week": 14,
+      "devre": 1,
+      "home": "TÜMOSAN KONYASPOR",
+      "away": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 120,
+      "week": 14,
+      "devre": 1,
+      "home": "AMED SPORTİF FAALİYETLER",
+      "away": "CORENDON ALANYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 121,
+      "week": 14,
+      "devre": 1,
+      "home": "İSTANBUL BAŞAKŞEHİR FK",
+      "away": "FENERBAHÇE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 122,
+      "week": 14,
+      "devre": 1,
+      "home": "ERZURUMSPOR FK",
+      "away": "KOCAELİSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 123,
+      "week": 14,
+      "devre": 1,
+      "home": "GENÇLERBİRLİĞİ",
+      "away": "EYÜPSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 124,
+      "week": 14,
+      "devre": 1,
+      "home": "BEŞİKTAŞ A.Ş.",
+      "away": "SAMSUNSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 125,
+      "week": 14,
+      "devre": 1,
+      "home": "TRABZONSPOR A.Ş.",
+      "away": "ARCA ÇORUM FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 126,
+      "week": 14,
+      "devre": 1,
+      "home": "KASIMPAŞA A.Ş.",
+      "away": "GÖZTEPE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 127,
+      "week": 15,
+      "devre": 1,
+      "home": "ARCA ÇORUM FK",
+      "away": "AMED SPORTİF FAALİYETLER",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 128,
+      "week": 15,
+      "devre": 1,
+      "home": "ERZURUMSPOR FK",
+      "away": "KASIMPAŞA A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 129,
+      "week": 15,
+      "devre": 1,
+      "home": "CORENDON ALANYASPOR",
+      "away": "SAMSUNSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 130,
+      "week": 15,
+      "devre": 1,
+      "home": "EYÜPSPOR",
+      "away": "GALATASARAY A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 131,
+      "week": 15,
+      "devre": 1,
+      "home": "KOCAELİSPOR",
+      "away": "GENÇLERBİRLİĞİ",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 132,
+      "week": 15,
+      "devre": 1,
+      "home": "ÇAYKUR RİZESPOR A.Ş.",
+      "away": "İSTANBUL BAŞAKŞEHİR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 133,
+      "week": 15,
+      "devre": 1,
+      "home": "GÖZTEPE A.Ş.",
+      "away": "TÜMOSAN KONYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 134,
+      "week": 15,
+      "devre": 1,
+      "home": "FENERBAHÇE A.Ş.",
+      "away": "TRABZONSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 135,
+      "week": 15,
+      "devre": 1,
+      "home": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "away": "BEŞİKTAŞ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 136,
+      "week": 16,
+      "devre": 1,
+      "home": "KASIMPAŞA A.Ş.",
+      "away": "FENERBAHÇE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 137,
+      "week": 16,
+      "devre": 1,
+      "home": "AMED SPORTİF FAALİYETLER",
+      "away": "GÖZTEPE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 138,
+      "week": 16,
+      "devre": 1,
+      "home": "TÜMOSAN KONYASPOR",
+      "away": "EYÜPSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 139,
+      "week": 16,
+      "devre": 1,
+      "home": "İSTANBUL BAŞAKŞEHİR FK",
+      "away": "ERZURUMSPOR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 140,
+      "week": 16,
+      "devre": 1,
+      "home": "GALATASARAY A.Ş.",
+      "away": "CORENDON ALANYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 141,
+      "week": 16,
+      "devre": 1,
+      "home": "GENÇLERBİRLİĞİ",
+      "away": "ARCA ÇORUM FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 142,
+      "week": 16,
+      "devre": 1,
+      "home": "SAMSUNSPOR A.Ş.",
+      "away": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 143,
+      "week": 16,
+      "devre": 1,
+      "home": "BEŞİKTAŞ A.Ş.",
+      "away": "ÇAYKUR RİZESPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 144,
+      "week": 16,
+      "devre": 1,
+      "home": "TRABZONSPOR A.Ş.",
+      "away": "KOCAELİSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 145,
+      "week": 17,
+      "devre": 1,
+      "home": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "away": "GALATASARAY A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 146,
+      "week": 17,
+      "devre": 1,
+      "home": "EYÜPSPOR",
+      "away": "SAMSUNSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 147,
+      "week": 17,
+      "devre": 1,
+      "home": "CORENDON ALANYASPOR",
+      "away": "İSTANBUL BAŞAKŞEHİR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 148,
+      "week": 17,
+      "devre": 1,
+      "home": "FENERBAHÇE A.Ş.",
+      "away": "AMED SPORTİF FAALİYETLER",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 149,
+      "week": 17,
+      "devre": 1,
+      "home": "KOCAELİSPOR",
+      "away": "KASIMPAŞA A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 150,
+      "week": 17,
+      "devre": 1,
+      "home": "ÇAYKUR RİZESPOR A.Ş.",
+      "away": "GENÇLERBİRLİĞİ",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 151,
+      "week": 17,
+      "devre": 1,
+      "home": "GÖZTEPE A.Ş.",
+      "away": "BEŞİKTAŞ A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 152,
+      "week": 17,
+      "devre": 1,
+      "home": "ARCA ÇORUM FK",
+      "away": "TÜMOSAN KONYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 153,
+      "week": 17,
+      "devre": 1,
+      "home": "ERZURUMSPOR FK",
+      "away": "TRABZONSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 154,
+      "week": 18,
+      "devre": 2,
+      "home": "TRABZONSPOR A.Ş.",
+      "away": "KASIMPAŞA A.Ş.",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 155,
+      "week": 18,
+      "devre": 2,
+      "home": "KOCAELİSPOR",
+      "away": "İSTANBUL BAŞAKŞEHİR FK",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 156,
+      "week": 18,
+      "devre": 2,
+      "home": "FENERBAHÇE A.Ş.",
+      "away": "GENÇLERBİRLİĞİ",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 157,
+      "week": 18,
+      "devre": 2,
+      "home": "CORENDON ALANYASPOR",
+      "away": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 158,
+      "week": 18,
+      "devre": 2,
+      "home": "ERZURUMSPOR FK",
+      "away": "AMED SPORTİF FAALİYETLER",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 159,
+      "week": 18,
+      "devre": 2,
+      "home": "ÇAYKUR RİZESPOR A.Ş.",
+      "away": "TÜMOSAN KONYASPOR",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 160,
+      "week": 18,
+      "devre": 2,
+      "home": "ARCA ÇORUM FK",
+      "away": "GALATASARAY A.Ş.",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 161,
+      "week": 18,
+      "devre": 2,
+      "home": "EYÜPSPOR",
+      "away": "BEŞİKTAŞ A.Ş.",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 162,
+      "week": 18,
+      "devre": 2,
+      "home": "GÖZTEPE A.Ş.",
+      "away": "SAMSUNSPOR A.Ş.",
+      "hg": 0,
+      "ag": 0,
+      "played": false
+    },
+    {
+      "id": 163,
+      "week": 19,
+      "devre": 2,
+      "home": "İSTANBUL BAŞAKŞEHİR FK",
+      "away": "TRABZONSPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 164,
+      "week": 19,
+      "devre": 2,
+      "home": "GAZİANTEP FUTBOL KULÜBÜ A.Ş.",
+      "away": "EYÜPSPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 165,
+      "week": 19,
+      "devre": 2,
+      "home": "BEŞİKTAŞ A.Ş.",
+      "away": "CORENDON ALANYASPOR",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 166,
+      "week": 19,
+      "devre": 2,
+      "home": "SAMSUNSPOR A.Ş.",
+      "away": "ÇAYKUR RİZESPOR A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 167,
+      "week": 19,
+      "devre": 2,
+      "home": "TÜMOSAN KONYASPOR",
+      "away": "FENERBAHÇE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 168,
+      "week": 19,
+      "devre": 2,
+      "home": "GALATASARAY A.Ş.",
+      "away": "ERZURUMSPOR FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 169,
+      "week": 19,
+      "devre": 2,
+      "home": "GENÇLERBİRLİĞİ",
+      "away": "GÖZTEPE A.Ş.",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 170,
+      "week": 19,
+      "devre": 2,
+      "home": "KASIMPAŞA A.Ş.",
+      "away": "ARCA ÇORUM FK",
+      "hg": null,
+      "ag": null,
+      "played": false
+    },
+    {
+      "id": 171,
+      "week": 19,
+      "devre": 2,
+      "home": "AMED SPORTİF FAALİYETLER",
+      "away": "KOCAELİSPOR",
       "hg": null,
       "ag": null,
       "played": false
