@@ -161,12 +161,12 @@ with st.sidebar:
 
     # Zona ayarları
     st.markdown('<div class="sidebar-title">🏅 Avrupa Zonaları</div>', unsafe_allow_html=True)
-    cl_limit = st.number_input("🔵 Şampiyonlar Ligi", min_value=0, max_value=max(N,1), value=3, step=1, key="cl")
-    al_limit = st.number_input("🟣 Avrupa Ligi",       min_value=0, max_value=max(N,1), value=5, step=1, key="al")
-    kl_limit = st.number_input("🟢 Konferans Ligi",    min_value=0, max_value=max(N,1), value=7, step=1, key="kl")
+    cl_limit = st.number_input("🔵 Şampiyonlar Ligi", min_value=0, max_value=max(N,1), value=min(3, N), step=1, key="cl")
+    al_limit = st.number_input("🟣 Avrupa Ligi",       min_value=0, max_value=max(N,1), value=min(5, N), step=1, key="al")
+    kl_limit = st.number_input("🟢 Konferans Ligi",    min_value=0, max_value=max(N,1), value=min(7, N), step=1, key="kl")
 
     st.markdown('<div class="sidebar-title" style="margin-top:10px">🔻 Küme Düşme</div>', unsafe_allow_html=True)
-    kd_count = st.number_input("Son kaç takım düşer?", min_value=0, max_value=max(N//2,1), value=3, step=1, key="kd")
+    kd_count = st.number_input("Son kaç takım düşer?", min_value=0, max_value=max(N//2,1), value=min(3, max(N//2,0)), step=1, key="kd")
     kd_start  = N - kd_count + 1
 
     st.markdown("---")
