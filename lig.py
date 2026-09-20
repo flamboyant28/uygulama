@@ -191,7 +191,7 @@ with st.sidebar:
 st.markdown(f"""
 <div style="text-align:center;padding:16px 0 8px">
   <span style="font-size:32px">⚽</span>
-  <h1 style="margin:4px 0;font-size:26px;color:#fff">LİG YÖNETİCİSİ</h1>
+  <h1 style="margin:4px 0;font-size:26px;color:#172033">LİG YÖNETİCİSİ</h1>
   <p style="color:#718096;font-size:13px">{N} Takım · {total_sb} Maç</p>
 </div>
 """, unsafe_allow_html=True)
