@@ -1,10 +1,13 @@
 import streamlit as st
 import json, os
-
+ 
 st.set_page_config(page_title="Lig Yöneticisi", page_icon="⚽", layout="wide")
-
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig_data.json")
-
+ 
+# Lokal çalışırken lig.py'nin yanındaki lig_data.json kullanılır.
+# Streamlit Cloud'da repo read-only olduğu için /tmp'ye düşer.
+_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig_data.json")
+DATA_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "lig_data.json"
+ 
 # ── Fikstür üret ─────────────────────────────────────────────────────────────
 def round_robin(teams):
     n = len(teams)
@@ -15,7 +18,7 @@ def round_robin(teams):
         rounds.append(pairs)
         lst = [lst[0]] + [lst[-1]] + lst[1:-1]
     return rounds
-
+ 
 def generate_fixtures(teams):
     n = len(teams)
     r1 = round_robin(teams)
@@ -33,25 +36,25 @@ def generate_fixtures(teams):
                     "hg": None, "ag": None, "played": False
                 })
     return fixtures
-
+ 
 def make_teams(n):
     return [f"Takım {i}" for i in range(1, n + 1)]
-
+ 
 def default_data(n=16):
     teams = make_teams(n)
     return {"n": n, "teams": teams, "fixtures": generate_fixtures(teams)}
-
+ 
 # ── Veri yükle / kaydet ──────────────────────────────────────────────────────
 def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return default_data()
-
+ 
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
+ 
 # ── İstatistik hesapla ───────────────────────────────────────────────────────
 def compute_table(data):
     teams = data["teams"]
@@ -80,7 +83,7 @@ def compute_table(data):
             stats[h]["B"] += 1; stats[a]["B"] += 1
             stats[h]["IC_B"] += 1
             stats[h]["form"].append("B"); stats[a]["form"].append("B")
-
+ 
     rows = []
     for t in teams:
         s = stats[t]
@@ -96,7 +99,7 @@ def compute_table(data):
     for i, r in enumerate(rows):
         r["Sıra"] = i + 1
     return rows
-
+ 
 def form_html(form5):
     colors = {"G": "#27ae60", "B": "#f39c12", "M": "#e74c3c"}
     badges = "".join(
@@ -105,7 +108,7 @@ def form_html(form5):
         for f in form5
     )
     return badges or '<span style="color:#4a5568">—</span>'
-
+ 
 # ── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -160,24 +163,24 @@ st.markdown("""
   div[data-testid="stNumberInput"] input { text-align:center; }
 </style>
 """, unsafe_allow_html=True)
-
+ 
 # ── Session state ─────────────────────────────────────────────────────────────
 if "data" not in st.session_state:
     st.session_state.data = load_data()
-
+ 
 data = st.session_state.data
 N = data["n"]
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("## ⚙️ Lig Ayarları")
     st.markdown("---")
-
+ 
     # ── Takım sayısı ──────────────────────────────────────────────────────
     st.markdown('<div class="sidebar-title">📋 Takım Sayısı</div>', unsafe_allow_html=True)
-
+ 
     # Çift sayı zorunlu (round-robin için)
     even_options = list(range(4, 33, 2))  # 4, 6, 8 ... 32
     current_idx = even_options.index(N) if N in even_options else even_options.index(16)
@@ -187,7 +190,7 @@ with st.sidebar:
         value=even_options[current_idx],
         label_visibility="collapsed"
     )
-
+ 
     total_matches = new_n * (new_n - 1)
     total_weeks   = (new_n - 1) * 2
     st.markdown(
@@ -196,28 +199,28 @@ with st.sidebar:
         f"</div>",
         unsafe_allow_html=True
     )
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
-
+ 
     # ── Ligi sıfırla / yeniden oluştur ───────────────────────────────────
     st.markdown('<div class="sidebar-title">⚠️ Fikstür</div>', unsafe_allow_html=True)
-
+ 
     n_changed = new_n != N
     if n_changed:
         st.warning(f"Takım sayısı {N} → {new_n} olarak değişti. Fikstürü yeniden oluşturmak gerekiyor.")
-
+ 
     col_a, col_b = st.columns(2)
     reset_clicked  = col_a.button("🔄 Yeniden Oluştur", use_container_width=True,
                                    type="primary" if n_changed else "secondary")
     clear_clicked  = col_b.button("🗑️ Skorları Sıfırla", use_container_width=True)
-
+ 
     if reset_clicked:
         new_data = default_data(new_n)
         st.session_state.data = new_data
         save_data(new_data)
         st.success(f"{new_n} takımlı yeni fikstür oluşturuldu!")
         st.rerun()
-
+ 
     if clear_clicked:
         for m in data["fixtures"]:
             m["hg"] = None
@@ -226,14 +229,14 @@ with st.sidebar:
         save_data(data)
         st.success("Tüm skorlar sıfırlandı.")
         st.rerun()
-
+ 
     st.markdown("---")
-
+ 
     # ── Lig özeti ─────────────────────────────────────────────────────────
     played_sb = sum(1 for m in data["fixtures"] if m["played"])
     total_sb  = len(data["fixtures"])
     pct = int(played_sb / total_sb * 100) if total_sb else 0
-
+ 
     st.markdown('<div class="sidebar-title">📊 Lig Durumu</div>', unsafe_allow_html=True)
     st.progress(pct / 100)
     st.markdown(
@@ -242,7 +245,7 @@ with st.sidebar:
         f"</div>",
         unsafe_allow_html=True
     )
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(
         "<div style='color:#4a5568;font-size:11px;text-align:center'>"
@@ -250,23 +253,23 @@ with st.sidebar:
         "</div>",
         unsafe_allow_html=True
     )
-
+ 
     st.markdown("---")
-
+ 
     # ── Avrupa zonaları ───────────────────────────────────────────────────
     st.markdown('<div class="sidebar-title">🏅 Avrupa Zonaları</div>', unsafe_allow_html=True)
     cl_limit = st.number_input("🔵 Şampiyonlar Ligi (ilk N takım)", min_value=0, max_value=new_n, value=3, step=1, key="cl")
     al_limit = st.number_input("🟣 Avrupa Ligi (ilk N takım)",      min_value=0, max_value=new_n, value=5, step=1, key="al")
     kl_limit = st.number_input("🟢 Konferans Ligi (ilk N takım)",   min_value=0, max_value=new_n, value=7, step=1, key="kl")
-
+ 
     st.markdown('<div class="sidebar-title" style="margin-top:10px">🔻 Küme Düşme</div>', unsafe_allow_html=True)
     kd_count = st.number_input("Son kaç takım düşer?", min_value=0, max_value=new_n // 2, value=3, step=1, key="kd")
     kd_start = new_n - kd_count + 1
-
+ 
 # Veriyi güncelle (sidebar'dan sonra)
 data = st.session_state.data
 N = data["n"]
-
+ 
 # ── Başlık ────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div style="text-align:center;padding:16px 0 8px">
@@ -275,21 +278,21 @@ st.markdown(f"""
   <p style="color:#718096;font-size:13px">{N} Takımlı · Çift Devreli · {len(data['fixtures'])} Maç</p>
 </div>
 """, unsafe_allow_html=True)
-
+ 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4 = st.tabs(["🏆  Puan Tablosu", "⚽  Skor Girişi", "📅  Fikstür", "⚙️  Ayarlar"])
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 1 — PUAN TABLOSU
 # ════════════════════════════════════════════════════════════════════════════
 with tab1:
     table = compute_table(data)
-
+ 
     played = sum(1 for m in data["fixtures"] if m["played"])
     total  = len(data["fixtures"])
     goals  = sum((m["hg"] or 0) + (m["ag"] or 0) for m in data["fixtures"] if m["played"])
     avg_g  = round(goals / played, 2) if played else 0
-
+ 
     c1, c2, c3, c4 = st.columns(4)
     for col, val, lbl in [
         (c1, played, "Oynanan Maç"),
@@ -302,9 +305,9 @@ with tab1:
           <div class="metric-val">{val}</div>
           <div class="metric-lbl">{lbl}</div>
         </div>""", unsafe_allow_html=True)
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
-
+ 
     # Zona eşikleri — sidebar'dan gelir
     st.markdown(f"""
     <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:#a0aec0;flex-wrap:wrap">
@@ -314,13 +317,13 @@ with tab1:
       {"" if kd_count == 0 else f'<span><span style="color:#e74c3c">●</span> {kd_start}-{N} Küme Düşme</span>'}
     </div>
     """, unsafe_allow_html=True)
-
+ 
     html = '<table class="lig-table"><thead><tr>'
     for h in ["Sıra","Takım","O","G","B","M","AG","YG","AV","Puan","İç O","İç G","İç B","İç M","Son 5"]:
         cls = "left" if h == "Takım" else ""
         html += f'<th class="{cls}">{h}</th>'
     html += "</tr></thead><tbody>"
-
+ 
     for row in table:
         s = row["Sıra"]
         if s <= cl_limit and cl_limit > 0:
@@ -333,10 +336,10 @@ with tab1:
             zona_cls, sira_cls = "zona-kd", "sira-kd"
         else:
             zona_cls, sira_cls = "zona-norm", "sira-norm"
-
+ 
         av = row["AV"]
         av_color = "#27ae60" if av > 0 else ("#e74c3c" if av < 0 else "#a0aec0")
-
+ 
         html += (
             f'<tr>'
             f'<td class="{zona_cls}"><span class="sira-badge {sira_cls}">{s}</span></td>'
@@ -349,37 +352,37 @@ with tab1:
             f'<td>{form_html(row["form"])}</td>'
             f'</tr>'
         )
-
+ 
     html += "</tbody></table>"
     st.markdown(html, unsafe_allow_html=True)
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 2 — SKOR GİRİŞİ
 # ════════════════════════════════════════════════════════════════════════════
 with tab2:
     all_weeks = sorted(set(m["week"] for m in data["fixtures"]))
-
+ 
     col_l, col_r = st.columns([3, 1])
     col_l.markdown("### Skor Girişi")
     week = col_r.selectbox("Hafta", all_weeks,
                             format_func=lambda w: f"Hafta {w}",
                             key="week_sel")
-
+ 
     week_matches = [m for m in data["fixtures"] if m["week"] == week]
     f1, f2 = st.columns(2)
     show_played   = f1.checkbox("Oynanmışları göster", value=True)
     show_unplayed = f2.checkbox("Oynanmamışları göster", value=True)
-
+ 
     filtered = [m for m in week_matches
                 if (m["played"] and show_played) or (not m["played"] and show_unplayed)]
-
+ 
     played_w = sum(1 for m in week_matches if m["played"])
     st.markdown(
         f"<p style='color:#718096;font-size:13px'>"
         f"{week}. Hafta · {len(week_matches)} maç · {played_w} oynandı</p>",
         unsafe_allow_html=True
     )
-
+ 
     changed = False
     for m in filtered:
         st.markdown(
@@ -391,7 +394,7 @@ with tab2:
         c1.markdown(f'<div class="takim-adi">{m["home"]}</div>', unsafe_allow_html=True)
         c3.markdown('<div class="vs">—</div>', unsafe_allow_html=True)
         c5.markdown(f'<div class="takim-adi">{m["away"]}</div>', unsafe_allow_html=True)
-
+ 
         hg_new = c2.number_input("", min_value=0, max_value=30,
                                   value=m["hg"] or 0, key=f"hg_{m['id']}",
                                   label_visibility="collapsed")
@@ -400,34 +403,34 @@ with tab2:
                                   label_visibility="collapsed")
         played_new = st.checkbox("Oynandı ✓", value=m["played"], key=f"p_{m['id']}")
         st.markdown("</div>", unsafe_allow_html=True)
-
+ 
         if hg_new != m["hg"] or ag_new != m["ag"] or played_new != m["played"]:
             m["hg"] = hg_new
             m["ag"] = ag_new
             m["played"] = played_new
             changed = True
-
+ 
     if changed:
         save_data(data)
         st.rerun()
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾  Kaydet", use_container_width=True, type="primary"):
         save_data(data)
         st.success("Kaydedildi!")
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 3 — FİKSTÜR
 # ════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.markdown("### Fikstür")
-
+ 
     fa, fb, fc = st.columns(3)
     devre_f = fa.selectbox("Devre", [0, 1, 2],
                             format_func=lambda x: "Tümü" if x == 0 else f"{x}. Devre")
     team_f  = fb.selectbox("Takım", ["Tümü"] + data["teams"])
     stat_f  = fc.selectbox("Durum", ["Tümü", "Oynandı", "Oynanmadı"])
-
+ 
     flt = data["fixtures"]
     if devre_f:
         flt = [m for m in flt if m["devre"] == devre_f]
@@ -437,18 +440,18 @@ with tab3:
         flt = [m for m in flt if m["played"]]
     elif stat_f == "Oynanmadı":
         flt = [m for m in flt if not m["played"]]
-
+ 
     st.markdown(
         f"<p style='color:#718096;font-size:13px'>{len(flt)} maç listeleniyor</p>",
         unsafe_allow_html=True
     )
-
+ 
     html2 = '<table class="lig-table"><thead><tr>'
     for h in ["No", "Hafta", "Ev Sahibi", "Skor", "Deplasman", "Devre", "Durum"]:
         cls = "left" if h in ["Ev Sahibi", "Deplasman"] else ""
         html2 += f'<th class="{cls}">{h}</th>'
     html2 += "</tr></thead><tbody>"
-
+ 
     for m in flt:
         if m["played"]:
             skor = f'<b>{m["hg"]} - {m["ag"]}</b>'
@@ -462,7 +465,7 @@ with tab3:
         else:
             skor  = '<span style="color:#4a5568">vs</span>'
             durum = '<span style="color:#4a5568;font-size:11px">—</span>'
-
+ 
         html2 += (
             f'<tr>'
             f'<td>{m["id"]}</td>'
@@ -474,22 +477,31 @@ with tab3:
             f'<td>{durum}</td>'
             f'</tr>'
         )
-
+ 
     html2 += "</tbody></table>"
     st.markdown(html2, unsafe_allow_html=True)
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 4 — AYARLAR
 # ════════════════════════════════════════════════════════════════════════════
 with tab4:
     st.markdown("### ⚙️ Ayarlar")
-
+ 
     # ── JSON dosya konumu ─────────────────────────────────────────────────
     st.markdown("#### 📁 Veri Dosyası")
-    st.info(f"**Konum:** `{DATA_FILE}`", icon="💾")
-
+    if DATA_FILE.startswith("/tmp"):
+        st.warning(
+            f"**Konum:** `{DATA_FILE}`\n\n"
+            "Streamlit Cloud'da repo read-only olduğu için `/tmp` kullanılıyor. "
+            "Uygulama yeniden başlatılırsa veriler sıfırlanır. "
+            "Düzenli **JSON indir** ile yedek al.",
+            icon="⚠️"
+        )
+    else:
+        st.success(f"**Konum:** `{DATA_FILE}`\n\nLokal dizine yazılıyor, veriler kalıcı.", icon="✅")
+ 
     col_dl, col_up = st.columns(2)
-
+ 
     # İndir
     with col_dl:
         if os.path.exists(DATA_FILE):
@@ -502,7 +514,7 @@ with tab4:
                 mime="application/json",
                 use_container_width=True
             )
-
+ 
     # Yükle
     with col_up:
         uploaded = st.file_uploader("⬆️  JSON Yükle", type="json", label_visibility="collapsed")
@@ -519,18 +531,18 @@ with tab4:
                     st.error("Geçersiz dosya formatı.")
             except Exception as e:
                 st.error(f"Hata: {e}")
-
+ 
     st.markdown("---")
-
+ 
     # ── Takım isimleri ────────────────────────────────────────────────────
     st.markdown("#### 🏷️ Takım İsimleri")
     st.caption("İsimleri düzenle, ardından **Kaydet** butonuna bas. Fikstürdeki maç isimleri de otomatik güncellenir.")
-
+ 
     teams = data["teams"]
     new_names = []
     cols_per_row = 3
     rows_needed = (len(teams) + cols_per_row - 1) // cols_per_row
-
+ 
     for row_i in range(rows_needed):
         cols = st.columns(cols_per_row)
         for col_i in range(cols_per_row):
@@ -543,7 +555,7 @@ with tab4:
                     max_chars=40
                 )
                 new_names.append((idx, val.strip()))
-
+ 
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("💾  Takım İsimlerini Kaydet", type="primary", use_container_width=True):
         changed_any = False
@@ -561,20 +573,20 @@ with tab4:
                         m["away"] = new_name
                 data["teams"][idx] = new_name
                 changed_any = True
-
+ 
         if changed_any:
             save_data(data)
             st.success("✅ Takım isimleri güncellendi!")
             st.rerun()
         else:
             st.info("Değişiklik yok.")
-
+ 
     st.markdown("---")
-
+ 
     # ── Tehlikeli alan ────────────────────────────────────────────────────
     st.markdown("#### 🗑️ Sıfırlama")
     col_r1, col_r2 = st.columns(2)
-
+ 
     with col_r1:
         if st.button("🗑️ Tüm Skorları Sıfırla", use_container_width=True):
             for m in data["fixtures"]:
@@ -584,7 +596,7 @@ with tab4:
             save_data(data)
             st.success("Tüm skorlar sıfırlandı.")
             st.rerun()
-
+ 
     with col_r2:
         if st.button("💣 Ligi Tamamen Sıfırla", use_container_width=True, type="secondary"):
             if st.session_state.get("confirm_reset"):
