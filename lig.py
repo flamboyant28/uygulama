@@ -252,7 +252,7 @@ st.markdown("""
   .sira-kl  { background:#1abc9c; color:#fff; }
   .sira-kd  { background:#e74c3c; color:#fff; }
   .sira-norm{ background:#2d3748; color:#a0aec0; }
-  .puan { font-weight:700; font-size:14px; color:#e74c3c; }
+  .puan { font-weight:700; font-size:14px; color:#000; }
   .mac-kart {
     background:#1a2340; border-radius:10px; padding:14px 18px;
     margin-bottom:8px; border:1px solid #2d3748;
