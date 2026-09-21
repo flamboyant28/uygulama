@@ -6,9 +6,9 @@ st.set_page_config(page_title="Lig Yöneticisi", page_icon="⚽", layout="wide")
 
 # ── DB yolu ───────────────────────────────────────────────────────────────────
 _local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig.db")
-DB_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "/lig.db"
+DB_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "/tmp/lig.db"
 _json_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig_data.json")
-JSON_FILE = _json_local if os.path.exists(_json_local) else "/lig_data.json"
+JSON_FILE = _json_local if os.path.exists(_json_local) else "/tmp/lig_data.json"
 
 # ── SQLite ────────────────────────────────────────────────────────────────────
 @contextmanager
@@ -172,17 +172,20 @@ def compute_table(data):
             stats[h]["G"] += 1; stats[a]["M"] += 1
             stats[h]["IC_G"]  += 1
             stats[a]["DIS_M"] += 1
-            stats[h]["form"].append(("G", f"{hg}-{ag}")); stats[a]["form"].append(("M", f"{ag}-{hg}"))
+            stats[h]["form"].append(("G", f"{hg}-{ag}", a))
+            stats[a]["form"].append(("M", f"{ag}-{hg}", h))
         elif hg < ag:
             stats[a]["G"] += 1; stats[h]["M"] += 1
             stats[h]["IC_M"]  += 1
             stats[a]["DIS_G"] += 1
-            stats[h]["form"].append(("M", f"{hg}-{ag}")); stats[a]["form"].append(("G", f"{ag}-{hg}"))
+            stats[h]["form"].append(("M", f"{hg}-{ag}", a))
+            stats[a]["form"].append(("G", f"{ag}-{hg}", h))
         else:
             stats[h]["B"] += 1; stats[a]["B"] += 1
             stats[h]["IC_B"]  += 1
             stats[a]["DIS_B"] += 1
-            stats[h]["form"].append(("B", f"{hg}-{ag}")); stats[a]["form"].append(("B", f"{hg}-{ag}"))
+            stats[h]["form"].append(("B", f"{hg}-{ag}", a))
+            stats[a]["form"].append(("B", f"{hg}-{ag}", h))
     rows = []
     for t in teams:
         s = stats[t]
@@ -206,11 +209,14 @@ def form_html(form5):
     colors = {"G": "#27ae60", "B": "#f39c12", "M": "#e74c3c"}
     badges = ""
     for item in form5:
-        if isinstance(item, tuple):
+        if isinstance(item, tuple) and len(item) == 3:
+            f, skor, rakip = item
+            tooltip = f'title="{rakip} | {skor}"'
+        elif isinstance(item, tuple) and len(item) == 2:
             f, skor = item
+            tooltip = f'title="{skor}"'
         else:
-            f, skor = item, ""
-        tooltip = f'title="{skor}"' if skor else ""
+            f, tooltip = item, ""
         badges += (
             f'<span {tooltip} style="background:{colors[f]};color:#fff;border-radius:4px;'
             f'padding:1px 6px;margin:1px;font-size:13px;font-weight:700;cursor:default">{f}</span>'
@@ -267,7 +273,7 @@ st.markdown("""
     border:1px solid #2d3748; margin-bottom:12px;
   }
   .lig-table td.grp-start, .lig-table th.grp-start {
-    border-left: 2px solid #4a5568 !important;
+    border-left: 3px solid #718096 !important;
   }
   .lig-table th.puan-hdr { color: #ffd700; }
   div[data-testid="stNumberInput"] input { text-align:center; }
@@ -381,14 +387,21 @@ with tab1:
 
         html = '<table class="lig-table"><thead><tr>'
         headers = [
-            ("Sıra",""), ("Takım","left"),
+            ("Sıra", ""), ("Takım", "left"),
             ("Oyn",""), ("Gal",""), ("Ber",""), ("Mağ",""), ("A Gol",""), ("Y Gol",""), ("Aver",""), ("Puan","puan-hdr"),
-            ("İç Oyn","grp-start"), ("İç Gal",""), ("İç Ber",""), ("İç Mağ",""), ("İç A Gol",""), ("İç Y Gol",""),
-            ("Dış Oyn","grp-start"), ("Dış Gal",""), ("Dış Ber",""), ("Dış Mağ",""), ("Dış A Gol",""), ("Dış Y Gol",""),
+            ("İç Oyn","grp"), ("İç Gal",""), ("İç Ber",""), ("İç Mağ",""), ("İç A Gol",""), ("İç Y Gol",""),
+            ("Dış Oyn","grp"), ("Dış Gal",""), ("Dış Ber",""), ("Dış Mağ",""), ("Dış A Gol",""), ("Dış Y Gol",""),
             ("Son 5",""),
         ]
         for h, cls in headers:
-            html += f'<th class="{cls}">{h}</th>'
+            if cls == "grp":
+                html += f'<th style="border-left:3px solid #718096;text-align:center">{h}</th>'
+            elif cls == "left":
+                html += f'<th class="left">{h}</th>'
+            elif cls == "puan-hdr":
+                html += f'<th style="color:#ffd700;text-align:center">{h}</th>'
+            else:
+                html += f'<th>{h}</th>'
         html += "</tr></thead><tbody>"
 
         for row in table:
@@ -415,9 +428,9 @@ with tab1:
                 f'<td>{row["AG"]}</td><td>{row["YG"]}</td>'
                 f'<td style="color:{av_color};font-weight:600">{av:+d}</td>'
                 f'<td class="puan">{row["Puan"]}</td>'
-                f'<td class="grp-start">{row["İç O"]}</td><td>{row["İç G"]}</td><td>{row["İç B"]}</td><td>{row["İç M"]}</td>'
+                f'<td style="border-left:3px solid #718096">{row["İç O"]}</td><td>{row["İç G"]}</td><td>{row["İç B"]}</td><td>{row["İç M"]}</td>'
                 f'<td>{row["İç AG"]}</td><td>{row["İç YG"]}</td>'
-                f'<td class="grp-start">{row["Dış O"]}</td><td>{row["Dış G"]}</td><td>{row["Dış B"]}</td><td>{row["Dış M"]}</td>'
+                f'<td style="border-left:3px solid #718096">{row["Dış O"]}</td><td>{row["Dış G"]}</td><td>{row["Dış B"]}</td><td>{row["Dış M"]}</td>'
                 f'<td>{row["Dış AG"]}</td><td>{row["Dış YG"]}</td>'
                 f'<td>{form_html(row["form"])}</td>'
                 f'</tr>'
