@@ -6,9 +6,9 @@ st.set_page_config(page_title="Lig Yöneticisi", page_icon="⚽", layout="wide")
 
 # ── DB yolu ───────────────────────────────────────────────────────────────────
 _local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig.db")
-DB_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "/tmp/lig.db"
+DB_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "lig.db"
 _json_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig_data.json")
-JSON_FILE = _json_local if os.path.exists(_json_local) else "/tmp/lig_data.json"
+JSON_FILE = _json_local if os.path.exists(_json_local) else "lig_data.json"
 
 # ── SQLite ────────────────────────────────────────────────────────────────────
 @contextmanager
@@ -252,7 +252,7 @@ st.markdown("""
   .sira-kl  { background:#1abc9c; color:#fff; }
   .sira-kd  { background:#e74c3c; color:#fff; }
   .sira-norm{ background:#2d3748; color:#a0aec0; }
-  .puan { font-weight:700; font-size:14px; color:#fff; }
+  .puan { font-weight:700; font-size:14px; color:#e74c3c; }
   .mac-kart {
     background:#1a2340; border-radius:10px; padding:14px 18px;
     margin-bottom:8px; border:1px solid #2d3748;
