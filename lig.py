@@ -5,7 +5,7 @@ from contextlib import contextmanager
 st.set_page_config(page_title="Lig Yöneticisi", page_icon="⚽", layout="wide")
 
 # ── DB yolu ───────────────────────────────────────────────────────────────────
-_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "/lig.db")
+_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lig.db")
 DB_FILE = _local if os.access(os.path.dirname(_local), os.W_OK) else "/lig.db"
 _json_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "/lig_data.json")
 JSON_FILE = _json_local if os.path.exists(_json_local) else "/lig_data.json"
