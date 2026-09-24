@@ -487,7 +487,7 @@ st.markdown("""
     margin-bottom:8px; border:1px solid #2d3748;
   }
   .mac-baslik { color:#718096; font-size:11px; font-weight:600; margin-bottom:6px; }
-  .takim-adi { font-size:18px; font-weight:700; color:#fff; text-align:center; }
+  .takim-adi { font-size:18px; font-weight:700; color:#bcbcbc; text-align:center; }
   .vs { color:#4a5568; font-size:18px; font-weight:700; text-align:center; }
   .metric-card {
     background:#1a2340; border-radius:10px; padding:16px;
