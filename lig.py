@@ -466,7 +466,7 @@ st.markdown("""
   .lig-table th.left { text-align:left; }
   .lig-table td { padding:7px 10px; text-align:center; border-bottom:1px solid #1e2535; }
   .lig-table td.left { text-align:left; font-weight:600; }
-  .lig-table tr:hover td { background:#666666 !important; }
+  .lig-table tr:hover td { background:#eeeeee !important; }
   .zona-cl   { border-left:3px solid #3498db; }
   .zona-al   { border-left:3px solid #9b59b6; }
   .zona-kl   { border-left:3px solid #1abc9c; }
