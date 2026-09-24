@@ -1224,7 +1224,7 @@ with tab5:
                     html_g += f'<th class="{"left" if h=="Takım" else ""}">{h}</th>'
                 html_g += "</tr></thead><tbody>"
                 for i, r in enumerate(sorted_att):
-                    bg = "#1a2340" if i % 2 == 0 else ""
+                    bg = "#bcbcbc" if i % 2 == 0 else ""
                     html_g += (
                         f'<tr style="background:{bg}">'
                         f'<td class="left">{r["Takım"]}</td>'
