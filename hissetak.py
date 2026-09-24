@@ -1210,7 +1210,7 @@ st.caption(
 )
 '''
 
-#path = Path("/mnt/data/hissetak.py")
+#path = Path("hissetak.py")
 #path.write_text(code, encoding="utf-8")
 
 # Başlangıç CSV dosyalarını da oluştur.
@@ -1222,9 +1222,9 @@ trades = pd.DataFrame(columns=[
     "id", "Tarih", "Hisse", "İşlem", "Lot", "Fiyat", "Tutar"
 ])
 
-market.to_csv("/mnt/data/hisseler.csv", index=False, encoding="utf-8-sig")
-trades.to_csv("/mnt/data/islemler.csv", index=False, encoding="utf-8-sig")
+market.to_csv("hisseler.csv", index=False, encoding="utf-8-sig")
+trades.to_csv("islemler.csv", index=False, encoding="utf-8-sig")
 
 print(path)
-print("/mnt/data/hisseler.csv")
-print("/mnt/data/islemler.csv")
+print("hisseler.csv")
+print("islemler.csv")
