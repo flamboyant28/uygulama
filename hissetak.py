@@ -1210,7 +1210,7 @@ st.caption(
 )
 '''
 
-path = Path("/mnt/data/finans2.py")
+path = Path("/mnt/data/hissetak.py")
 path.write_text(code, encoding="utf-8")
 
 # Başlangıç CSV dosyalarını da oluştur.
