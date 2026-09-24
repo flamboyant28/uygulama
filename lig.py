@@ -1259,7 +1259,7 @@ with tab5:
                 st.markdown(html_y, unsafe_allow_html=True)
 
             # Hafta bazlı gol grafiği
-            st.markdown("<br>**📊 Hafta Bazlı Gol Ortalaması**")
+            st.markdown("**📊 Hafta Bazlı Gol Ortalaması**")
             all_weeks_g = sorted(set(m["week"] for m in played_fixtures))
             hafta_goller = []
             for w in all_weeks_g:
@@ -1359,7 +1359,7 @@ with tab5:
                         f'</div>', unsafe_allow_html=True
                     )
 
-                    st.markdown("<br>**Karşılaşmalar:**")
+                    st.markdown("**Karşılaşmalar:**")
                     html_h2h = '<table class="lig-table"><thead><tr>'
                     for h in ["Hafta","Ev Sahibi","Skor","Deplasman","Sonuç"]:
                         cls = "left" if h in ["Ev Sahibi","Deplasman"] else ""
@@ -1390,7 +1390,7 @@ with tab5:
                     st.markdown(html_h2h, unsafe_allow_html=True)
 
                     # Genel puan tablosundaki durumları
-                    st.markdown("<br>**Lig Sıralaması:**")
+                    st.markdown("**Lig Sıralaması:**")
                     t1_row = next((r for r in table if r["Takım"] == takim1), None)
                     t2_row = next((r for r in table if r["Takım"] == takim2), None)
                     if t1_row and t2_row:
@@ -1518,7 +1518,7 @@ with tab5:
                         html_wm += "</tbody></table>"
                         st.markdown(html_wm, unsafe_allow_html=True)
 
-                    st.markdown("<br>**🔥 En Çok Gol Atılan İlk 10 Hafta**")
+                    st.markdown("**🔥 En Çok Gol Atılan İlk 10 Hafta**")
 
                     # Tüm oynanan haftaların gol toplamını hesapla
                     hafta_gol_map = {}
