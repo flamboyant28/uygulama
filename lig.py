@@ -1536,7 +1536,7 @@ with tab5:
                         mac_sayisi = len([m for m in played_fixtures if m["week"] == w])
                         mb = round(total_g / mac_sayisi, 2) if mac_sayisi else 0
                         # Seçili haftayı vurgula
-                        row_style = "background:#bcbcbc;" if w == selected_week else ""
+                        row_style = "background:#eeeeee;" if w == selected_week else ""
                         gol_color = "#27ae60" if rank == 1 else ("#f39c12" if rank <= 3 else "inherit")
                         html_top += (
                             f'<tr style="{row_style}">'
